@@ -1,3 +1,4 @@
+import LessonContent from "../../components/lesson/LessonContent.jsx";
 import { studentModuleNavigation } from "../../utils/studentModuleVisibility.js";
 import {
   readAccountQuizResult,
@@ -32,24 +33,6 @@ const saveAccountLessonProgress = (baseKey, record) => {
 };
 
 const LESSON_QUIZ_LIMIT = 5;
-
-const splitReadableText = (value) => {
-  const text = String(value || "").replace(/\r\n/g, "\n").trim();
-  if (!text) return [];
-  // Preserve authored line breaks; reflow only unusually long plain paragraphs.
-  return text.split(/\n+/).filter(line => line.trim()).flatMap((line) => {
-    if (line.length < 450) return [line.trim()];
-    const sentences = line.match(/[^.!?]+(?:[.!?]+["'’”]?|$)/g) || [line];
-    const groups = [];
-    let paragraph = "";
-    for (const sentence of sentences) {
-      paragraph = `${paragraph} ${sentence.trim()}`.trim();
-      if (paragraph.length >= 260) { groups.push(paragraph); paragraph = ""; }
-    }
-    if (paragraph) groups.push(paragraph);
-    return groups;
-  });
-};
 
 // Compare answer text and letter-based multiple-choice keys consistently.
 const normalizeRecapAnswer = (value) => String(value ?? "")
@@ -529,7 +512,6 @@ function Lesson() {
       imageWidth: 300,
       imageHeight: 200,
       imageAlt: isCorrect ? "Correct answer" : "Incorrect answer",
-      title: isCorrect ? "Correct!" : "Incorrect!",
       html: `
         <div class="quiz-popup-content">
           <p class="quiz-popup-answer">
@@ -587,7 +569,7 @@ function Lesson() {
           title: "quiz-popup-title",
           confirmButton: "quiz-popup-button",
         },
-        title: "Reminder: answer first",
+        title: "Reminder: Answer First",
         text: "Please answer the quick check before continuing.",
       });
       return;
@@ -697,11 +679,7 @@ function Lesson() {
                 )}
 
                 <div className={styles.lessonSlideContent}>
-                  {splitReadableText(currentItem.content.content).map(
-                    (paragraph, index) => (
-                      <p key={`${paragraph}-${index}`}>{paragraph}</p>
-                    ),
-                  )}
+                  <LessonContent content={currentItem.content.content} />
                 </div>
               </div>
             )}

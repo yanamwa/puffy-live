@@ -1,3 +1,4 @@
+import LessonContent from "../../../components/lesson/LessonContent.jsx";
 import { CatalogModal } from "../../../components/catalog/CatalogModal.jsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -424,7 +425,7 @@ export function ProfessorClassDetails({ course, onClose }) {
       <h3>Learning Objectives</h3>
       <p>{course.learningObjectives || "No learning objectives yet."}</p>
       <h3>Lesson Pages</h3>
-      {lessons.length === 0 ? <p>No lesson pages yet.</p> : <div className="catalog-class-content">{lessons.map((page,index)=><article key={page.id || index}><h4>{page.title || `Page ${index+1}`}</h4><p>{page.content || "No lesson content."}</p></article>)}</div>}
+      {lessons.length === 0 ? <p>No lesson pages yet.</p> : <div className="catalog-class-content">{lessons.map((page,index)=><article key={page.id || index}><h4>{page.title || `Page ${index+1}`}</h4><LessonContent content={page.content || "No lesson content."} /></article>)}</div>}
       <h3>Course Quiz</h3>
       {quizItems.length === 0 ? <p>No quiz items yet.</p> : <div className="catalog-class-content">{quizItems.map((item,index)=><article key={item.id || index}><h4>{item.question || `Question ${index+1}`}</h4><p>Answer: {item.correct_answer || item.answer || "Not set"}</p></article>)}</div>}
     </CatalogModal>

@@ -250,19 +250,19 @@
 }
 
 .approveBtn {
-  border: 1px solid #d69f47;
-  border-bottom: 3px solid #d69f47;
-  background: #ffe4b7;
-  color: #181818;
+  border: 1px solid #cda465;
+  border-bottom: 3px solid #caa468;
+  background: hsl(38, 73%, 59%);
+  color: white;
 }
 
 .declineBtn,
 .unenrollBtn {
   min-width: 110px;
-  border: 1px solid #c84040;
-  border-bottom: 3px solid #b72222;
-  background: #f3bcbc;
-  color: #181818;
+  border: 1px solid #a33b3b;
+  border-bottom: 3px solid #a34444;
+  background: #bf5656;
+  color: white;
 }
 
 .emptyTable {
@@ -450,8 +450,6 @@
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
 }
 
-
-
 .rejectDialog p {
   margin: 8px 0 14px;
   color: #666;
@@ -510,12 +508,6 @@
   color: #4f4f4f;
 }
 
-.confirmRejectBtn {
-  border: 1px solid #b72222;
-  background: #c84040;
-  color: #fff;
-}
-
 .cancelRejectBtn:disabled,
 .confirmRejectBtn:disabled {
   cursor: wait;
@@ -545,7 +537,6 @@
   }
 }
 
-/* Professor palette cleanup for course view actions. */
 .activeTab {
   border-color: #6f98c7;
   background: #7fa8d6;
@@ -805,13 +796,14 @@
   background: #7fa8d6;
   color: #fff;
   text-align: center;
-  font: 600 18px/1.4 Arial, sans-serif;
+  font: 600 25px/1.4 Arial, sans-serif;
 }
 .rejectDialog p {
   margin: 20px 24px 14px;
   color: #64748b;
-  font: 400 14px/1.65 Arial, sans-serif;
+  font: 400 18px/1.65 Arial, sans-serif;
 }
+
 .rejectDialog textarea {
   display: block;
   width: calc(100% - 48px);
@@ -822,8 +814,9 @@
   border-radius: 9px;
   background: #f7faff;
   color: #294765;
-  font: 400 14px/1.6 Arial, sans-serif;
+  font: 400 18px/1.6 Arial, sans-serif;
 }
+
 .rejectDialog textarea:focus-visible {
   outline: 2px solid #7fa8d6;
   outline-offset: 2px;
@@ -831,7 +824,7 @@
 .reasonFooter {
   margin: 8px 24px 20px;
   align-items: flex-start;
-  font: 400 12px/1.6 Arial, sans-serif;
+  font: 400 15px/1.6 Arial, sans-serif;
   color: #64748b;
 }
 .rejectActions {
@@ -847,7 +840,7 @@
   padding: 9px 12px;
   border-radius: 7px;
   box-shadow: none;
-  font: 500 14px/1.4 Arial, sans-serif;
+  font: 500 18px/1.4 Arial, sans-serif;
 }
 .rejectActions .cancelRejectBtn {
   background: #fff;
@@ -856,10 +849,12 @@
   box-shadow: 0 3px 0 #d9dfe5;
 }
 .rejectActions .confirmRejectBtn {
-  background: #7fa8d6;
-  border: 1px solid #7fa8d6;
-  color: #101820;
+  border: 1px solid #a33b3b;
+  border-bottom: 3px solid #a34444;
+  background: #bf5656;
+  color: #fff;
 }
+
 .rejectActions button:hover:not(:disabled) { filter: brightness(0.96); }
 
 .printButton:hover:not(:disabled) { background: #6e98c7; border-color: #6e98c7; }
@@ -937,9 +932,9 @@
   font: 500 16px/1.4 Arial, sans-serif !important;
 }
 :global(body) .unenrollDialog :global(.swal2-confirm) {
-  background: #7fa8d6 !important;
-  color: #101820 !important;
-  border: 1px solid #7fa8d6 !important;
+  background: #3c8d23 !important;
+  color: white !important;
+  border: 1px solid #42882c !important;
 }
 :global(body) .unenrollDialog :global(.swal2-cancel) {
   background: #fff !important;

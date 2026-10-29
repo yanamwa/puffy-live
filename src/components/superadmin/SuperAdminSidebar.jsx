@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 
 import {
   FiCalendar,
@@ -82,13 +82,21 @@ export default function SuperAdminSidebar({
   toggleSidebar,
   onLogout,
 }) {
+  const { pathname } = useLocation();
+  const isDashboardRoot = pathname.replace(/\/+$/, "") === "/super-admin";
+
   const renderMenuItem = (item) => {
     const Icon = item.icon;
+    const path =
+      item.path === "/super-admin/dashboard" && isDashboardRoot
+        ? "/super-admin"
+        : item.path;
 
     return (
       <NavLink
         key={item.path}
-        to={item.path}
+        to={path}
+        end={path === "/super-admin"}
         className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}
         title={sidebarCollapsed ? item.label : undefined}
       >

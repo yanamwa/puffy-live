@@ -1,3 +1,4 @@
+import { removeLessonPracticeActivities } from "./lessonPracticeContent.js";
 function coverageList(value) {
   if (Array.isArray(value)) return value;
   try {
@@ -62,8 +63,8 @@ export function applyCatalogToDraft(
               learningObjectives: String(row.learning_objectives || ""),
               topics: [...(row.topics || [])],
               studentPublished: false,
-              lessonPages: (row.lesson_pages || []).map(page => ({ ...page, id: createId() })),
-              quizItems: [],
+              lessonPages: (row.lesson_pages || []).map(page => ({ ...page, content: removeLessonPracticeActivities(page.content), id: createId() })),
+              quizItems: (row.quiz_items || []).map(item => ({ ...item, id: createId() })),
               mainQuizSettings: { enabled: false, unlockAt: "", lockAt: "" },
               mainQuizEnabled: false,
               mainQuizUnlockAt: "",

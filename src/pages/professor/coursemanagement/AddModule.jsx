@@ -1,3 +1,5 @@
+import { removeLessonPracticeActivities } from "../../../services/lessonPracticeContent.js";
+import { generateModulePractice } from "../../../services/modulePracticeGeneration.js";
 import ProfessorCatalogSelection from "../../../components/catalog/ProfessorCatalogSelection.jsx";
 import ManagementBackBar from "../../../components/ManagementBackBar.jsx";
 import { selectCourseBuilderDraft } from "../../../services/courseBuilderDraft.js";
@@ -1071,7 +1073,7 @@ export default function AddModule() {
 
               title: limit(page?.title || "", TITLE_LIMIT),
 
-              content: limit(page?.content || "", LESSON_LIMIT),
+              content: limit(removeLessonPracticeActivities(page?.content), LESSON_LIMIT),
             }))
             .filter((page) => page.title || page.content)
         : [];
@@ -1083,6 +1085,12 @@ export default function AddModule() {
         );
       }
 
+      const practice = await generateModulePractice({
+        courseId: generationCourse.id, moduleId,
+        title: selectedModule.title || data.module_title,
+        objectives: selectedModule.learningObjectives || data.learning_objectives,
+        pages: generatedPages, existing: selectedModule.quizItems || [],
+      });
       const nextCourse = {
         ...generationCourse,
         subject: limit(data.subject || generationCourse.subject, TITLE_LIMIT),
@@ -1102,6 +1110,7 @@ export default function AddModule() {
                 ),
                 studentPublished: false,
                 lessonPages: generatedPages,
+                quizItems: practice.questions.map(normalizeQuizItem),
               },
         ),
       };
@@ -1118,7 +1127,12 @@ export default function AddModule() {
         [moduleId]: 0,
       }));
 
-      notifyLessonGenerated(generatedPages);
+      await notifyLessonGenerated(generatedPages);
+      if (practice.error) {
+        await Swal.fire({icon: "warning", title: "Lessons ready; Practice Quiz needs a retry", text: `${practice.error} Your generated lessons are preserved. Open Practice Quiz and choose Auto Generate to retry.`});
+      } else if (!practice.keptExisting) {
+        notifyQuizGenerated(practice.questions.length);
+      }
     } catch (error) {
       await Swal.fire({
         icon: "error",

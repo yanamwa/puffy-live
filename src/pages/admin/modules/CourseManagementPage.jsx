@@ -1,3 +1,4 @@
+import LessonContent from "../../../components/lesson/LessonContent.jsx";
 import { findCatalogCodeMatches } from "../../../services/catalogDuplicates.js";
 import { readCoverage } from "../../../components/catalog/CoverageModules.jsx";
 import { useCallback, useEffect, useState } from "react";
@@ -86,7 +87,13 @@ function ClassesTable({ records, onView, onArchive, busy }) {
               </td>
               <td>{period(row)}</td>
               <td>{row.student_count}</td>
-              <td>{classStatus(row)}</td>
+              <td>
+                <span
+                  className={`catalog-class-status ${classStatus(row).toLowerCase()}`}
+                >
+                  {classStatus(row)}
+                </span>
+              </td>
               <td>
                 <div className="catalog-class-actions">
                   <button
@@ -203,6 +210,30 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
               </div>
             ))}
           </dl>
+          <h3>Professor Assignment History</h3>
+          <p>
+            Professors assigned to {data.course.code}, including archived classes.
+            Dates show when each linked class was created.
+          </p>
+          <div className="admin-modules-table-wrap">
+            <table className="admin-modules-table">
+              <thead>
+                <tr><th>Professor</th><th>Class created</th><th>Class / section</th><th>Class status</th></tr>
+              </thead>
+              <tbody>
+                {classes.records.map((row) => (
+                  <tr key={row.course_id}>
+                    <td>{row.professor || "Unavailable"}</td>
+                    <td>{date(row.created_at)}</td>
+                    <td>{row.class_name || [row.program, row.year_level, row.section_name].filter(Boolean).join(" / ") || "Not set"}</td>
+                    <td>{classStatus(row)}</td>
+                  </tr>
+                ))}
+                {!classes.records.length && <tr><td colSpan={4}>No professor assignments recorded for this course.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} total={classes.total} onChange={setPage} />
           <h3>Syllabus Versions</h3>
           <p>
             Syllabus periods describe the uploaded document. Teaching periods
@@ -240,7 +271,7 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
                               (module, index) => (
                                 <li key={index}>
                                   {module.title}
-                                  {module.lesson_pages?.length > 0 && <details><summary>{module.lesson_pages.length} draft lesson pages</summary>{module.lesson_pages.map((lesson, i) => <div key={i}><h4>{lesson.title}</h4><p style={{whiteSpace:"pre-wrap"}}>{lesson.content}</p></div>)}</details>}
+                                  {module.lesson_pages?.length > 0 && <details><summary>{module.lesson_pages.length} draft lesson pages</summary>{module.lesson_pages.map((lesson, i) => <div key={i}><h4>{lesson.title}</h4><LessonContent content={lesson.content} /></div>)}</details>}
                                   {module.source_page
                                     ? ` (p. ${module.source_page})`
                                     : ""}

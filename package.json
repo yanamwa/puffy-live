@@ -35,7 +35,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.js",
-    "test": "echo \"No tests configured yet\"",
+    "test": "node --test \"tests/catalog/*.test.js\" \"tests/courses/*.test.js\" \"tests/lessons/*.test.js\" \"tests/quizzes/*.test.js\" \"tests/students/*.test.js\"",
     "format": "prettier --write src tests --ignore-unknown",
     "format:check": "prettier --check src tests --ignore-unknown"
   },

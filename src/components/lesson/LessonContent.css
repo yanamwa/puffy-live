@@ -1,0 +1,9 @@
+.formatted-lesson { line-height: 1.65; overflow-wrap: anywhere; }
+.formatted-lesson p, .formatted-lesson li { white-space: pre-wrap; }
+.formatted-lesson strong { font-weight: 700; }
+.formatted-lesson ul { padding-left: 1.6em; }
+.lesson-content-editor { width: 100%; }
+.lesson-format-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 8px 0; }
+.lesson-format-toolbar button { cursor: pointer; padding: 8px 14px; border: 1px solid #a7bfd9; border-radius: 6px; background: #edf4fc; color: #294d73; }
+.lesson-format-toolbar span { font-size: 13px; color: #52667c; }
+.lesson-editor-preview { background: #fff; color: #192f47; border: 1px solid #ccc; border-radius: 10px; padding: 16px 20px; min-height: 220px; max-height: 420px; overflow: auto; }

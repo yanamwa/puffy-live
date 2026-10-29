@@ -108,14 +108,16 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
     Swal.fire({
       icon: "warning",
       title: "Course code already exists",
-      text: "Select the existing course to save this PDF as a new syllabus version.",
+      text: "Return to Course Management and select the existing course to upload a new syllabus version.",
       confirmButtonText: "OK",
       confirmButtonColor: "#80a9d3",
       didOpen: () => {
         Swal.getContainer().style.zIndex = "2000";
       },
+    }).then((result) => {
+      if (result.isConfirmed) onClose();
     });
-  }, [course, details.code, matches]);
+  }, [course, details.code, matches, onClose]);
   useEffect(
     () => () => {
       if (pending.current)

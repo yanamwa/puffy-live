@@ -385,6 +385,34 @@
   outline: 2px solid var(--catalog-blue, #7fa8d6);
   outline-offset: 2px;
 }
+.catalog-class-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  min-height: 35px;
+  padding: 6px 16px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.catalog-class-status.published {
+  background: #108b50;
+}
+
+.catalog-class-status.archived {
+  background: #64748b;
+}
+
+.catalog-class-status.draft {
+  background: #8a6500;
+}
+
 .catalog-page .admin-module-status.publish {
   background: #39ae66;
   color: #f3fff4;

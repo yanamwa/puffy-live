@@ -1,3 +1,6 @@
+import { removeLessonPracticeActivities } from "../../../services/lessonPracticeContent.js";
+import { generateModulePractice } from "../../../services/modulePracticeGeneration.js";
+import { LessonContentEditor } from "../../../components/lesson/LessonContent.jsx";
 import { createPortal } from "react-dom";
 import ManagementBackBar from "../../../components/ManagementBackBar.jsx";
 import { ensureGenerationCourse } from "../../../services/generationCourseDraft.js";
@@ -1397,7 +1400,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
               ...page,
               id: createId("page"),
               title: limit(page?.title || "", TITLE_LIMIT),
-              content: limit(page?.content || "", LESSON_LIMIT),
+              content: limit(removeLessonPracticeActivities(page?.content), LESSON_LIMIT),
             }))
             .filter((page) => page.title || page.content)
         : [];
@@ -1422,6 +1425,13 @@ export default function CourseModuleEditor({ quizManagement = false }) {
         ),
         lessonPages: generatedPages,
       };
+      setGenerationProgress("Generating Practice Quiz questions…");
+      const practice = await generateModulePractice({
+        courseId: generationCourse.id, moduleId, title: generatedModule.title,
+        objectives: generatedModule.learningObjectives, pages: generatedPages,
+        existing: moduleDraft.quizItems || [],
+      });
+      generatedModule.quizItems = practice.questions.map(normalizeQuizItem);
       const nextCourse = {
         ...generationCourse,
         subject: limit(data.subject || generationCourse.subject, TITLE_LIMIT),
@@ -1442,7 +1452,12 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
       setGeneratorOpen(false);
       setUploadedFile([]);
-      notifyLessonGenerated(generatedPages);
+      await notifyLessonGenerated(generatedPages);
+      if (practice.error) {
+        await Swal.fire({icon: "warning", title: "Lessons ready; Practice Quiz needs a retry", text: `${practice.error} Your generated lessons are preserved. Open Practice Quiz and choose Auto Generate to retry.`});
+      } else if (!practice.keptExisting) {
+        notifyQuizGenerated(practice.questions.length);
+      }
     } catch (error) {
       await Swal.fire({
         icon: "error",
@@ -2065,7 +2080,8 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                       </div>
                     )}
 
-                    <textarea
+                    <LessonContentEditor
+                      key={activePage.id || activePageIndex}
                       className={`${styles.popupTextarea} ${styles.popupLargeBox}`}
                       value={activePage.content}
                       onChange={(event) =>

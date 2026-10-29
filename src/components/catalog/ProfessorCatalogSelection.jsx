@@ -94,7 +94,7 @@ export default function ProfessorCatalogSelection({
       setError("Draft lessons are still generating for this course. Try selecting it again shortly.");
       return;
     }
-
+    setError("");
     onChange(applyCatalogToDraft(form, course));
     setOpen(false);
     setQuery("");
@@ -244,11 +244,20 @@ export default function ProfessorCatalogSelection({
           />
         </label>
       )}
+      {selected?.versions?.find(
+        (version) => String(version.version_id) === String(form.syllabusVersionId),
+      )?.generation_status === "failed" && (
+        <p role="status" className="catalog-error">
+          Automatic lesson and Practice Quiz generation failed. You can continue
+          with the available syllabus content and add or edit lessons and questions
+          manually. An administrator can retry generation in Course Details.
+        </p>
+      )}
       {error && (
         <p role="alert" className="catalog-error">
           {error}{" "}
           <button type="button" onClick={() => setRevision((v) => v + 1)}>
-            Retry
+            Refresh catalog
           </button>
         </p>
       )}
