@@ -5,7 +5,7 @@ import {
 } from "./practiceSession.js";
 import styles from "./TutorialBackButton.module.css";
 
-export default function TutorialBackButton() {
+export default function TutorialBackButton({ onBack } = {}) {
   const navigate = useNavigate();
   const { lessonId, deckId } = useParams();
   const session = getStoredPracticeSession({ lessonId, deckId });
@@ -15,7 +15,7 @@ export default function TutorialBackButton() {
       : "/student/enrolled-courses";
   return (
     <div className={styles.bar}>
-      <button type="button" onClick={() => navigate(destination)}>
+      <button type="button" onClick={onBack || (() => navigate(destination))}>
         ← Back to Course
       </button>
     </div>

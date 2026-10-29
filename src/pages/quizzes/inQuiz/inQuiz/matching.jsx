@@ -1,3 +1,9 @@
+import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
+import TutorialBackButton from "../TutorialBackButton.jsx";
+import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
+import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
+import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
+import { playPracticeFeedbackSound } from "../../../../utils/practiceFeedbackSound.js";
 import { saveAccountQuizResult } from "../../../../utils/quizStorage.js";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -17,7 +23,8 @@ import {
 import styles from "./matching.module.css";
 
 export default function MatchingType() {
-  const navigate = useNavigate();
+  const routeNavigate = useNavigate();
+  const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
   const { lessonId, deckId } = useParams();
 
   const isLessonMode = Boolean(lessonId);
@@ -27,13 +34,13 @@ export default function MatchingType() {
     [lessonId, deckId],
   );
 
-  const [lesson, setLesson] = useState(null);
+  const [lesson, setLesson] = usePracticeState("lesson", null, true);
   const [firstCard, setFirstCard] = useState(null);
-  const [matchedIds, setMatchedIds] = useState([]);
+  const [matchedIds, setMatchedIds] = usePracticeState("matchedIds", []);
   const [wrongPair, setWrongPair] = useState([]);
-  const [checkpointOpen, setCheckpointOpen] = useState(false);
-  const [checkpointStartIndex, setCheckpointStartIndex] = useState(0);
-  const [firstAttempts, setFirstAttempts] = useState({});
+  const [checkpointOpen, setCheckpointOpen] = usePracticeState("checkpointOpen", false);
+  const [checkpointStartIndex, setCheckpointStartIndex] = usePracticeState("checkpointStartIndex", 0);
+  const [firstAttempts, setFirstAttempts] = usePracticeState("firstAttempts", {});
   const clickPending = useRef(false);
 
   const [ttsEnabled, setTtsEnabled] = useState(false);
@@ -162,7 +169,7 @@ export default function MatchingType() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const matchingPairs = useMemo(() => {
+  const matchingPairs = usePracticeItems("matchingPairs", () => {
     if (!lesson) return [];
 
     let rawQuiz =
@@ -349,6 +356,7 @@ export default function MatchingType() {
     const answerCard = side === "right" ? card : firstCard;
     const expected = roundPairs.find((item) => item.id === questionCard.id);
     const isCorrect = questionCard.id === answerCard.id;
+    playPracticeFeedbackSound(isCorrect);
     setFirstAttempts((prev) =>
       prev[questionCard.id]
         ? prev
@@ -419,6 +427,9 @@ export default function MatchingType() {
 
   return (
     <div className={styles.wrapper}>
+      <div className="practice-course-back"><TutorialBackButton /></div>
+      <PracticeSoundControl />
+      <PracticeAnswerFeedback />
       <button
         type="button"
         className={styles.settingsBtn}
@@ -597,12 +608,14 @@ export default function MatchingType() {
                           <button
                             type="button"
                             className={styles.cardAudioBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
                             onClick={(e) => {
                               e.stopPropagation();
                               speakText(card.text);
                             }}
                           >
-                            <i className="bx bx-volume-full"></i>
+                            <PracticeSpeakerIcon />
                           </button>
                         )}
 
@@ -636,12 +649,14 @@ export default function MatchingType() {
                           <button
                             type="button"
                             className={styles.cardAudioBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
                             onClick={(e) => {
                               e.stopPropagation();
                               speakText(card.text);
                             }}
                           >
-                            <i className="bx bx-volume-full"></i>
+                            <PracticeSpeakerIcon />
                           </button>
                         )}
 

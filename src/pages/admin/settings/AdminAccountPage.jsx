@@ -104,7 +104,7 @@ function resolveAdminProfileImage(imagePath) {
     fixedPath = `/${fixedPath}`;
   }
 
-  return `http://localhost:5000${fixedPath}`;
+  return `${API_BASE.replace(/\/api$/, "")}${fixedPath}`;
 }
 
 

@@ -565,7 +565,7 @@ export default function ProfessorHome() {
     {
       label: "Published Quizzes",
       value: publishedQuizzes,
-      href: "/professor/courses",
+      href: "/professor/quizzes",
       link: "Review quizzes",
       icon: FiFileText,
     },

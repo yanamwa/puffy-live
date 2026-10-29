@@ -1,3 +1,9 @@
+import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
+import TutorialBackButton from "../TutorialBackButton.jsx";
+import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
+import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
+import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
+import { playPracticeFeedbackSound } from "../../../../utils/practiceFeedbackSound.js";
 import { lessonAuthHeaders } from "../../../../services/lessonAuth.js";
 import { saveAccountQuizResult } from "../../../../utils/quizStorage.js";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -32,7 +38,8 @@ function getLessonQuizData(lessonData) {
 }
 
 export default function TimedQuiz() {
-  const navigate = useNavigate();
+  const routeNavigate = useNavigate();
+  const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
   const { lessonId, deckId } = useParams();
 
   const isLessonMode = Boolean(lessonId);
@@ -44,21 +51,21 @@ export default function TimedQuiz() {
 
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("Timed Quiz");
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = usePracticeState("questions", [], true);
 
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.9);
 
-  const [time, setTime] = useState(0);
+  const [time, setTime] = usePracticeState("time", 0, true);
 
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [userResults, setUserResults] = useState([]);
+  const [questionIndex, setQuestionIndex] = usePracticeState("questionIndex", 0);
+  const [score, setScore] = usePracticeState("score", 0);
+  const [userResults, setUserResults] = usePracticeState("userResults", []);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [checkpointOpen, setCheckpointOpen] = useState(false);
-  const [checkpointStartIndex, setCheckpointStartIndex] = useState(0);
-  const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = useState(0);
+  const [checkpointOpen, setCheckpointOpen] = usePracticeState("checkpointOpen", false);
+  const [checkpointStartIndex, setCheckpointStartIndex] = usePracticeState("checkpointStartIndex", 0);
+  const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = usePracticeState("checkpointReviewEndIndex", 0);
 
   const finishedRef = useRef(false);
 
@@ -216,9 +223,9 @@ export default function TimedQuiz() {
                 questionText.toLowerCase().includes("true or false");
               const options = isTrueFalse
                 ? ["True", "False"]
-                : getUniqueOptions([...rawOptions, correctAnswer]).slice(0, 4);
+                : getUniqueOptions([correctAnswer, ...rawOptions, ...(rawOptions.length < 2 ? practiceSession.items.map(getQuizItemAnswer) : [])]).slice(0, 4);
 
-              if (!isTrueFalse && options.length < 4) return null;
+              if (!isTrueFalse && options.length < 2) return null;
 
               return {
                 cardId: item.cardId || item.card_id || item.id || null,
@@ -294,7 +301,7 @@ export default function TimedQuiz() {
                 ? ["True", "False"]
                 : getUniqueOptions([...rawOptions, correctAnswer]).slice(0, 4);
 
-              if (!isTrueFalse && options.length < 4) return null;
+              if (!isTrueFalse && options.length < 2) return null;
 
               return {
                 question: questionText,
@@ -370,7 +377,7 @@ export default function TimedQuiz() {
                   cardId,
                 );
 
-                if (generated.wrongOptions.length < 3) {
+                if (generated.wrongOptions.length < 1) {
                   return null;
                 }
 
@@ -381,7 +388,7 @@ export default function TimedQuiz() {
                 ).slice(0, 4);
               }
 
-              if (!isTrueFalse && options.length < 4) return null;
+              if (!isTrueFalse && options.length < 2) return null;
 
               return {
                 cardId,
@@ -472,6 +479,7 @@ export default function TimedQuiz() {
     const isCorrect =
       cleanAnswer(selectedAnswerValue) === cleanAnswer(currentQuestion.answer);
 
+    playPracticeFeedbackSound(isCorrect);
     const newResult = {
       cardId: currentQuestion.cardId || null,
       question: currentQuestion.question,
@@ -675,6 +683,9 @@ export default function TimedQuiz() {
 
   return (
     <div className={styles.page}>
+      <div className="practice-course-back"><TutorialBackButton /></div>
+      <PracticeSoundControl />
+      <PracticeAnswerFeedback />
       <button
         type="button"
         className={styles.settingsBtn}
@@ -836,9 +847,11 @@ export default function TimedQuiz() {
                 <button
                   type="button"
                   className={styles.audioIconBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
                   onClick={() => speakText(questions[questionIndex].question)}
                 >
-                  <i className="bx bx-volume-full"></i>
+                  <PracticeSpeakerIcon />
                 </button>
               )}
 
@@ -868,7 +881,7 @@ export default function TimedQuiz() {
                           speakText(option);
                         }}
                       >
-                        <i className="bx bx-volume-full"></i>
+                        <PracticeSpeakerIcon />
                       </span>
                     )}
 

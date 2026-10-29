@@ -14,8 +14,7 @@ import "./ProfessorProfile.css";
    API CONFIG
 ===================================================== */
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE as API_BASE_URL } from "../../../config.js";
 
 const SERVER_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 
@@ -459,7 +458,7 @@ export default function ProfessorProfile() {
   if (loading) {
     return (
       <div className="professor-profile-page">
-        <section className="professor-profile-page-heading">
+        <section className="professor-profile-page-heading professor-section-heading">
           <h1>Professor Profile</h1>
         </section>
 
@@ -477,7 +476,7 @@ export default function ProfessorProfile() {
   if (error) {
     return (
       <div className="professor-profile-page">
-        <section className="professor-profile-page-heading">
+        <section className="professor-profile-page-heading professor-section-heading">
           <h1>Professor Profile</h1>
         </section>
 
@@ -494,7 +493,7 @@ export default function ProfessorProfile() {
 
   return (
     <div className="professor-profile-page">
-      <section className="professor-profile-page-heading">
+      <section className="professor-profile-page-heading professor-section-heading">
         <h1>Professor Profile</h1>
       </section>
 
@@ -507,7 +506,7 @@ export default function ProfessorProfile() {
 
             <div className="professor-identity-header">
               <div className="professor-identity-brand">
-                <img src="/images/logo_solo.png" alt="PuffyBrain" />
+                <img src="/images/puffybrain.png" alt="PuffyBrain" />
 
                 <div>
                   <strong>PuffyBrain</strong>

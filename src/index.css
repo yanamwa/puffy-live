@@ -106,3 +106,12 @@ body .swal2-container .swal2-popup,
 body .swal2-container .swal2-popup * {
   font-family: "Merriweather", Georgia, serif !important;
 }
+
+/* Keep popup cancellation actions neutral across page themes. */
+body .swal2-popup .swal2-actions .swal2-cancel,
+body .swal2-popup .swal2-actions .enroll-cancel-btn,
+body .swal2-popup .swal2-actions .swal2-cancel:hover,
+body .swal2-popup .swal2-actions .enroll-cancel-btn:hover {
+  background: #fff !important;
+  background-color: #fff !important;
+}

@@ -5,6 +5,7 @@ import ModeCard from "./ModeCard.jsx";
 import styles from "./QuizModesModal.module.css";
 
 function resolveModeImage(mode) {
+  if (getModeKind(mode) === "mixed") return "/images/mixed_match.png";
   const image = String(mode.image || "").trim();
 
   if (!image) return "/images/flashcard.png";
@@ -130,6 +131,16 @@ export default function QuizModesModal({
   };
 
   const handleStartPractice = (mode) => {
+    // This picker launches practice only. Never inherit a previous Main Quiz flag.
+    let savedScope = {};
+    try { savedScope = JSON.parse(localStorage.getItem("practiceScope") || "{}"); } catch { /* Start with a clean practice scope. */ }
+    const routeId = isDeck ? deckId : lessonId;
+    const storedId = localStorage.getItem(isDeck ? "practiceDeckId" : "practiceLessonId");
+    const sameScope = String(storedId || "") === String(routeId || "");
+    localStorage.setItem("practiceScope", JSON.stringify({
+      ...(sameScope ? savedScope : {}),
+      scopeType: source === "deck" ? "deck" : source === "course" ? "course" : source === "module" ? "module" : "lesson",
+    }));
     const modeKind = getModeKind(mode);
     const route = getModeRoute(mode, modeKind);
     const selectedMode = {

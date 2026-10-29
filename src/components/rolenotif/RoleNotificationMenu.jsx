@@ -14,8 +14,7 @@ import Swal from "sweetalert2";
    API CONFIG
 ===================================================== */
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE as API_BASE_URL } from "../../config.js";
 
 /* =====================================================
    ROLE CONFIG
@@ -586,11 +585,12 @@ export default function RoleNotificationMenu({ role = "admin" }) {
       </div>
     `,
 
-      icon: getSweetAlertIcon(notification.type),
-      confirmButtonText: "Okay",
+      customClass: { container: "student-notification-overlay", popup: "student-notification-dialog" },
+      target: document.body,
+      confirmButtonText: "Close",
       confirmButtonColor: "#2563eb",
       width: 480,
-      showCloseButton: true,
+      showCloseButton: false,
     });
   };
 

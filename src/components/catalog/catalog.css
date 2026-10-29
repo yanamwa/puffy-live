@@ -1152,3 +1152,12 @@
   padding-top: 16px;
   border-top: 1px solid #e6e9ed;
 }
+
+body .swal2-container.catalog-duplicate-overlay { z-index: 999999 !important; background: rgba(38,60,82,.6) !important; backdrop-filter: blur(4px); }
+body .swal2-popup.catalog-duplicate-dialog { width: 600px !important; max-width: calc(100vw - 32px); padding: 0 !important; border: 1px solid #cbd9e8; border-radius: 12px !important; overflow: hidden; box-shadow: 0 24px 64px rgba(24,45,66,.24); }
+body .catalog-duplicate-dialog .swal2-title { grid-row: 1; margin: 0 !important; padding: 20px 24px !important; background: #7fa8d6; color: #fff !important; font: 600 22px/1.4 Arial,sans-serif !important; }
+body .catalog-duplicate-dialog .swal2-image { grid-row: 2; margin: 16px auto 0 !important; max-width: calc(100% - 48px); height: auto !important; object-fit: contain; }
+body .catalog-duplicate-dialog .swal2-html-container { margin: 0 !important; padding: 24px !important; color: #64748b !important; font: 400 20px/1.6 Arial,sans-serif !important; }
+body .catalog-duplicate-dialog .swal2-actions { width: 100%; box-sizing: border-box; margin: 0 !important; padding: 18px 24px !important; border-top: 1px solid #e6e9ed; }
+body .catalog-duplicate-dialog .swal2-confirm { width: 100%; min-height: 50px; margin: 0 !important; border: 1px solid #7fa8d6 !important; border-radius: 7px !important; background: #7fa8d6 !important; color: #fff !important; box-shadow: none !important; font: 600 20px/1.4 Arial,sans-serif !important; }
+body .catalog-duplicate-dialog .swal2-confirm:hover { background: #608cbd !important; }

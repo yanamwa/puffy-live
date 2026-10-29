@@ -1,3 +1,9 @@
+import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
+import TutorialBackButton from "../TutorialBackButton.jsx";
+import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
+import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
+import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
+import { playPracticeFeedbackSound } from "../../../../utils/practiceFeedbackSound.js";
 import {
   fetchCourseContent,
   getCourseQuizItems,
@@ -22,7 +28,8 @@ import {
 import styles from "./multiplechoice.module.css";
 
 export default function Quiz() {
-  const navigate = useNavigate();
+  const routeNavigate = useNavigate();
+  const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
   const { lessonId, deckId } = useParams();
 
   const isLessonMode = Boolean(lessonId);
@@ -33,19 +40,19 @@ export default function Quiz() {
   );
 
   const [title, setTitle] = useState("Multiple Choice");
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = usePracticeState("questions", [], true);
   const [loading, setLoading] = useState(true);
 
-  const [current, setCurrent] = useState(0);
-  const [score, setScore] = useState(0);
+  const [current, setCurrent] = usePracticeState("current", 0);
+  const [score, setScore] = usePracticeState("score", 0);
   const [selected, setSelected] = useState(null);
-  const [typedAnswer, setTypedAnswer] = useState("");
+  const [typedAnswer, setTypedAnswer] = usePracticeState("typedAnswer", "");
   useEffect(() => setTypedAnswer(""), [current]);
   const [locked, setLocked] = useState(false);
-  const [answers, setAnswers] = useState([]);
-  const [checkpointOpen, setCheckpointOpen] = useState(false);
-  const [checkpointStartIndex, setCheckpointStartIndex] = useState(0);
-  const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = useState(0);
+  const [answers, setAnswers] = usePracticeState("answers", []);
+  const [checkpointOpen, setCheckpointOpen] = usePracticeState("checkpointOpen", false);
+  const [checkpointStartIndex, setCheckpointStartIndex] = usePracticeState("checkpointStartIndex", 0);
+  const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = usePracticeState("checkpointReviewEndIndex", 0);
 
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -272,7 +279,7 @@ export default function Quiz() {
                       ),
                   )
                   .slice(0, 3);
-                if (wrongOptions.length < 3) return null;
+                if (wrongOptions.length < 1) return null;
                 return {
                   type: "multiple_choice",
                   cardId: item.cardId || item.id || null,
@@ -308,9 +315,10 @@ export default function Quiz() {
               const options = getUniqueOptions([
                 correctAnswer,
                 ...rawOptions,
+                ...(rawOptions.length < 2 ? answerPool : []),
               ]).slice(0, 4);
 
-              if (options.length < 4) return null;
+              if (options.length < 2) return null;
 
               return {
                 cardId: item.cardId || item.card_id || item.id || null,
@@ -372,7 +380,7 @@ export default function Quiz() {
                     ),
                 )
                 .slice(0, 3);
-              if (wrongOptions.length < 3) return null;
+              if (wrongOptions.length < 1) return null;
               return {
                 type: "multiple_choice",
                 cardId: item.cardId || item.id || null,
@@ -401,7 +409,7 @@ export default function Quiz() {
 
             const options = getUniqueOptions(rawOptions).slice(0, 4);
 
-            if (options.length < 4) return null;
+            if (options.length < 2) return null;
 
             return {
               q: questionOnly,
@@ -486,7 +494,7 @@ export default function Quiz() {
                   cardId,
                 );
 
-                if (generated.wrongOptions.length < 3) {
+                if (generated.wrongOptions.length < 1) {
                   return null;
                 }
 
@@ -497,7 +505,7 @@ export default function Quiz() {
                 ).slice(0, 4);
               }
 
-              if (options.length < 4) return null;
+              if (options.length < 2) return null;
 
               return {
                 cardId,
@@ -653,6 +661,7 @@ export default function Quiz() {
             .replace(/\s+/g, " ")
             .toLowerCase()
         : isSameText(chosenAnswer, question.correctAnswer);
+    playPracticeFeedbackSound(isCorrect);
     const newScore = score + (isCorrect ? 1 : 0);
 
     const newAnswer = {
@@ -745,6 +754,9 @@ export default function Quiz() {
 
   return (
     <div className={styles.wrapper}>
+      <div className="practice-course-back"><TutorialBackButton /></div>
+      <PracticeSoundControl />
+      <PracticeAnswerFeedback />
       <button
         type="button"
         className={styles.settingsBtn}
@@ -901,9 +913,11 @@ export default function Quiz() {
                 <button
                   type="button"
                   className={styles.audioIconBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
                   onClick={() => speakText(question.q)}
                 >
-                  <i className="bx bx-volume-full"></i>
+                  <PracticeSpeakerIcon />
                 </button>
               )}
 
@@ -959,7 +973,7 @@ export default function Quiz() {
                             speakText(opt);
                           }}
                         >
-                          <i className="bx bx-volume-full"></i>
+                          <PracticeSpeakerIcon />
                         </span>
                       )}
 

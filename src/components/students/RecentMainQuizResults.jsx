@@ -3,13 +3,12 @@ import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
 import "./RecentMainQuizResults.css";
 export default function RecentMainQuizResults() {
-  const [expanded, setExpanded] = useState(false);
-  const [page, setPage] = useState(1);
   const [revision, setRevision] = useState(0);
   const [data, setData] = useState({ records: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const pageSize = expanded ? 10 : 3;
+  const page = 1;
+  const pageSize = 5;
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -39,16 +38,6 @@ export default function RecentMainQuizResults() {
     >
       <div className="home-section-header">
         <h2 id="recent-main-quiz-title">Recent Main Quiz Results</h2>
-        <button
-          type="button"
-          className="home-results-view-all"
-          onClick={() => {
-            setPage(1);
-            setExpanded(!expanded);
-          }}
-        >
-          {expanded ? "Show recent" : "View all →"}
-        </button>
       </div>
       {loading ? (
         <p role="status">Loading quiz results…</p>
@@ -69,17 +58,17 @@ export default function RecentMainQuizResults() {
             <table className="home-results-table">
               <thead>
                 <tr>
-                  <th scope="col">Course / Quiz</th>
+                  <th scope="col">Module / Main Quiz</th>
                   <th scope="col">Score</th>
                   <th scope="col">Result</th>
                 </tr>
               </thead>
               <tbody>
-                {data.records.map((record) => (
+                {data.records.slice(0, 5).map((record) => (
                   <tr key={record.result_id}>
                     <td>
-                      <strong>{record.course_title}</strong>
-                      <span>{record.quiz_title}</span>
+                      <strong>{record.module_title || record.quiz_title?.replace(/\s*—\s*Main Quiz$/, "") || "Module Main Quiz"}</strong>
+                      <span>{record.course_title} · Main Quiz</span>
                     </td>
                     <td className="home-results-score">
                       {record.score}/{record.total}
@@ -99,27 +88,6 @@ export default function RecentMainQuizResults() {
               </tbody>
             </table>
           </div>
-          {expanded && data.total > pageSize && (
-            <div className="home-results-pagination">
-              <button
-                type="button"
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-              >
-                Previous
-              </button>
-              <span>
-                Page {page} of {Math.ceil(data.total / pageSize)}
-              </span>
-              <button
-                type="button"
-                disabled={page * pageSize >= data.total}
-                onClick={() => setPage(page + 1)}
-              >
-                Next
-              </button>
-            </div>
-          )}
         </>
       )}
     </section>

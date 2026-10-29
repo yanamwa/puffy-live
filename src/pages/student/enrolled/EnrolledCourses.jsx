@@ -13,8 +13,7 @@ import {
 
 import "./EnrolledCoursespage.css";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE as API_BASE_URL } from "../../../config.js";
 
 function getStoredToken() {
   return (
@@ -232,7 +231,7 @@ export default function EnrolledCourses() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get("search") || "");
   const [dateSort, setDateSort] = useState("Recent");
   const [alphabeticalSort, setAlphabeticalSort] = useState("A to Z");
 

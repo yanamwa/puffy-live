@@ -1542,6 +1542,11 @@ export default function AddModule() {
 
       navigate("/professor/courses");
     } catch (error) {
+      if (!isEditing && /already created this catalog course/i.test(error.message || "")) {
+        await Swal.fire({ title: "Course already exists", customClass: { container: "catalog-duplicate-overlay", popup: "catalog-duplicate-dialog" }, text: error.message, imageUrl: "/images/reminder.png", imageWidth: 300, confirmButtonText: "Back to Course Management" });
+        navigate("/professor/courses");
+        return;
+      }
       await Swal.fire({
         icon: "error",
 

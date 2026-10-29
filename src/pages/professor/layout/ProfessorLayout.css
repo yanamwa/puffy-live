@@ -4014,3 +4014,21 @@
   border-color: var(--professor-theme-morning-breeze);
   box-shadow: 0 0 0 3px rgba(127, 168, 214, 0.18);
 }
+
+.professor-search button.professor-search-icon { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 6px; display: inline-flex; }
+
+/* Shared page-title treatment across professor management and account pages. */
+.professor-layout .professor-section-heading {
+  min-height: 104px;
+  box-sizing: border-box;
+  padding: 24px 28px;
+  background: #f7f7f7;
+  border: 0;
+  border-bottom: 1px solid #c6cbd2;
+  border-radius: 0;
+  box-shadow: none;
+}
+.professor-layout .professor-section-heading h1 { margin: 0; color: #294765; font: 500 27px/1.25 Arial,sans-serif; }
+.professor-layout .professor-section-heading p { margin: 6px 0 0; color: #64748b; font: 400 13px/1.5 Arial,sans-serif; }
+.professor-layout .professor-section-heading .professor-settings-eyebrow { display: none; }
+@media(max-width: 600px) { .professor-layout .professor-section-heading { padding: 20px; } }

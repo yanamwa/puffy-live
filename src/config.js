@@ -1,4 +1,8 @@
-const configuredApiBase =
-  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "/api";
+const configuredApiBase = (
+  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "/api"
+).trim().replace(/\/+$/, "");
 
-export const API_BASE = configuredApiBase.replace(/\/+$/, "");
+// Accept either a backend origin or an API URL that already ends in /api.
+export const API_BASE = configuredApiBase.endsWith("/api")
+  ? configuredApiBase
+  : `${configuredApiBase}/api`;

@@ -1,3 +1,9 @@
+import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
+import TutorialBackButton from "../TutorialBackButton.jsx";
+import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
+import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
+import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
+import { playPracticeFeedbackSound } from "../../../../utils/practiceFeedbackSound.js";
 import { lessonAuthHeaders } from "../../../../services/lessonAuth.js";
 import { saveAccountQuizResult } from "../../../../utils/quizStorage.js";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,7 +24,8 @@ import {
 import styles from "./qanda.module.css";
 
 export default function QandA() {
-  const navigate = useNavigate();
+  const routeNavigate = useNavigate();
+  const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
   const { lessonId, deckId } = useParams();
 
   const isLessonMode = Boolean(lessonId);
@@ -28,26 +35,26 @@ export default function QandA() {
     [lessonId, deckId],
   );
 
-  const [lesson, setLesson] = useState(null);
+  const [lesson, setLesson] = usePracticeState("lesson", null, true);
   const [deckTitle, setDeckTitle] = useState("Deck Q&A");
-  const [deckCards, setDeckCards] = useState([]);
+  const [deckCards, setDeckCards] = usePracticeState("deckCards", [], true);
   const [loading, setLoading] = useState(true);
 
-  const [current, setCurrent] = useState(0);
-  const [score, setScore] = useState(0);
-  const [inputValue, setInputValue] = useState("");
+  const [current, setCurrent] = usePracticeState("current", 0);
+  const [score, setScore] = usePracticeState("score", 0);
+  const [inputValue, setInputValue] = usePracticeState("inputValue", "");
   const [status, setStatus] = useState("");
-  const [userResults, setUserResults] = useState([]);
-  const [checkpointOpen, setCheckpointOpen] = useState(false);
-  const [checkpointStartIndex, setCheckpointStartIndex] = useState(0);
-  const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = useState(0);
+  const [userResults, setUserResults] = usePracticeState("userResults", []);
+  const [checkpointOpen, setCheckpointOpen] = usePracticeState("checkpointOpen", false);
+  const [checkpointStartIndex, setCheckpointStartIndex] = usePracticeState("checkpointStartIndex", 0);
+  const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = usePracticeState("checkpointReviewEndIndex", 0);
 
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.9);
 
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifImage, setNotifImage] = useState("/images/correct_answer.png");
+  const [notifImage, setNotifImage] = useState("/images/correct.png");
 
   const inputRef = useRef(null);
 
@@ -148,7 +155,7 @@ export default function QandA() {
     return () => window.speechSynthesis?.cancel();
   }, []);
 
-  const questions = useMemo(() => {
+  const questions = usePracticeItems("questions", () => {
     if (isLessonMode) {
       const rawQuiz = getLessonQuizData(lesson);
       if (!rawQuiz) return [];
@@ -368,8 +375,9 @@ export default function QandA() {
       questions[current].correctAnswer,
     );
 
+    playPracticeFeedbackSound(isCorrect);
     setNotifImage(
-      isCorrect ? "/images/correct_answer.png" : "/images/wrong_answer.png",
+      isCorrect ? "/images/correct.png" : "/images/wrong.png",
     );
     setNotifOpen(true);
 
@@ -483,15 +491,10 @@ export default function QandA() {
 
   return (
     <div className={styles.wrapper}>
-      {notifOpen && (
-        <div className={styles.slideNotif}>
-          <img
-            src={notifImage}
-            alt="Answer feedback"
-            className={styles.notifImage}
-          />
-        </div>
-      )}
+      <div className="practice-course-back"><TutorialBackButton /></div>
+      <PracticeSoundControl />
+      <PracticeAnswerFeedback />
+      
 
       <button
         type="button"
@@ -649,9 +652,11 @@ export default function QandA() {
                 <button
                   type="button"
                   className={styles.audioIconBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
                   onClick={() => speakText(questions[current].q)}
                 >
-                  <i className="bx bx-volume-full"></i>
+                  <PracticeSpeakerIcon />
                 </button>
               )}
 

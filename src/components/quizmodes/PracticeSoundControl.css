@@ -1,0 +1,28 @@
+.practice-sound-control {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #d9dde2;
+  border-radius: 50%;
+  background: #eef0f3;
+  color: #596574;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.practice-sound-control:hover { background: #e0e4e9; }
+.practice-sound-control:focus-visible { outline: 3px solid #7fa8d6; outline-offset: 3px; }
+.practice-sound-control svg { display: block; flex-shrink: 0; }
+
+.practice-course-back { position: absolute; top: 16px; left: 16px; z-index: 1000; }
+.practice-course-back > div { width: auto; margin: 0; }
+@media (max-width: 600px) {
+  .practice-course-back { top: 12px; left: 12px; }
+  .practice-course-back button { padding: 10px 14px; font-size: 14px; }
+}

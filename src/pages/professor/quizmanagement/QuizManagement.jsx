@@ -67,29 +67,13 @@ export default function QuizManagement() {
           Back to courses
         </ManagementBackBar>
       )}
-      <header className={`${styles.header} quiz-management-heading`}>
+      <header className={`${styles.header} quiz-management-heading professor-section-heading`}>
         <h1>Quiz Management</h1>
         <p>Manage practice and main quizzes by course and module.</p>
       </header>
-      {courseId ? (
+      {courseId && (
         <section className="quiz-course-heading" aria-label="Selected course">
-          <h2 className="quiz-selected-course">
-            {course?.title || course?.course_name || "Course quizzes"}
-          </h2>
-        </section>
-      ) : (
-        <section
-          className={`${styles.searchPanel} quiz-management-search-panel`}
-        >
-          <label className={`${styles.searchBox} quiz-management-search-box`}>
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="search for courses"
-              aria-label="Search courses"
-            />
-          </label>
+          <h2 className="quiz-selected-course">{course?.title || course?.course_name || "Course quizzes"}</h2>
         </section>
       )}
       <section className={`${styles.courseArea} quiz-management-content`}>

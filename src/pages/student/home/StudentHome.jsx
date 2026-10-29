@@ -21,8 +21,7 @@ import {
 
 import "./StudentHome.css";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE as API_BASE_URL } from "../../../config.js";
 
 const DEFAULT_PROFILE_IMAGE = "/images/temporary profile.jpg";
 

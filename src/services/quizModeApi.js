@@ -98,7 +98,7 @@ export const quizModeSeeds = [
 
     route: "/random-modes-tutorial",
 
-    image: "/images/needpractice.png",
+    image: "/images/mixed_match.png",
   },
 ];
 
@@ -171,15 +171,15 @@ function normalizeImagePath(value, title = "") {
   }
 
   if (lowerTitle.includes("mixed")) {
-    return "/images/needpractice.png";
+    return "/images/mixed_match.png";
   }
 
   if (lowerTitle.includes("random")) {
-    return "/images/needpractice.png";
+    return "/images/mixed_match.png";
   }
 
   if (lowerTitle.includes("survival")) {
-    return "/images/needpractice.png";
+    return "/images/mixed_match.png";
   }
 
   if (lowerTitle.includes("timed")) {

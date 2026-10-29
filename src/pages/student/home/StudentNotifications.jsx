@@ -18,8 +18,7 @@ import "./StudentNotifications.css";
    API
 ===================================================== */
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE as API_BASE_URL } from "../../../config.js";
 
 /* =====================================================
    TABS
@@ -206,6 +205,7 @@ function normalizeNotification(notification) {
       notification.id,
 
     title: notification.title || "Notification",
+      customClass: { container: "student-notification-overlay", popup: "student-notification-dialog" },
 
     message: notification.message || "",
 

@@ -1,3 +1,4 @@
+import { getStoredPracticeSession } from "../practiceSession.js";
 import TutorialBackButton from "../TutorialBackButton.jsx";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -6,6 +7,7 @@ import styles from "./randommodes.module.css";
 export default function RandomModesTutorial() {
   const navigate = useNavigate();
   const { lessonId, deckId } = useParams();
+  const isMainQuiz = getStoredPracticeSession({ lessonId, deckId })?.scope?.scopeType === "main_quiz";
 
   const [index, setIndex] = useState(0);
 
@@ -31,9 +33,15 @@ export default function RandomModesTutorial() {
         ["const", "Declares a constant"],
       ],
     },
-  ];
+  ].map((slide) => isMainQuiz && slide.type === "Matching Type" ? {
+    type: "True or False",
+    question: "A class declared with the final keyword cannot be subclassed.",
+    options: ["True", "False"],
+    correct: "True",
+  } : slide);
 
   useEffect(() => {
+    setIndex(0);
     const interval = setInterval(() => {
       setIndex((prev) => {
         let next = prev + 1;
@@ -47,7 +55,7 @@ export default function RandomModesTutorial() {
     }, 3500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isMainQuiz]);
 
   const handleStart = () => {
     if (deckId) {
@@ -68,17 +76,16 @@ export default function RandomModesTutorial() {
 
       <div className={styles.headerBox}>
         <div className={styles.headerTop}>
-          <h1 className={styles.title}>Mixed Mode</h1>
+          <h1 className={styles.title}>{isMainQuiz ? "Main Quiz" : "Mixed Mode"}</h1>
         </div>
 
         <div className={styles.subtitles}>
           <p className={styles.subtitle}>
-            Practice with matching type, multiple choice, and Q&A all at once.
+            {isMainQuiz ? "Read each question carefully and choose or enter the best answer. Your answers and score will be recorded." : "Practice with matching type, multiple choice, and Q&A all at once."}
           </p>
 
           <p className={styles.subtitle}>
-            Mixed Mode changes the question style as you play, so review feels
-            closer to the real quiz types.
+            {isMainQuiz ? "Answer honestly and independently. Check each response before submitting, and complete all questions." : "Mixed Mode changes the question style as you play, so review feels closer to the real quiz types."}
           </p>
         </div>
 

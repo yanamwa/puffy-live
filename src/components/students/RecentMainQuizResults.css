@@ -1,7 +1,9 @@
 .home-recent-quiz-results {
-  border: 1px solid #d4d7dd;
+  border: 1px solid #c6c9cf;
   border-radius: 18px;
-  padding: 20px;
+  padding: 25px 30px;
+  box-shadow: 0 7px 0 rgba(137, 146, 159, 0.12);
+  font-family: inherit;
   background: white;
   color: #4f6174;
 }
@@ -10,15 +12,19 @@
   gap: 16px;
 }
 .home-recent-quiz-results .home-section-header h2 {
-  font-size: 20px;
+  font-size: 26px;
+  font-weight: 400;
+  color: #343843;
+  margin: 0;
 }
 .home-results-view-all {
   background: transparent;
   border: 0;
   padding: 6px 0;
-  color: #5f86b1;
+  color: #4f6174;
   font: inherit;
-  font-size: 12px;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -33,7 +39,7 @@
 }
 .home-results-table th {
   padding: 12px 0 10px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
   color: #69717f;
   border-bottom: 1px solid #dfe3e9;
@@ -41,7 +47,7 @@
 .home-results-table td {
   padding: 14px 0;
   border-bottom: 1px solid #edf0f4;
-  font-size: 14px;
+  font-size: 16px;
   vertical-align: middle;
 }
 .home-results-table tr:last-child td {
@@ -55,13 +61,14 @@
 }
 .home-results-table td:first-child strong {
   display: block;
-  color: #263c52;
-  font-size: 14px;
+  color: #343843;
+  font-size: 18px;
+  font-weight: 500;
 }
 .home-results-table td:first-child > span {
   display: block;
   margin-top: 5px;
-  font-size: 11px;
+  font-size: 14px;
   color: #69717f;
 }
 .home-results-score {
@@ -72,7 +79,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .home-results-outcome.passed {
   color: #198754;
@@ -88,7 +95,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
 }
 .home-results-empty {
@@ -101,7 +108,7 @@
   align-items: center;
   gap: 12px;
   margin-top: 14px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .home-results-pagination button {
   border: 1px solid #a8c6e7;
@@ -125,4 +132,17 @@
   .home-results-table {
     min-width: 330px;
   }
+}
+
+.home-recent-quiz-results .home-section-header { display: flex; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; }
+.home-results-table th { background: #f3f7fc; color: #5f7895; padding: 12px; font-weight: 600; }
+.home-results-table td { padding: 18px 12px; }
+.home-results-table .home-results-outcome { padding: 6px 10px; border-radius: 999px; font-weight: 600; }
+.home-results-outcome.passed { background: #edf6f1; }
+.home-results-outcome.failed { background: #fff0f1; }
+.home-results-view-all:hover { color: #406b9b; text-decoration: underline; }
+.home-results-view-all:focus-visible, .home-results-pagination button:focus-visible { outline: 2px solid #7fa8d6; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .home-recent-quiz-results { padding: 20px 16px; }
+  .home-recent-quiz-results .home-section-header h2 { font-size: 22px; }
 }

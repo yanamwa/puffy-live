@@ -795,3 +795,38 @@
     padding: 16px;
   }
 }
+
+.audioIconBtn, .cardAudioBtn, .optionAudioIcon { color: #596574; }
+.audioIconBtn:hover, .cardAudioBtn:hover, .optionAudioIcon:hover { color: #294765; background: #e0e4e9; }
+.audioIconBtn:focus-visible, .cardAudioBtn:focus-visible { outline: 2px solid #7fa8d6; outline-offset: 2px; }
+
+.mainQuizNavigation { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; width: min(900px, 100%); margin: 28px auto; }
+.mainQuizNavigation button { padding: 12px 24px; border: 1px solid #678ab1; border-radius: 8px; background: #7fa8d6; color: #fff; font: 600 20px/1.4 Arial,sans-serif; cursor: pointer; }
+.mainQuizNavigation button:hover:not(:disabled) { background: #608cbd; }
+.mainQuizNavigation button:disabled { opacity: .5; cursor: not-allowed; }
+.mainQuizNavigation span { color: #64748b; font: 16px Arial,sans-serif; }
+
+:global(body) .mainQuizDialogOverlay { z-index: 999999 !important; background: rgba(38,60,82,.6) !important; backdrop-filter: blur(4px); }
+:global(body) .mainQuizDialog { width: 600px !important; max-width: calc(100vw - 32px); padding: 0 !important; border: 1px solid #cbd9e8; border-radius: 12px !important; overflow: hidden; box-shadow: 0 24px 64px rgba(24,45,66,.24); font-family: Arial,sans-serif !important; }
+:global(body) .mainQuizDialog :global(.swal2-title) { grid-row: 1; display: block !important; margin: 0 !important; padding: 20px 24px !important; background: #7fa8d6; color: #fff !important; font: 600 22px/1.4 Arial,sans-serif !important; }
+:global(body) .mainQuizDialog :global(.swal2-image) { grid-row: 2; width: 300px !important; max-width: calc(100% - 48px); height: auto !important; margin: 14px auto 0 !important; object-fit: contain; }
+:global(body) .mainQuizDialog :global(.swal2-html-container) { margin: 0 !important; padding: 24px !important; color: #64748b !important; font: 400 20px/1.6 Arial,sans-serif !important; }
+:global(body) .mainQuizDialog :global(.swal2-actions) { width: 100%; box-sizing: border-box; margin: 0 !important; padding: 18px 24px !important; gap: 12px; border-top: 1px solid #e6e9ed; }
+:global(body) .mainQuizDialog :global(.swal2-actions) button { flex: 1; min-width: 0; min-height: 50px; margin: 0 !important; padding: 10px 14px; border-radius: 7px; box-shadow: none !important; font: 600 20px/1.4 Arial,sans-serif !important; }
+:global(body) .mainQuizDialog :global(.swal2-confirm) { background: #7fa8d6 !important; border: 1px solid #7fa8d6; color: #fff !important; }
+:global(body) .mainQuizDialog :global(.swal2-confirm:hover) { background: #608cbd !important; }
+:global(body) .mainQuizDialog :global(.swal2-cancel) { background: #fff !important; border: 1px solid #dfe3e8; color: #4f6174 !important; }
+
+:global(body) .mainQuizDialog.leaveQuizDialog :global(.swal2-actions .swal2-cancel) { background: #7fa8d6 !important; border: 1px solid #7fa8d6; color: #fff !important; }
+:global(body) .mainQuizDialog.leaveQuizDialog :global(.swal2-actions .swal2-cancel:hover) { background: #608cbd !important; }
+:global(body) .mainQuizDialog.leaveQuizDialog :global(.swal2-actions .swal2-confirm) { background: #fff !important; border: 1px solid #dfe3e8; color: #4f6174 !important; }
+:global(body) .mainQuizDialog.leaveQuizDialog :global(.swal2-actions .swal2-confirm:hover) { background: #f4f6f8 !important; }
+
+.mainQuizDialog :global(.main-quiz-unanswered) { text-align: left; max-height: 240px; overflow-y: auto; margin: 12px 0 0; padding-left: 24px; font-size: 17px; line-height: 1.6; }
+.mainQuizDialog :global(.main-quiz-unanswered li) { margin-bottom: 12px; }
+
+.mainQuizDialog :global(.main-quiz-question-link) { display: block; width: 100%; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: #527eaf; text-align: left; font: inherit; cursor: pointer; }
+.mainQuizDialog :global(.main-quiz-question-link:hover) { background: #edf4fc; text-decoration: underline; }
+.mainQuizDialog :global(.main-quiz-question-link:focus-visible) { outline: 2px solid #7fa8d6; outline-offset: 2px; }
+
+:global(body) .mainQuizDialog.leaveQuizDialog :global(.swal2-actions .swal2-confirm) { border: 2px solid #9aaabc !important; }

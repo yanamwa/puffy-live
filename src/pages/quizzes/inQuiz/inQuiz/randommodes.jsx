@@ -1,3 +1,9 @@
+import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
+import TutorialBackButton from "../TutorialBackButton.jsx";
+import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
+import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
+import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
+import { playPracticeFeedbackSound } from "../../../../utils/practiceFeedbackSound.js";
 import Swal from "sweetalert2";
 import { lessonAuthHeaders } from "../../../../services/lessonAuth.js";
 import { saveAccountQuizResult } from "../../../../utils/quizStorage.js";
@@ -328,7 +334,8 @@ function getReviewAnswer(question, userAnswer, isCorrect) {
 }
 
 export default function MixedMode() {
-  const navigate = useNavigate();
+  const routeNavigate = useNavigate();
+  const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
   const { lessonId, deckId } = useParams();
   const isLessonMode = Boolean(lessonId);
   const isDeckMode = Boolean(deckId);
@@ -339,20 +346,22 @@ export default function MixedMode() {
 
   const isMainQuiz = practiceSession?.scope?.scopeType === "main_quiz";
   const mainQuizId = useRef(null);
+  const [mainSubmitting, setMainSubmitting] = useState(false);
+  const submitPending = useRef(false);
 
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = usePracticeState("questions", [], true);
   const [loading, setLoading] = useState(true);
-  const [current, setCurrent] = useState(0);
-  const [score, setScore] = useState(0);
-  const [typingAnswer, setTypingAnswer] = useState("");
-  const [answers, setAnswers] = useState([]);
+  const [current, setCurrent] = usePracticeState("current", 0);
+  const [score, setScore] = usePracticeState("score", 0);
+  const [typingAnswer, setTypingAnswer] = usePracticeState("typingAnswer", "");
+  const [answers, setAnswers] = usePracticeState("answers", []);
   const [locked, setLocked] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [status, setStatus] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifImage, setNotifImage] = useState("/images/correct_answer.png");
+  const [notifImage, setNotifImage] = useState("/images/correct.png");
   const [firstCard, setFirstCard] = useState(null);
-  const [matchedIds, setMatchedIds] = useState([]);
+  const [matchedIds, setMatchedIds] = usePracticeState("matchedIds", []);
   const [wrongPair, setWrongPair] = useState([]);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -448,8 +457,11 @@ export default function MixedMode() {
     loadQuestions();
   }, [lessonId, deckId, isLessonMode, isDeckMode, practiceSession]);
 
+  const previousRound = useRef(current);
   useEffect(() => {
-    setTypingAnswer("");
+    if (previousRound.current === current) return;
+    previousRound.current = current;
+    setTypingAnswer(isMainQuiz ? answers[current]?.userAnswer || "" : "");
     setLocked(false);
     setSelectedAnswer(null);
     setStatus("");
@@ -542,7 +554,9 @@ export default function MixedMode() {
     }
   }
 
-  async function finishQuiz(finalScore, finalAnswers) {
+  async function finishQuiz(finalScore, finalAnswers, leaveCourse = false) {
+    if (isMainQuiz && submitPending.current) return;
+    if (isMainQuiz) { submitPending.current = true; setMainSubmitting(true); }
     let mainResult = null;
     if (isMainQuiz) {
       try {
@@ -555,7 +569,7 @@ export default function MixedMode() {
           },
           body: JSON.stringify({
             quiz_id: mainQuizId.current,
-            answers: finalAnswers.map((answer) => answer.userAnswer),
+            answers: questions.map((_, index) => String(finalAnswers[index]?.userAnswer || "")),
           }),
         });
         const data = await response.json();
@@ -568,6 +582,8 @@ export default function MixedMode() {
           title: "Result not saved",
           text: error.message,
         });
+        submitPending.current = false;
+        setMainSubmitting(false);
         return;
       }
     }
@@ -601,9 +617,11 @@ export default function MixedMode() {
     }
 
     navigate(
-      isDeckMode
-        ? `/review/deck/${deckId}`
-        : getPracticeReviewPath(practiceSession, { lessonId, deckId }),
+      leaveCourse
+        ? getPracticeBackPath(practiceSession, { lessonId, deckId })
+        : isDeckMode
+          ? `/review/deck/${deckId}`
+          : getPracticeReviewPath(practiceSession, { lessonId, deckId }),
     );
   }
 
@@ -616,12 +634,36 @@ export default function MixedMode() {
     finishQuiz(finalScore, finalAnswers);
   }
 
+  async function leaveMainQuiz() {
+    if (mainSubmitting) return;
+    const answered = answers.filter(answer => answer?.userAnswer?.trim()).length;
+    const result = await Swal.fire({
+      title: "Go back to course?",
+      customClass: { container: styles.mainQuizDialogOverlay, popup: `${styles.mainQuizDialog} ${styles.leaveQuizDialog}` },
+      text: `You have answered ${answered} of ${questions.length} questions. Leaving will submit this attempt. All unanswered questions will be marked wrong.`,
+      imageUrl: "/images/warning.png", imageWidth: 240,
+      showCancelButton: true, confirmButtonText: "Submit and leave", cancelButtonText: "Keep answering",
+      confirmButtonColor: "#7fa8d6", reverseButtons: true,
+    });
+    if (result.isConfirmed) await finishQuiz(0, answers, true);
+  }
+
   function recordSingleAnswer(userAnswer, isCorrect) {
+    if (isMainQuiz) {
+      if (!question || mainSubmitting) return;
+      setAnswers(previous => {
+        const next = [...previous];
+        next[current] = getReviewAnswer(question, userAnswer, false);
+        return next;
+      });
+      return;
+    }
     if (locked || !question) return;
 
     setLocked(true);
+    if (!isMainQuiz) playPracticeFeedbackSound(isCorrect);
     setNotifImage(
-      isCorrect ? "/images/correct_answer.png" : "/images/wrong_answer.png",
+      isCorrect ? "/images/correct.png" : "/images/wrong.png",
     );
     setNotifOpen(!isMainQuiz);
     setStatus(isMainQuiz ? "" : isCorrect ? styles.correct : styles.wrong);
@@ -646,6 +688,9 @@ export default function MixedMode() {
     const selected = question.options[index];
     setSelectedAnswer(selected);
     recordSingleAnswer(selected, index === question.correct);
+    if (isMainQuiz && !mainSubmitting && current < questions.length - 1) {
+      setCurrent(value => value + 1);
+    }
   }
 
   function handleTyping() {
@@ -700,6 +745,7 @@ export default function MixedMode() {
       return;
     }
 
+    if (!isMainQuiz) playPracticeFeedbackSound(firstCard.id === card.id);
     if (firstCard.id === card.id) {
       const updatedMatchedIds = [...matchedIds, card.id];
 
@@ -842,8 +888,8 @@ export default function MixedMode() {
 
         <div className={styles.paperBackground}>
           <header className={styles.siteHeader}>
-            <h1 className={styles.courseTitle}>{MIXED_MODE_TITLE}</h1>
-            <p className={styles.modeDescription}>{MIXED_MODE_DESCRIPTION}</p>
+            <h1 className={styles.courseTitle}>{isMainQuiz ? "Main Quiz" : MIXED_MODE_TITLE}</h1>
+            {!isMainQuiz && <p className={styles.modeDescription}>{MIXED_MODE_DESCRIPTION}</p>}
             <div className={styles.counter}>
               Round {current + 1} of {questions.length}
             </div>
@@ -880,12 +926,14 @@ export default function MixedMode() {
                             <button
                               type="button"
                               className={styles.cardAudioBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 speakText(card.text);
                               }}
                             >
-                              <i className="bx bx-volume-full"></i>
+                              <PracticeSpeakerIcon />
                             </button>
                           )}
 
@@ -917,12 +965,14 @@ export default function MixedMode() {
                             <button
                               type="button"
                               className={styles.cardAudioBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 speakText(card.text);
                               }}
                             >
-                              <i className="bx bx-volume-full"></i>
+                              <PracticeSpeakerIcon />
                             </button>
                           )}
 
@@ -942,15 +992,10 @@ export default function MixedMode() {
 
   return (
     <div className={styles.wrapper}>
-      {notifOpen && (
-        <div className={styles.slideNotif}>
-          <img
-            src={notifImage}
-            alt="Answer feedback"
-            className={styles.notifImage}
-          />
-        </div>
-      )}
+      <div className="practice-course-back"><TutorialBackButton onBack={isMainQuiz ? leaveMainQuiz : undefined} /></div>
+      {!isMainQuiz && <PracticeSoundControl />}
+      <PracticeAnswerFeedback />
+      
 
       <button
         type="button"
@@ -965,17 +1010,9 @@ export default function MixedMode() {
 
       <div className={styles.header}>
         <h1 className={styles.title}>
-          {isMainQuiz
-            ? practiceSession.scope.moduleTitle ||
-              practiceSession.scope.scopeTitle ||
-              "Main Quiz"
-            : MIXED_MODE_TITLE}
+          {isMainQuiz ? "Main Quiz" : MIXED_MODE_TITLE}
         </h1>
-        <p className={styles.modeDescription}>
-          {isMainQuiz
-            ? "Answer all the following questions"
-            : MIXED_MODE_DESCRIPTION}
-        </p>
+        {!isMainQuiz && <p className={styles.modeDescription}>{MIXED_MODE_DESCRIPTION}</p>}
 
         <div className={styles.counter}>
           Question {current + 1} of {questions.length}
@@ -999,9 +1036,11 @@ export default function MixedMode() {
             <button
               type="button"
               className={styles.audioIconBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
               onClick={() => speakText(question.question)}
             >
-              <i className="bx bx-volume-full"></i>
+              <PracticeSpeakerIcon />
             </button>
           )}
 
@@ -1014,7 +1053,7 @@ export default function MixedMode() {
               <button
                 key={`${option}-${index}`}
                 className={`${styles.option} ${
-                  selectedAnswer === option ? styles.selectedOption : ""
+                  (isMainQuiz ? answers[current]?.userAnswer : selectedAnswer) === option ? styles.selectedOption : ""
                 }`}
                 onClick={() => handleMultipleChoice(index)}
                 disabled={locked}
@@ -1027,7 +1066,7 @@ export default function MixedMode() {
                       speakText(option);
                     }}
                   >
-                    <i className="bx bx-volume-full"></i>
+                    <PracticeSpeakerIcon />
                   </span>
                 )}
 
@@ -1044,25 +1083,65 @@ export default function MixedMode() {
               type="text"
               className={`${styles.input} ${status}`}
               placeholder="Type your answer"
-              value={typingAnswer}
-              onChange={(event) => setTypingAnswer(event.target.value)}
+              value={isMainQuiz ? answers[current]?.userAnswer || "" : typingAnswer}
+              onChange={(event) => {
+                setTypingAnswer(event.target.value);
+                if (isMainQuiz) recordSingleAnswer(event.target.value, false);
+              }}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && typingAnswer.trim()) {
+                if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+                event.preventDefault();
+                if (isMainQuiz) {
+                  if (!mainSubmitting && String(answers[current]?.userAnswer || "").trim() && current < questions.length - 1) {
+                    setCurrent(value => value + 1);
+                  }
+                } else if (typingAnswer.trim()) {
                   handleTyping();
                 }
               }}
-              disabled={locked}
+              maxLength={500}
+              disabled={isMainQuiz ? mainSubmitting : locked}
             />
-            <button
+            {!isMainQuiz && <button
               type="button"
               className={styles.submitAnswer}
               onClick={handleTyping}
               disabled={locked || !typingAnswer.trim()}
             >
               Submit Answer
-            </button>
+            </button>}
           </div>
         )}
+        {isMainQuiz && <div className={styles.mainQuizNavigation}>
+          <button type="button" disabled={current === 0 || mainSubmitting} onClick={() => setCurrent(value => value - 1)}>Previous</button>
+          <span>{answers.filter(answer => answer?.userAnswer?.trim()).length} of {questions.length} answered</span>
+          {current < questions.length - 1
+            ? <button type="button" disabled={mainSubmitting} onClick={() => setCurrent(value => value + 1)}>Next</button>
+            : <button type="button" disabled={mainSubmitting} onClick={async () => {
+                const unanswered = questions.map((question, index) => ({ question, index }))
+                  .filter(({ index }) => !String(answers[index]?.userAnswer || "").trim());
+                const escapeText = (value) => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
+                const summary = `<p>Your answers will be recorded. Any unanswered questions will be marked wrong.</p>${unanswered.length
+                  ? `<p><strong>${unanswered.length} unanswered question${unanswered.length === 1 ? "" : "s"}:</strong></p><ul class="main-quiz-unanswered">${unanswered.map(({ question, index }) => `<li><button type="button" class="main-quiz-question-link" data-question-index="${index}"><strong>Question ${index + 1}</strong> — ${escapeText(question.question)}</button></li>`).join("")}</ul>`
+                  : "<p>All questions have been answered.</p>"}`;
+                const result = await Swal.fire({ title: "Submit Main Quiz?", customClass: { container: styles.mainQuizDialogOverlay, popup: styles.mainQuizDialog }, html: summary, showCancelButton: true, confirmButtonText: "Submit quiz", cancelButtonText: "Review answers", confirmButtonColor: "#7fa8d6",
+                  didOpen: (popup) => {
+                    popup.querySelectorAll("[data-question-index]").forEach(button => {
+                      button.addEventListener("click", () => {
+                        setCurrent(Number(button.dataset.questionIndex));
+                        Swal.close();
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      });
+                    });
+                  },
+                });
+                if (result.isConfirmed) finishQuiz(0, answers);
+                else if (result.dismiss === Swal.DismissReason.cancel) {
+                  setCurrent(unanswered[0]?.index ?? 0);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}>{mainSubmitting ? "Submitting…" : "Submit Quiz"}</button>}
+        </div>}
       </div>
     </div>
   );

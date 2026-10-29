@@ -189,9 +189,9 @@ function Login() {
     }
 
     await Swal.fire({
-      imageUrl: "/images/success.png",
-      imageWidth: 170,
-      imageHeight: 170,
+      imageUrl: "/images/welcome_back.png",
+      imageWidth: 270,
+      imageHeight: 180,
       title: "Welcome back!",
       text: "Redirecting to your dashboard",
       timer: 1200,
@@ -214,9 +214,9 @@ function Login() {
       setLoginError(message);
 
       Swal.fire({
-        imageUrl: "/images/error.png",
-        imageWidth: 170,
-        imageHeight: 170,
+        imageUrl: "/images/missing_credentials.png",
+      imageWidth: 270,
+      imageHeight: 180,
         title: "Missing Fields",
         text: message,
       });

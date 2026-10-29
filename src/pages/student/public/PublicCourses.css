@@ -439,3 +439,66 @@
 .public-course-folder-clickable {
   cursor: pointer;
 }
+
+/* Enrollment confirmation follows the Generate Module dialog. */
+body .swal2-container:has(.enroll-popup) {
+  z-index: 999999 !important;
+  background: rgba(38, 60, 82, 0.6) !important;
+  backdrop-filter: blur(4px);
+}
+body .swal2-popup.enroll-popup {
+  width: 600px !important;
+  max-width: calc(100vw - 32px) !important;
+  padding: 0 !important;
+  border: 1px solid #cbd9e8;
+  border-radius: 12px !important;
+  overflow: hidden;
+  font-family: Arial, sans-serif !important;
+  box-shadow: 0 24px 64px rgba(24, 45, 66, 0.24);
+}
+body .enroll-popup .swal2-title {
+  grid-row: 1;
+  display: block !important;
+  margin: 0 !important;
+  padding: 20px 24px !important;
+  background: #7fa8d6;
+  color: #fff !important;
+  font: 600 22px/1.4 Arial, sans-serif !important;
+}
+body .enroll-popup .swal2-image {
+  grid-row: 2;
+  width: 300px !important;
+  max-width: calc(100% - 48px);
+  height: auto !important;
+  object-fit: contain;
+  margin: 18px auto 0 !important;
+}
+body .enroll-popup .swal2-html-container {
+  margin: 0 !important;
+  padding: 18px 24px 26px !important;
+  color: #64748b;
+  font: 400 20px/1.6 Arial, sans-serif !important;
+}
+body .enroll-popup .swal2-actions {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 18px 24px !important;
+  gap: 12px;
+  border-top: 1px solid #e6e9ed;
+}
+body .enroll-popup .swal2-actions button {
+  flex: 1;
+  min-width: 0;
+  min-height: 50px;
+  margin: 0 !important;
+  padding: 10px 14px;
+  border-radius: 7px;
+  box-shadow: none !important;
+  font: 600 20px/1.4 Arial, sans-serif !important;
+}
+body .enroll-popup .enroll-confirm-btn { background: #7fa8d6 !important; color: #fff !important; border: 1px solid #7fa8d6; }
+body .enroll-popup .enroll-confirm-btn:hover { background: #608cbd !important; }
+body .enroll-popup .enroll-cancel-btn { background: #fff !important; color: #4f6174 !important; border: 1px solid #dfe3e8; }
+body .enroll-popup .enroll-cancel-btn:hover { background: #f4f6f8 !important; }

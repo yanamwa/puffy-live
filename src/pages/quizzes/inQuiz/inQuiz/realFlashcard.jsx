@@ -1,3 +1,9 @@
+import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
+import TutorialBackButton from "../TutorialBackButton.jsx";
+import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
+import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
+import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
+import { playPracticeFeedbackSound } from "../../../../utils/practiceFeedbackSound.js";
 import { lessonAuthHeaders } from "../../../../services/lessonAuth.js";
 import { saveAccountQuizResult } from "../../../../utils/quizStorage.js";
 import { useEffect, useMemo, useState } from "react";
@@ -17,7 +23,8 @@ import {
 import styles from "./realFlashcards.module.css";
 
 export default function Flashcards() {
-  const navigate = useNavigate();
+  const routeNavigate = useNavigate();
+  const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
   const { lessonId, deckId } = useParams();
 
   const isLessonMode = Boolean(lessonId);
@@ -27,25 +34,25 @@ export default function Flashcards() {
     [lessonId, deckId],
   );
 
-  const [deck, setDeck] = useState(null);
-  const [lesson, setLesson] = useState(null);
-  const [deckCards, setDeckCards] = useState([]);
+  const [deck, setDeck] = usePracticeState("deck", null, true);
+  const [lesson, setLesson] = usePracticeState("lesson", null, true);
+  const [deckCards, setDeckCards] = usePracticeState("deckCards", [], true);
   const [loading, setLoading] = useState(true);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [userResults, setUserResults] = useState([]);
-  const [flipped, setFlipped] = useState(false);
-  const [checkpointOpen, setCheckpointOpen] = useState(false);
-  const [checkpointStartIndex, setCheckpointStartIndex] = useState(0);
-  const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = usePracticeState("currentIndex", 0);
+  const [score, setScore] = usePracticeState("score", 0);
+  const [userResults, setUserResults] = usePracticeState("userResults", []);
+  const [flipped, setFlipped] = usePracticeState("flipped", false);
+  const [checkpointOpen, setCheckpointOpen] = usePracticeState("checkpointOpen", false);
+  const [checkpointStartIndex, setCheckpointStartIndex] = usePracticeState("checkpointStartIndex", 0);
+  const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = usePracticeState("checkpointReviewEndIndex", 0);
 
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.9);
 
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifImage, setNotifImage] = useState("/images/correct_answer.png");
+  const [notifImage, setNotifImage] = useState("/images/correct.png");
 
   const shuffleArray = (array) => {
     return [...array].sort(() => Math.random() - 0.5);
@@ -150,7 +157,7 @@ export default function Flashcards() {
     };
   }, []);
 
-  const flashcards = useMemo(() => {
+  const flashcards = usePracticeItems("flashcards", () => {
     if (isLessonMode) {
       const rawQuiz = getLessonQuizData(lesson);
       if (!rawQuiz) return [];
@@ -352,13 +359,14 @@ export default function Flashcards() {
     }
 
     const isCorrect = difficulty === "easy" || difficulty === "good";
+    playPracticeFeedbackSound(isCorrect);
 
     if (difficulty === "easy") {
-      setNotifImage("/images/correct_answer.png");
+      setNotifImage("/images/correct.png");
     } else if (difficulty === "good") {
-      setNotifImage("/images/good_answer.png");
+      setNotifImage("/images/correct.png");
     } else {
-      setNotifImage("/images/wrong_answer.png");
+      setNotifImage("/images/wrong.png");
     }
 
     setNotifOpen(true);
@@ -444,15 +452,10 @@ export default function Flashcards() {
 
   return (
     <div className={styles.container}>
-      {notifOpen && (
-        <div className={styles.slideNotif}>
-          <img
-            src={notifImage}
-            alt="Answer feedback"
-            className={styles.notifImage}
-          />
-        </div>
-      )}
+      <div className="practice-course-back"><TutorialBackButton /></div>
+      <PracticeSoundControl />
+      <PracticeAnswerFeedback />
+      
 
       <button
         type="button"
@@ -631,12 +634,14 @@ export default function Flashcards() {
                     <button
                       type="button"
                       className={styles.audioIconBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
                       onClick={(e) => {
                         e.stopPropagation();
                         speakText(getCleanQuestion(currentCard.question));
                       }}
                     >
-                      <i className="bx bx-volume-full"></i>
+                      <PracticeSpeakerIcon />
                     </button>
                   )}
 
@@ -658,12 +663,14 @@ export default function Flashcards() {
                     <button
                       type="button"
                       className={styles.audioIconBtn}
+                              aria-label="Read aloud"
+                              title="Read aloud"
                       onClick={(e) => {
                         e.stopPropagation();
                         speakText(currentCard.answer);
                       }}
                     >
-                      <i className="bx bx-volume-full"></i>
+                      <PracticeSpeakerIcon />
                     </button>
                   )}
 

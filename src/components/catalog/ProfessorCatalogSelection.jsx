@@ -1,3 +1,6 @@
+import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
+import { fetchCourses } from "../../services/courseApi.js";
 import { applyCatalogToDraft } from "../../services/catalogCourseDraft.js";
 import "./catalog.css";
 import { useEffect, useState, useRef } from "react";
@@ -8,6 +11,8 @@ export default function ProfessorCatalogSelection({
   onChange,
   isEditing,
 }) {
+  const navigate = useNavigate();
+  const selecting = useRef(false);
   const [courses, setCourses] = useState([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -65,7 +70,26 @@ export default function ProfessorCatalogSelection({
     )
       onChange(applyCatalogToDraft(form, selected));
   }, [locked, selected, form, onChange]);
-  const choose = (course) => {
+  const choose = async (course) => {
+    if (selecting.current || locked) return;
+    selecting.current = true;
+    try {
+      const existing = await fetchCourses({ includeArchived: true }, { fallback: false });
+      if (existing.some(item => String(item.catalogId || item.catalog_id) === String(course.catalog_id))) {
+        setOpen(false);
+        await Swal.fire({
+          title: "Course already exists", customClass: { container: "catalog-duplicate-overlay", popup: "catalog-duplicate-dialog" },
+          text: `You have already created ${course.code} — ${course.title}. You can manage it in Course Management.`,
+          imageUrl: "/images/reminder.png", imageWidth: 300,
+          confirmButtonText: "Back to Course Management", confirmButtonColor: "#7fa8d6",
+        });
+        navigate("/professor/courses");
+        return;
+      }
+    } catch (error) {
+      setError(error.message || "Could not check existing courses. Please try again.");
+      return;
+    } finally { selecting.current = false; }
     if (["queued", "running"].includes(course.versions?.[0]?.generation_status)) {
       setError("Draft lessons are still generating for this course. Try selecting it again shortly.");
       return;

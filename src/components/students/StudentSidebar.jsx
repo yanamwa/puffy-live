@@ -6,8 +6,7 @@ import { FiLogOut } from "react-icons/fi";
 import { Icon } from "../../pages/student/enrolled/EnrolledCourses";
 import "./StudentSidebar.css";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE as API_BASE_URL } from "../../config.js";
 
 function getStoredToken() {
   return (
@@ -170,7 +169,7 @@ export default function StudentSidebar({ collapsed, onCollapsedChange }) {
 
       <div className="brand-lockup">
         <img
-          src="/images/Student.png"
+          src={sidebarCollapsed ? "/images/puffybrain.png" : "/images/Student.png"}
           alt="PuffyBrain Student"
           className="sidebar-logo"
           style={{ width: "100%", maxWidth: sidebarCollapsed ? 65 : 280, height: sidebarCollapsed ? 65 : 100, objectFit: "contain" }}

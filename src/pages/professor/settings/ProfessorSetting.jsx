@@ -257,7 +257,7 @@ export default function ProfessorSetting() {
 
   return (
     <div className="professor-settings-page">
-      <section className="professor-settings-heading">
+      <section className="professor-settings-heading professor-section-heading">
         <div>
           <span className="professor-settings-eyebrow">Account security</span>
 

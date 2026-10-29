@@ -416,17 +416,8 @@ export function getStudentModuleReadingProgress(
     getLegacyModuleProgress(key, moduleIndex),
   );
 
-  if (exactModuleProgress > 0) {
-    return exactModuleProgress;
-  }
-
-  const count = Math.max(Number(moduleCount) || 1, 1);
-  const courseProgress = getStudentReadingProgress(key);
-  const moduleSize = 100 / count;
-  const moduleStart = moduleSize * moduleIndex;
-  const derivedProgress = ((courseProgress - moduleStart) / moduleSize) * 100;
-
-  return derivedProgress >= 99 ? 100 : clampProgress(derivedProgress);
+  // A course-wide percentage cannot prove that a newly added module was read.
+  return exactModuleProgress;
 }
 
 export function readStudentEnrollmentKeys() {

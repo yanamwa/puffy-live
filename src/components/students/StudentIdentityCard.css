@@ -2,7 +2,7 @@
    STUDENT ID CARD
 ================================================== */
 
-.student-identity-card {
+.student-identity-card.student-identity-card {
   position: sticky;
   top: 98px;
 
@@ -11,26 +11,26 @@
 
   padding: 27px 25px 24px;
 
-  border: 1px solid #cfd5d1;
+  border: 1px solid #cbd9e8;
   border-radius: 25px;
 
   background:
     radial-gradient(
       circle at top right,
-      rgba(37, 113, 78, 0.12),
+      rgba(127, 168, 214, 0.12),
       transparent 34%
     ),
-    linear-gradient(145deg, #ffffff, #f5f8f6);
+    linear-gradient(145deg, #ffffff, #f5f8fc);
 
   box-shadow:
     0 16px 35px rgba(31, 49, 40, 0.11),
-    5px 6px 0 rgba(37, 113, 78, 0.08);
+    5px 6px 0 rgba(127, 168, 214, 0.08);
 
   color: #252a27;
   box-sizing: border-box;
 }
 
-.student-identity-card-accent {
+.student-identity-card .student-identity-card-accent {
   position: absolute;
   top: 0;
   left: 0;
@@ -38,17 +38,17 @@
 
   height: 8px;
 
-  background: #25714e;
+  background: #527eaf;
 }
 
-.student-identity-header {
+.student-identity-card .student-identity-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 15px;
 }
 
-.student-identity-brand {
+.student-identity-card .student-identity-brand {
   min-width: 0;
 
   display: flex;
@@ -56,29 +56,29 @@
   gap: 10px;
 }
 
-.student-identity-brand img {
+.student-identity-card .student-identity-brand img {
   width: 42px;
   height: 42px;
 
   object-fit: contain;
 }
 
-.student-identity-brand div {
+.student-identity-card .student-identity-brand div {
   min-width: 0;
 
   display: flex;
   flex-direction: column;
 }
 
-.student-identity-brand strong {
-  color: #25714e;
+.student-identity-card .student-identity-brand strong {
+  color: #527eaf;
 
   font-size: 22px;
   font-weight: 400;
   line-height: 1;
 }
 
-.student-identity-brand span {
+.student-identity-card .student-identity-brand span {
   margin-top: 4px;
 
   color: #858d89;
@@ -90,7 +90,7 @@
   text-transform: uppercase;
 }
 
-.student-identity-role {
+.student-identity-card .student-identity-role {
   min-height: 27px;
 
   display: inline-flex;
@@ -98,11 +98,11 @@
 
   padding: 0 11px;
 
-  border: 1px solid #c8d8cf;
+  border: 1px solid #c4d6e9;
   border-radius: 999px;
 
-  background: #edf6f1;
-  color: #25714e;
+  background: #edf4fc;
+  color: #527eaf;
 
   font-family: system-ui, sans-serif;
   font-size: 9px;
@@ -111,7 +111,7 @@
   text-transform: uppercase;
 }
 
-.student-identity-photo-area {
+.student-identity-card .student-identity-photo-area {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -121,7 +121,7 @@
   text-align: center;
 }
 
-.student-id-photo-frame {
+.student-identity-card .student-id-photo-frame {
   position: relative;
 
   width: 142px;
@@ -139,7 +139,7 @@
     0 10px 24px rgba(31, 49, 40, 0.17);
 }
 
-.student-id-photo {
+.student-identity-card .student-id-photo {
   display: block;
 
   width: 100%;
@@ -150,7 +150,7 @@
   border-radius: 50%;
 }
 
-.student-photo-change-button {
+.student-identity-card .student-photo-change-button {
   position: absolute;
   right: -2px;
   bottom: 5px;
@@ -167,10 +167,10 @@
   border: 3px solid #ffffff;
   border-radius: 50%;
 
-  background: #25714e;
+  background: #527eaf;
   color: #ffffff;
 
-  box-shadow: 0 4px 11px rgba(37, 113, 78, 0.3);
+  box-shadow: 0 4px 11px rgba(127, 168, 214, 0.3);
 
   cursor: pointer;
 
@@ -179,12 +179,12 @@
     background 160ms ease;
 }
 
-.student-photo-change-button:hover {
-  background: #1d6041;
+.student-identity-card .student-photo-change-button:hover {
+  background: #406b9b;
   transform: scale(1.07);
 }
 
-.student-photo-change-button svg {
+.student-identity-card .student-photo-change-button svg {
   width: 18px;
   height: 18px;
 
@@ -195,16 +195,16 @@
   stroke-linejoin: round;
 }
 
-.student-photo-input {
+.student-identity-card .student-photo-input {
   display: none;
 }
 
-.student-identity-main {
+.student-identity-card .student-identity-main {
   width: 100%;
   margin-top: 22px;
 }
 
-.student-identity-overline {
+.student-identity-card .student-identity-overline {
   color: #919895;
 
   font-family: system-ui, sans-serif;
@@ -214,7 +214,7 @@
   text-transform: uppercase;
 }
 
-.student-identity-main h2 {
+.student-identity-card .student-identity-main h2 {
   margin: 8px 0 0;
 
   color: #202522;
@@ -224,12 +224,12 @@
   line-height: 1.05;
 }
 
-.student-identity-number {
+.student-identity-card .student-identity-number {
   display: block;
 
   margin-top: 8px;
 
-  color: #25714e;
+  color: #527eaf;
 
   font-family: system-ui, sans-serif;
   font-size: 13px;
@@ -237,7 +237,7 @@
   letter-spacing: 0.06em;
 }
 
-.student-identity-main p {
+.student-identity-card .student-identity-main p {
   max-width: 275px;
   margin: 15px auto 0;
 
@@ -249,7 +249,7 @@
   line-height: 1.55;
 }
 
-.student-identity-academic-row {
+.student-identity-card .student-identity-academic-row {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -264,16 +264,16 @@
   font-weight: 750;
 }
 
-.student-identity-academic-row i {
+.student-identity-card .student-identity-academic-row i {
   width: 4px;
   height: 4px;
 
   border-radius: 50%;
 
-  background: #25714e;
+  background: #527eaf;
 }
 
-.student-identity-footer {
+.student-identity-card .student-identity-footer {
   position: absolute;
   right: 25px;
   bottom: 23px;
@@ -288,17 +288,17 @@
 
   padding-top: 18px;
 
-  border-top: 1px dashed #bdc8c1;
+  border-top: 1px dashed #bdcddd;
 }
 
-.student-identity-footer > div:first-child {
+.student-identity-card .student-identity-footer > div:first-child {
   min-width: 0;
 
   display: flex;
   flex-direction: column;
 }
 
-.student-identity-footer span {
+.student-identity-card .student-identity-footer span {
   color: #9ba09d;
 
   font-family: system-ui, sans-serif;
@@ -308,7 +308,7 @@
   text-transform: uppercase;
 }
 
-.student-identity-footer strong {
+.student-identity-card .student-identity-footer strong {
   margin-top: 4px;
 
   color: #424a45;
@@ -319,7 +319,7 @@
 }
 
 /* Kept for compatibility if an older profile JSX still contains the barcode. */
-.student-id-barcode {
+.student-identity-card .student-id-barcode {
   width: 88px;
   height: 29px;
   flex: 0 0 88px;

@@ -1,7 +1,6 @@
 import "./StudentIdentityCard.css";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE as API_BASE_URL } from "../../config.js";
 
 const SERVER_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 
@@ -100,7 +99,7 @@ export default function StudentIdentityCard({
 
       <div className="student-identity-header">
         <div className="student-identity-brand">
-          <img src="/images/logo_solo.png" alt="PuffyBrain" />
+          <img src="/images/puffybrain.png" alt="PuffyBrain" />
 
           <div>
             <strong>PuffyBrain</strong>

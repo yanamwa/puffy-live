@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   archiveCourseById,
   fetchCourses,
@@ -14,9 +14,11 @@ function formatCourseId(course) {
 
 export default function ModuleManagement() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [courses, setCourses] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get("search") || "");
+  useEffect(() => { setSearchQuery(new URLSearchParams(location.search).get("search") || ""); }, [location.search]);
   const [courseView, setCourseView] = useState("active");
   const [rowsToShow, setRowsToShow] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -256,7 +258,7 @@ export default function ModuleManagement() {
           PAGE HEADER
       ====================================== */}
 
-      <div className={styles.pageTop}>
+      <div className={`${styles.pageTop} professor-section-heading`}>
         <div className={styles.titleSection}>
           <h1 className={styles.pageTitle}>Course Management</h1>
 

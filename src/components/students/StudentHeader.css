@@ -163,12 +163,12 @@
    NOTIFICATION
 ===================================================== */
 
-.notification-menu-wrapper {
+.student-header .notification-menu-wrapper {
   position: relative;
   z-index: 1100;
 }
 
-.notification-button {
+.student-header .notification-button {
   position: relative;
 
   width: 50px;
@@ -192,14 +192,14 @@
     background 0.2s ease;
 }
 
-.notification-button:hover,
-.notification-button.active {
+.student-header .notification-button:hover,
+.student-header .notification-button.active {
   background: rgba(37, 113, 78, 0.08);
 
   color: #25714e;
 }
 
-.notification-button > svg {
+.student-header .notification-button > svg {
   width: 30px;
   height: 30px;
 
@@ -213,7 +213,7 @@
 
 /* BADGE */
 
-.notification-badge {
+.student-header .notification-badge {
   position: absolute;
 
   top: 4px;
@@ -245,7 +245,7 @@
    NOTIFICATION DROPDOWN
 ===================================================== */
 
-.notification-dropdown-menu {
+.student-header .notification-dropdown-menu {
   position: absolute;
 
   top: calc(100% + 10px);
@@ -288,7 +288,7 @@
    NOTIFICATION HEADER
 ===================================================== */
 
-.notification-dropdown-header {
+.student-header .notification-dropdown-header {
   min-height: 68px;
 
   display: flex;
@@ -304,14 +304,14 @@
   box-sizing: border-box;
 }
 
-.notification-dropdown-header > div {
+.student-header .notification-dropdown-header > div {
   min-width: 0;
 
   display: flex;
   flex-direction: column;
 }
 
-.notification-dropdown-header h2 {
+.student-header .notification-dropdown-header h2 {
   margin: 0;
 
   color: #2b3039;
@@ -321,7 +321,7 @@
   font-weight: 800;
 }
 
-.notification-dropdown-header span {
+.student-header .notification-dropdown-header span {
   margin-top: 3px;
 
   color: #8a919c;
@@ -331,7 +331,7 @@
   font-weight: 600;
 }
 
-.mark-all-read-button {
+.student-header .mark-all-read-button {
   flex: 0 0 auto;
 
   padding: 6px 8px;
@@ -349,7 +349,7 @@
   font-weight: 700;
 }
 
-.mark-all-read-button:hover {
+.student-header .mark-all-read-button:hover {
   background: #edf6f1;
 }
 
@@ -357,7 +357,7 @@
    NOTIFICATION TABS
 ===================================================== */
 
-.notification-dropdown-tabs {
+.student-header .notification-dropdown-tabs {
   display: flex;
   align-items: center;
 
@@ -368,7 +368,7 @@
   border-bottom: 1px solid #eceef1;
 }
 
-.notification-dropdown-tabs button {
+.student-header .notification-dropdown-tabs button {
   min-height: 29px;
 
   padding: 0 12px;
@@ -386,11 +386,11 @@
   font-weight: 700;
 }
 
-.notification-dropdown-tabs button:hover {
+.student-header .notification-dropdown-tabs button:hover {
   background: #f2f4f6;
 }
 
-.notification-dropdown-tabs button.active {
+.student-header .notification-dropdown-tabs button.active {
   background: #eaf4ee;
   color: #25714e;
 }
@@ -399,7 +399,7 @@
    NOTIFICATION LIST
 ===================================================== */
 
-.notification-list {
+.student-header .notification-list {
   max-height: 410px;
 
   overflow-y: auto;
@@ -413,7 +413,7 @@
   gap: 8px;
 }
 
-.notification-item {
+.student-header .notification-item {
   position: relative;
 
   width: 100%;
@@ -445,21 +445,21 @@
   transition: background 150ms ease;
 }
 
-.notification-item:hover {
+.student-header .notification-item:hover {
   background: #f3f5f7;
 }
 
-.notification-item.unread {
+.student-header .notification-item.unread {
   background: #eef6f1;
 }
 
-.notification-item.unread:hover {
+.student-header .notification-item.unread:hover {
   background: #e5f1e9;
 }
 
 /* NOTIFICATION ICON */
 
-.notification-item-icon {
+.student-header .notification-item-icon {
   width: 46px;
   height: 46px;
 
@@ -472,22 +472,22 @@
   color: #68717e;
 }
 
-.notification-item-icon.course {
+.student-header .notification-item-icon.course {
   background: #e5f3ea;
   color: #2563eb;
 }
 
-.notification-item-icon.announcement {
+.student-header .notification-item-icon.announcement {
   background: #edf0f8;
   color: #596a9a;
 }
 
-.notification-item-icon.sparkle {
+.student-header .notification-item-icon.sparkle {
   background: #f3ede0;
   color: #9a7428;
 }
 
-.notification-item-icon svg {
+.student-header .notification-item-icon svg {
   width: 23px;
   height: 23px;
 
@@ -501,7 +501,7 @@
 
 /* NOTIFICATION TEXT */
 
-.notification-item-copy {
+.student-header .notification-item-copy {
   min-width: 0;
 
   display: flex;
@@ -512,7 +512,7 @@
   font-family: Arial, sans-serif;
 }
 
-.notification-item-copy strong {
+.student-header .notification-item-copy strong {
   color: #2b3039;
 
   font-size: 12px;
@@ -520,7 +520,7 @@
   line-height: 1.25;
 }
 
-.notification-item-copy > span {
+.student-header .notification-item-copy > span {
   display: -webkit-box;
 
   margin-top: 3px;
@@ -536,7 +536,7 @@
   -webkit-line-clamp: 2;
 }
 
-.notification-item-copy small {
+.student-header .notification-item-copy small {
   margin-top: 5px;
 
   color: #25714e;
@@ -545,7 +545,7 @@
   font-weight: 700;
 }
 
-.notification-unread-dot {
+.student-header .notification-unread-dot {
   width: 8px;
   height: 8px;
 
@@ -560,7 +560,7 @@
    EMPTY NOTIFICATION
 ===================================================== */
 
-.notification-empty-state {
+.student-header .notification-empty-state {
   min-height: 230px;
 
   display: flex;
@@ -573,7 +573,7 @@
   text-align: center;
 }
 
-.notification-empty-icon {
+.student-header .notification-empty-icon {
   width: 58px;
   height: 58px;
 
@@ -586,7 +586,7 @@
   color: #6c7a72;
 }
 
-.notification-empty-icon svg {
+.student-header .notification-empty-icon svg {
   width: 28px;
   height: 28px;
 
@@ -598,7 +598,7 @@
   stroke-linejoin: round;
 }
 
-.notification-empty-state strong {
+.student-header .notification-empty-state strong {
   margin-top: 13px;
 
   color: #343941;
@@ -607,7 +607,7 @@
   font-size: 13px;
 }
 
-.notification-empty-state p {
+.student-header .notification-empty-state p {
   margin: 5px 0 0;
 
   color: #9097a2;
@@ -616,7 +616,7 @@
   font-size: 11px;
 }
 
-.notification-view-all-button {
+.student-header .notification-view-all-button {
   width: calc(100% - 14px);
   min-height: 40px;
 
@@ -636,7 +636,7 @@
   font-weight: 800;
 }
 
-.notification-view-all-button:hover {
+.student-header .notification-view-all-button:hover {
   background: #f2f7f4;
 }
 
@@ -970,7 +970,7 @@
 }
 
 @media (max-width: 900px) {
-  .notification-dropdown-menu {
+  .student-header .notification-dropdown-menu {
     position: fixed;
 
     top: 68px;
@@ -1023,12 +1023,12 @@
     gap: 8px;
   }
 
-  .notification-button {
+  .student-header .notification-button {
     width: 42px;
     height: 42px;
   }
 
-  .notification-button > svg {
+  .student-header .notification-button > svg {
     width: 26px;
     height: 26px;
   }
@@ -1070,33 +1070,57 @@
   color: #263c52;
 }
 
-.notification-button:hover,
-.notification-button.active,
-.mark-all-read-button:hover,
-.notification-dropdown-tabs button.active,
-.notification-item.unread,
-.notification-item-icon.course,
-.notification-view-all-button:hover,
+.student-header .notification-button:hover,
+.student-header .notification-button.active,
+.student-header .mark-all-read-button:hover,
+.student-header .notification-dropdown-tabs button.active,
+.student-header .notification-item.unread,
+.student-header .notification-item-icon.course,
+.student-header .notification-view-all-button:hover,
 .profile-dropdown-menu > button:hover {
   background: var(--student-theme-cloud-puff);
   color: var(--student-theme-accent);
 }
 
-.notification-item.unread:hover {
+.student-header .notification-item.unread:hover {
   background: var(--student-theme-buttercup);
 }
 
-.notification-button:hover,
-.notification-button.active,
-.mark-all-read-button,
-.notification-item-copy small,
-.notification-view-all-button,
+.student-header .notification-button:hover,
+.student-header .notification-button.active,
+.student-header .mark-all-read-button,
+.student-header .notification-item-copy small,
+.student-header .notification-view-all-button,
 .profile-dropdown-button:hover,
 .profile-dropdown-button.open {
   color: var(--student-theme-accent);
 }
 
-.notification-unread-dot,
+.student-header .notification-unread-dot,
 .profile-status-dot {
   background: var(--student-theme-morning-breeze);
+}
+
+button.student-header-search-icon { background: transparent; border: 0; padding: 6px; cursor: pointer; color: inherit; display: inline-flex; align-items: center; justify-content: center; }
+button.student-header-search-icon:focus-visible { outline: 2px solid #7fa8d6; border-radius: 4px; }
+
+/* Notification details use the shared blue dialog design. */
+body .swal2-container.student-notification-overlay { z-index: 999999 !important; background: rgba(38,60,82,.6) !important; backdrop-filter: blur(4px); }
+body .swal2-popup.student-notification-dialog { width: 520px !important; max-width: calc(100vw - 32px); padding: 0 !important; border: 1px solid #cbd9e8; border-radius: 12px !important; overflow: hidden; font-family: Arial,sans-serif !important; box-shadow: 0 24px 64px rgba(24,45,66,.24); }
+body .student-notification-dialog .swal2-title { display: block !important; margin: 0 !important; padding: 18px 24px !important; background: #7fa8d6; color: #fff !important; font: 600 18px/1.4 Arial,sans-serif !important; }
+body .student-notification-dialog .swal2-html-container { margin: 0 !important; padding: 24px !important; text-align: left !important; color: #64748b !important; font: 400 14px/1.65 Arial,sans-serif !important; }
+body .student-notification-dialog .swal2-actions { width: 100%; box-sizing: border-box; margin: 0 !important; padding: 16px 24px !important; border-top: 1px solid #e6e9ed; }
+body .student-notification-dialog .swal2-actions .swal2-confirm { width: 100%; min-height: 42px; margin: 0 !important; border: 1px solid #7fa8d6 !important; border-radius: 7px !important; background: #7fa8d6 !important; color: #fff !important; box-shadow: none !important; font: 600 14px/1.4 Arial,sans-serif !important; }
+body .student-notification-dialog .swal2-actions .swal2-confirm:hover { background: #608cbd !important; }
+
+body .swal2-popup.student-notification-dialog { width: 600px !important; }
+body .student-notification-dialog .swal2-title { padding: 22px 30px !important; font-size: 24px !important; }
+body .student-notification-dialog .swal2-html-container { padding: 30px !important; font-size: 20px !important; line-height: 1.6 !important; }
+body .student-notification-dialog .swal2-html-container p { font-size: 20px !important; line-height: 1.6 !important; }
+body .student-notification-dialog .swal2-html-container div { font-size: inherit !important; }
+body .student-notification-dialog .swal2-actions { padding: 20px 30px !important; }
+body .student-notification-dialog .swal2-actions .swal2-confirm { min-height: 52px; font-size: 20px !important; }
+@media (max-width: 480px) {
+  body .student-notification-dialog .swal2-title { padding: 20px !important; }
+  body .student-notification-dialog .swal2-html-container { padding: 22px !important; }
 }

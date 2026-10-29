@@ -371,8 +371,8 @@ export default function PublicCourses() {
     const result = await Swal.fire({
       title: "Do you want to enroll in this course?",
       text: courseTitle,
-      imageUrl: "/images/asking.png",
-      imageWidth: 180,
+      imageUrl: "/images/questionmark.png",
+      imageWidth: 270,
       imageHeight: 180,
       showCancelButton: true,
       confirmButtonText: "Send Request",
@@ -428,8 +428,8 @@ export default function PublicCourses() {
           text:
             data.message ||
             `Your enrollment request for ${courseTitle} is still waiting for professor approval.`,
-          imageUrl: "/images/asking.png",
-          imageWidth: 160,
+          imageUrl: "/images/questionmark.png",
+          imageWidth: 240,
           imageHeight: 160,
           confirmButtonText: "OK",
           confirmButtonColor: "#7FA8D6",
@@ -461,11 +461,16 @@ export default function PublicCourses() {
 
       await Swal.fire({
         title: "Enrollment request sent!",
+        customClass: {
+          popup: "enroll-popup",
+          confirmButton: "enroll-confirm-btn",
+        },
+        buttonsStyling: false,
         text:
           data.message ||
           `Your request to join ${courseTitle} is waiting for professor approval.`,
-        imageUrl: "/images/success.png",
-        imageWidth: 170,
+        imageUrl: "/images/request.png",
+        imageWidth: 255,
         imageHeight: 170,
         confirmButtonText: "OK",
         confirmButtonColor: "#7FA8D6",

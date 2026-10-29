@@ -431,10 +431,17 @@ export default function LessonResult() {
         savedResults.lessonId || savedResults.lesson_id || lessonId || null;
       const detectedDeckId =
         savedResults.deckId || savedResults.deck_id || deckId || null;
+      let practiceCourseId = null;
+      try {
+        if (String(localStorage.getItem("practiceLessonId")) === String(detectedLessonId)) {
+          practiceCourseId = JSON.parse(localStorage.getItem("practiceScope") || "{}").courseId;
+        }
+      } catch { /* Ignore invalid practice metadata. */ }
       const detectedCourseId =
         savedResults.courseId ||
         savedResults.course_id ||
         savedResults.scope?.courseId ||
+        practiceCourseId ||
         null;
       const detectedModuleIndex = toOptionalNumber(
         savedResults.moduleIndex ??
@@ -980,7 +987,7 @@ export default function LessonResult() {
   const goBack = () => {
     if (source === "deck") {
       navigate(`/deck/${resultDeckId || deckId}`);
-    } else if (source === "module" || source === "course") {
+    } else if (resultCourseId || source === "module" || source === "course") {
       navigate(
         resultCourseId
           ? `/student/enrolled-courses/${resultCourseId}`
@@ -1067,7 +1074,7 @@ export default function LessonResult() {
           <button className={styles.lesson} onClick={goBack}>
             {source === "deck"
               ? "Back to Deck"
-              : source === "module" || source === "course"
+              : resultCourseId || source === "module" || source === "course"
                 ? "Back to Course"
                 : "Review Lesson"}
           </button>

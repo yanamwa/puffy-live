@@ -679,3 +679,10 @@
     gap: 10px;
   }
 }
+
+@media (min-width: 821px) {
+  .student-notifications-layout:has(.enrolled-sidebar.sidebar-collapsed) .student-notifications-main-area {
+    width: calc(100% - 76px);
+    margin-left: 76px;
+  }
+}
