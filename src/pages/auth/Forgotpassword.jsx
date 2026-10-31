@@ -93,7 +93,7 @@ function ForgotPassword() {
         <PublicNavbar />
 
         <main className={styles.signupContainer}>
-          <form className={styles.signupCard} onSubmit={handleSubmit}>
+          <form className={`${styles.signupCard} ${styles.loginPageCard}`} onSubmit={handleSubmit}>
             <h2>Forgot Password</h2>
             <label htmlFor="forgot-password-email">Email Address</label>
 

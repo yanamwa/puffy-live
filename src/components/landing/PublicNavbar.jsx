@@ -12,8 +12,7 @@ export default function PublicNavbar() {
           About
         </NavLink>
         <Link to="/" className={styles.loginBrand}>
-          <img src="/images/logo.png" alt="" />
-          <span>PuffyBrain</span>
+          <img src="/images/logo.png" alt="PuffyBrain home" />
         </Link>
         <NavLink to="/faq" className={styles.loginNavLink}>
           FAQ

@@ -1076,10 +1076,16 @@
 .student-header .notification-dropdown-tabs button.active,
 .student-header .notification-item.unread,
 .student-header .notification-item-icon.course,
-.student-header .notification-view-all-button:hover,
-.profile-dropdown-menu > button:hover {
+.student-header .notification-view-all-button:hover {
   background: var(--student-theme-cloud-puff);
   color: var(--student-theme-accent);
+}
+
+/* Scope the menu theme above the legacy page-level green hover rules. */
+.student-header .profile-dropdown-menu > button:not(.profile-logout-option):hover,
+.student-header .profile-dropdown-menu > button:not(.profile-logout-option):focus-visible {
+  background: #edf4fc;
+  color: #456d99;
 }
 
 .student-header .notification-item.unread:hover {

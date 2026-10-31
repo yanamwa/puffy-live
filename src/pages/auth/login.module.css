@@ -55,7 +55,7 @@
   left: 48px;
   z-index: 0;
 
-  border: 1px solid #59655e;
+  border: 1px solid #596b80;
   border-bottom: none;
   border-radius: 34px 34px 0 0;
 
@@ -134,16 +134,16 @@
 
 .loginNavbar {
   width: 100%;
-  padding: 36px 138px 0;
+  padding: 36px 32px 0;
   position: relative;
   z-index: 10;
   box-sizing: border-box;
-  margin-bottom: 120px;
+  margin-bottom: 64px;
 }
 
 .loginNavbarInner {
-  width: min(100%, 870px);
-  min-height: 62px;
+  width: min(100%, 1080px);
+  min-height: 88px;
   margin: 0 auto;
   padding: 8px 38px;
 
@@ -165,7 +165,7 @@
 
 .loginNavLink {
   color: #ffffff;
-  font-size: 16px;
+  font-size: 20px;
   text-align: center;
   text-decoration: none;
   white-space: nowrap;
@@ -188,8 +188,8 @@
 }
 
 .loginBrand img {
-  width: 47px;
-  height: 47px;
+  width: 216px;
+  height: 72px;
   object-fit: contain;
 }
 
@@ -626,7 +626,7 @@
 }
 
 .valid {
-  color: #2e7d32;
+  color: #456d99;
   font-size: 14px;
 }
 
@@ -757,8 +757,8 @@
 }
 
 .validationMessage.success {
-  background: #e5ffe5;
-  color: #2e7d32;
+  background: #edf4fc;
+  color: #456d99;
 }
 
 .validationMessage.warning {
@@ -1112,12 +1112,12 @@
   padding: 34px 36px;
   position: relative;
   z-index: 6;
-  border: 1px solid #ccd3ce;
+  border: 1px solid #cbd9e8;
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow:
-    0 18px 45px rgba(54, 68, 59, 0.1),
-    0 4px 12px rgba(54, 68, 59, 0.05);
+    0 18px 45px rgba(49, 70, 96, 0.1),
+    0 4px 12px rgba(49, 70, 96, 0.05);
   box-sizing: border-box;
 }
 
@@ -1132,12 +1132,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  border-bottom: 1px solid #e2e7e3;
+  border-bottom: 1px solid #e2e9f2;
 }
 
 .professorSignupHeading h1 {
   margin: 0;
-  color: #53635a;
+  color: #4f6174;
   font-size: clamp(30px, 4vw, 38px);
   font-weight: 400;
   line-height: 1;
@@ -1145,7 +1145,7 @@
 
 .professorSignupHeading p {
   margin: 9px 0 0;
-  color: #7a857f;
+  color: #64748b;
   font-size: 16px;
   line-height: 1.4;
 }
@@ -1175,7 +1175,7 @@
 .professorFormGroup label {
   margin: 0;
 
-  color: #58675f;
+  color: #4f6174;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 15px;
@@ -1193,12 +1193,12 @@
   margin: 0;
   padding: 0 15px;
 
-  border: 1px solid #d4dbd6;
+  border: 1px solid #cbd9e8;
   border-radius: 11px;
   outline: none;
 
   background: #ffffff;
-  color: #39453f;
+  color: #33465c;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 15px;
@@ -1213,12 +1213,12 @@
 
 .professorFormGroup > input::placeholder,
 .professorPasswordWrapper input::placeholder {
-  color: #a0aaa4;
+  color: #8797ab;
 }
 
 .professorFormGroup > input:hover,
 .professorPasswordWrapper input:hover {
-  border-color: #b8c5bc;
+  border-color: #a8c6e7;
 }
 
 .professorFormGroup > input:focus,
@@ -1230,7 +1230,7 @@
 .professorFormGroup > input:disabled,
 .professorPasswordWrapper input:disabled {
   cursor: not-allowed;
-  background: #f3f5f4;
+  background: #f3f6fa;
   opacity: 0.72;
 }
 
@@ -1244,12 +1244,12 @@
   margin: 0;
   padding: 0 44px 0 15px;
 
-  border: 1px solid #d4dbd6;
+  border: 1px solid #cbd9e8;
   border-radius: 11px;
   outline: none;
 
   background-color: #ffffff;
-  color: #39453f;
+  color: #33465c;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 15px;
@@ -1259,8 +1259,8 @@
   box-sizing: border-box;
 
   background-image:
-    linear-gradient(45deg, transparent 50%, #718078 50%),
-    linear-gradient(135deg, #718078 50%, transparent 50%);
+    linear-gradient(45deg, transparent 50%, #64748b 50%),
+    linear-gradient(135deg, #64748b 50%, transparent 50%);
 
   background-position:
     calc(100% - 19px) 21px,
@@ -1278,7 +1278,7 @@
 }
 
 .professorFormGroup select:hover {
-  border-color: #b8c5bc;
+  border-color: #a8c6e7;
 }
 
 .professorFormGroup select:focus {
@@ -1288,7 +1288,7 @@
 
 .professorFormGroup select:disabled {
   cursor: not-allowed;
-  background-color: #f3f5f4;
+  background-color: #f3f6fa;
   opacity: 0.72;
 }
 
@@ -1299,7 +1299,7 @@
 .professorUploadDescription {
   margin: 0 0 3px;
 
-  color: #7a857f;
+  color: #64748b;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 14px;
@@ -1318,10 +1318,10 @@
 
   position: relative;
 
-  border: 1.5px dashed #aebcb2;
+  border: 1.5px dashed #a8c6e7;
   border-radius: 16px;
 
-  background: #f7faf8;
+  background: #f4f8fd;
 
   box-sizing: border-box;
 
@@ -1332,7 +1332,7 @@
 
 .professorUploadArea:hover {
   border-color: #7fa8d6;
-  background: #f1f8f3;
+  background: #edf4fc;
 }
 
 /* Hides the browser's default Choose File input */
@@ -1375,7 +1375,7 @@
 
   cursor: pointer;
 
-  box-shadow: 0 6px 14px rgba(71, 132, 87, 0.18);
+  box-shadow: 0 6px 14px rgba(95, 134, 177, 0.18);
 
   transition:
     transform 0.2s ease,
@@ -1386,7 +1386,7 @@
 .professorUploadButton:hover {
   transform: translateY(-1px);
   background: #6f98c7;
-  box-shadow: 0 8px 18px rgba(71, 132, 87, 0.23);
+  box-shadow: 0 8px 18px rgba(95, 134, 177, 0.23);
 }
 
 .professorUploadButton i {
@@ -1399,7 +1399,7 @@
 
   overflow: hidden;
 
-  color: #69766f;
+  color: #64748b;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 14px;
@@ -1420,12 +1420,12 @@
   align-items: center;
   gap: 16px;
 
-  border: 1px solid #dde4df;
+  border: 1px solid #dbe5f0;
   border-radius: 15px;
 
   background: #ffffff;
 
-  box-shadow: 0 5px 14px rgba(59, 74, 64, 0.05);
+  box-shadow: 0 5px 14px rgba(49, 70, 96, 0.05);
 }
 
 .professorProofPreview img {
@@ -1434,10 +1434,10 @@
 
   flex-shrink: 0;
 
-  border: 1px solid #d3dad5;
+  border: 1px solid #cbd9e8;
   border-radius: 11px;
 
-  background: #f4f6f5;
+  background: #f3f6fa;
   object-fit: cover;
 }
 
@@ -1507,7 +1507,7 @@
   border-radius: 8px;
 
   background: transparent;
-  color: #7d8982;
+  color: #74849a;
 
   font-size: 15px;
   cursor: pointer;
@@ -1519,7 +1519,7 @@
 
 .professorToggleEye:hover {
   color: #4f6174;
-  background: #eff7f1;
+  background: #edf4fc;
 }
 
 .professorToggleEye:focus-visible {
@@ -1543,9 +1543,9 @@
 
 .professorPasswordPanel {
   padding: 16px;
-  border: 1px solid #dde4df;
+  border: 1px solid #dbe5f0;
   border-radius: 14px;
-  background: #f7f9f8;
+  background: #f4f8fd;
 }
 
 .professorPasswordRules {
@@ -1560,7 +1560,7 @@
 }
 
 .valid {
-  color: #278344;
+  color: #456d99;
 }
 
 .invalid {
@@ -1594,8 +1594,8 @@
 
 .professorStrengthMessage.success,
 .professorMatchMessage.success {
-  background: #e6f7e9;
-  color: #277a3b;
+  background: #edf4fc;
+  color: #456d99;
 }
 
 /* =========================================================
@@ -1606,7 +1606,7 @@
   margin-top: 30px;
   padding-top: 24px;
 
-  border-top: 1px solid #e2e7e3;
+  border-top: 1px solid #e2e9f2;
 
   text-align: center;
 }
@@ -1627,7 +1627,7 @@
 
   cursor: pointer;
 
-  box-shadow: 0 7px 16px rgba(71, 132, 87, 0.19);
+  box-shadow: 0 7px 16px rgba(95, 134, 177, 0.19);
 
   transition:
     transform 0.2s ease,
@@ -1638,7 +1638,7 @@
 .professorSignupButton:hover:not(:disabled) {
   transform: translateY(-1px);
   background: #6f98c7;
-  box-shadow: 0 9px 20px rgba(71, 132, 87, 0.25);
+  box-shadow: 0 9px 20px rgba(95, 134, 177, 0.25);
 }
 
 .professorSignupButton:disabled {
@@ -1650,7 +1650,7 @@
 .professorSignupActions p {
   margin: 12px 0 0;
 
-  color: #7a857f;
+  color: #64748b;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 14px;
@@ -1661,7 +1661,7 @@
 }
 
 .professorSignupActions a {
-  color: #558363;
+  color: #456d99;
   text-decoration: none;
 }
 
@@ -1789,18 +1789,18 @@
   z-index: 2;
   overflow: hidden;
 
-  border: 1px solid rgba(130, 153, 138, 0.38);
+  border: 1px solid rgba(127, 168, 214, 0.38);
   border-radius: 24px;
 
   background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.99),
-    rgba(248, 252, 249, 0.98)
+    rgba(245, 249, 255, 0.98)
   );
 
   box-shadow:
-    0 24px 55px rgba(61, 85, 68, 0.13),
-    0 8px 20px rgba(61, 85, 68, 0.08);
+    0 24px 55px rgba(49, 70, 96, 0.13),
+    0 8px 20px rgba(49, 70, 96, 0.08);
 
   box-sizing: border-box;
 }
@@ -1826,10 +1826,10 @@
 
   display: block;
 
-  border-bottom: 1px solid #e3ebe5;
+  border-bottom: 1px solid #dbe5f0;
 
-  background: rgba(247, 251, 248, 0.75);
-  color: #4d6555;
+  background: rgba(244, 248, 253, 0.75);
+  color: #4f6174;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 33px;
@@ -1843,7 +1843,7 @@
   max-width: 330px;
   margin: 27px auto 8px;
 
-  color: #79867e;
+  color: #64748b;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 16px;
@@ -1866,23 +1866,23 @@
   height: 66px;
   padding: 0;
 
-  border: 1.5px solid #d6dfd8;
+  border: 1.5px solid #cbd9e8;
   border-radius: 15px;
   outline: none;
 
   background: #ffffff;
-  color: #33463a;
+  color: #33465c;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 29px;
   font-weight: 400;
   line-height: 66px;
   text-align: center;
-  caret-color: #68aa78;
+  caret-color: #5f86b1;
 
   box-shadow:
-    inset 0 1px 2px rgba(49, 72, 56, 0.04),
-    0 4px 10px rgba(49, 72, 56, 0.04);
+    inset 0 1px 2px rgba(49, 70, 96, 0.04),
+    0 4px 10px rgba(49, 70, 96, 0.04);
 
   box-sizing: border-box;
 
@@ -1894,19 +1894,19 @@
 }
 
 .otpInput:hover {
-  border-color: #adc8b4;
-  background: #fbfefc;
+  border-color: #a8c6e7;
+  background: #f7faff;
 }
 
 .otpInput:focus {
   transform: translateY(-2px);
 
-  border-color: #76bd87;
+  border-color: #7fa8d6;
   background: #ffffff;
 
   box-shadow:
     0 0 0 4px rgba(127, 168, 214, 0.18),
-    0 8px 17px rgba(72, 124, 84, 0.11);
+    0 8px 17px rgba(95, 134, 177, 0.11);
 }
 .otpRow {
   width: 100%;
@@ -1919,16 +1919,16 @@
   justify-content: space-between;
   gap: 14px;
 
-  border: 1px solid #e1e9e3;
+  border: 1px solid #dbe5f0;
   border-radius: 13px;
 
-  background: #f6f9f7;
+  background: #f4f8fd;
 
   box-sizing: border-box;
 }
 
 .otpTimer {
-  color: #68766d;
+  color: #64748b;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 15px;
@@ -1943,8 +1943,8 @@
   border: 1px solid transparent;
   border-radius: 10px;
 
-  background: #e6f4e9;
-  color: #4d7b58;
+  background: #edf4fc;
+  color: #456d99;
 
   font-family: "Jersey 15", sans-serif;
   font-size: 14px;
@@ -1961,15 +1961,15 @@
 .resendBtn:hover:not(:disabled) {
   transform: translateY(-1px);
 
-  border-color: #b9d7c0;
-  background: #dcefe0;
-  color: #3d6747;
+  border-color: #a8c6e7;
+  background: #e0edfb;
+  color: #365a82;
 }
 
 .resendBtn:disabled {
-  border-color: #e3e7e4;
-  background: #eef1ef;
-  color: #a3aaa5;
+  border-color: #e2e9f2;
+  background: #eef2f7;
+  color: #94a3b8;
 
   cursor: not-allowed;
   opacity: 1;
@@ -1995,7 +1995,7 @@
   cursor: pointer;
 
   box-shadow:
-    0 8px 18px rgba(74, 139, 89, 0.22),
+    0 8px 18px rgba(95, 134, 177, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 
   transition:
@@ -2009,13 +2009,13 @@
   filter: brightness(0.98);
 
   box-shadow:
-    0 12px 24px rgba(74, 139, 89, 0.28),
+    0 12px 24px rgba(95, 134, 177, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .verifyBtn:active {
   transform: translateY(0);
-  box-shadow: 0 5px 12px rgba(74, 139, 89, 0.2);
+  box-shadow: 0 5px 12px rgba(95, 134, 177, 0.2);
 }
 
 .otpInlineError {
@@ -2152,6 +2152,112 @@
   font-weight: 600;
 }
 /* Public navigation states */
+.professorSignupCard {
+  width: min(100%, 900px);
+}
+
+.professorSignupHeading h1 {
+  font-size: clamp(32px, 4vw, 42px);
+}
+
+.professorSignupHeading p,
+.professorFormGroup label,
+.professorUploadDescription,
+.professorFileName,
+.professorSignupActions p,
+.professorPasswordRules p,
+.professorStrengthMessage,
+.professorMatchMessage {
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.professorFormGroup > input,
+.professorPasswordWrapper input,
+.professorFormGroup select {
+  height: 56px;
+  font-size: 18px;
+}
+
+.professorFormGroup select {
+  background-position: calc(100% - 19px) 25px, calc(100% - 14px) 25px;
+}
+
+.professorUploadButton {
+  min-height: 50px;
+  font-size: 18px;
+}
+
+.professorSignupButton {
+  min-height: 56px;
+  font-size: 22px;
+}
+
+.professorToggleEye {
+  width: 44px;
+  height: 44px;
+}
+
+.professorToggleEye svg {
+  width: 22px;
+  height: 22px;
+}
+
+.loginPageCard {
+  width: 440px;
+  max-width: 100%;
+  padding-bottom: 32px;
+}
+
+.loginPageCard h2 {
+  height: 72px;
+  margin-bottom: 28px;
+  color: #4f6174;
+  font-size: 34px;
+}
+
+.loginPageCard label {
+  color: #4f6174;
+  font-size: 18px;
+}
+
+.loginPageCard > input,
+.loginPageCard .passwordWrapper input {
+  height: 54px;
+  font-size: 18px;
+}
+
+.loginPageCard .toggleEye {
+  width: 40px;
+  height: 40px;
+}
+
+.loginPageCard .toggleEye svg {
+  width: 22px;
+  height: 22px;
+}
+
+.loginPageCard .forgot,
+.loginPageCard .forgotText,
+.loginPageCard .signupText,
+.loginPageCard .validationMessage {
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.loginPageCard .loginBtn,
+.loginPageCard .submitBtn {
+  height: 54px;
+  margin-top: 24px;
+  font-size: 22px;
+}
+
+@media (max-width: 760px) {
+  .loginNavLink {
+    font-size: 18px;
+  }
+}
+
 .loginNavLink[aria-current="page"] {
   text-decoration: underline;
   text-underline-offset: 6px;
@@ -2173,7 +2279,7 @@
     border-radius: 28px;
   }
   .loginNavLink {
-    font-size: 12px;
+    font-size: 16px;
     text-align: center;
     white-space: nowrap;
   }

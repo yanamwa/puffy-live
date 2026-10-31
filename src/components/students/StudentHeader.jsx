@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 import "./StudentHeader.css";
 
@@ -152,6 +153,7 @@ export default function StudentHeader({
   showJoinCourse = true,
 }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [localSearch, setLocalSearch] = useState("");
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
   const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
@@ -450,23 +452,7 @@ export default function StudentHeader({
   const handleLogout = () => {
     setProfileMenuOpen(false);
     setNotificationMenuOpen(false);
-    [
-      "token",
-      "authToken",
-      "puffy-token",
-      "puffy-user",
-      "user",
-      "currentUser",
-      "user_email",
-      "user_role",
-      "username",
-      "year_level",
-      "section_name",
-      "school_name",
-    ].forEach((key) => localStorage.removeItem(key));
-    ["token", "authToken", "puffy-token", "user", "currentUser"].forEach(
-      (key) => sessionStorage.removeItem(key),
-    );
+    logout();
     navigate("/login", {
       replace: true,
     });
