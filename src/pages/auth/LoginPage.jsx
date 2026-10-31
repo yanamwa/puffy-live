@@ -78,9 +78,7 @@ function Login() {
     setLoginError(message);
 
     Swal.fire({
-      imageUrl: "/images/error.png",
-      imageWidth: 170,
-      imageHeight: 170,
+      icon: "error",
       title: "Login Failed",
       text: message,
     });
@@ -88,9 +86,7 @@ function Login() {
 
   const handleDeletedAccount = async (data) => {
     const result = await Swal.fire({
-      imageUrl: "/images/error.png",
-      imageWidth: 170,
-      imageHeight: 170,
+      icon: "error",
       title: "Account Deleted",
       text: "This account was deleted. Do you want to recover it?",
       showCancelButton: true,
@@ -122,9 +118,7 @@ function Login() {
 
       if (!otpRes.ok || !otpData.success) {
         Swal.fire({
-          imageUrl: "/images/error.png",
-          imageWidth: 170,
-          imageHeight: 170,
+          icon: "error",
           title: "Failed",
           text: otpData.message || "Could not send verification code.",
         });
@@ -151,9 +145,7 @@ function Login() {
       console.error("RECOVERY OTP ERROR:", otpError);
 
       Swal.fire({
-        imageUrl: "/images/error.png",
-        imageWidth: 170,
-        imageHeight: 170,
+        icon: "error",
         title: "Server Error",
         text: "Failed to send verification code.",
       });
@@ -231,9 +223,7 @@ function Login() {
       setLoginError(message);
 
       Swal.fire({
-        imageUrl: "/images/error.png",
-        imageWidth: 170,
-        imageHeight: 170,
+        icon: "error",
         title: "Too Many Attempts",
         text: message,
       });
@@ -349,15 +339,15 @@ function Login() {
       const message =
         error.name === "AbortError"
           ? "Login took too long. Please check that the backend is running and try again."
-          : error.message ||
-            "Could not connect to the server. Please check that your backend is running.";
+          : error instanceof TypeError
+            ? "Could not reach the login server. Please try again in a few minutes."
+            : error.message ||
+              "Could not connect to the server. Please try again later.";
 
       setLoginError(message);
 
       Swal.fire({
-        imageUrl: "/images/error.png",
-        imageWidth: 170,
-        imageHeight: 170,
+        icon: "error",
         title: message.includes("professor registration")
           ? "Approval Pending"
           : "Server Error",
