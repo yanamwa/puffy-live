@@ -79,10 +79,6 @@ function Login() {
     setLoginError(message);
 
     Swal.fire({
-<<<<<<< HEAD
-      icon: "error",
-      title: "Login Failed",
-=======
       imageUrl: "/images/loginfailed.png",
       imageWidth: 270,
       imageHeight: 180,
@@ -93,7 +89,6 @@ function Login() {
       },
       confirmButtonText: "OK",
       title: "",
->>>>>>> 0aae72e0f4e2246cd44be167fe4f38ed46743645
       text: message,
     });
   };
@@ -243,9 +238,6 @@ function Login() {
       setLoginError(message);
 
       Swal.fire({
-<<<<<<< HEAD
-        icon: "error",
-=======
         imageUrl: "/images/tryagain.png",
         imageWidth: 270,
         imageHeight: 180,
@@ -255,7 +247,6 @@ function Login() {
           container: "login-feedback-overlay",
         },
         confirmButtonText: "OK",
->>>>>>> 0aae72e0f4e2246cd44be167fe4f38ed46743645
         title: "Too Many Attempts",
         text: message,
       });
