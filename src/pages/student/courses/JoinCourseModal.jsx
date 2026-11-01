@@ -1,3 +1,5 @@
+import "./JoinCourseModal.css";
+
 export default function JoinCourseModal({
   open,
   courseCode,
@@ -18,6 +20,7 @@ export default function JoinCourseModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="join-course-title"
+        aria-describedby="join-course-description"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="join-course-header">
@@ -25,12 +28,13 @@ export default function JoinCourseModal({
         </header>
 
         <div className="join-course-body">
-          <p>
+          <p id="join-course-description">
             Ask your professor for the class code, then enter the course code
             here.
           </p>
           <input
             type="text"
+            aria-label="Course code"
             value={courseCode}
             placeholder="Course Code"
             autoFocus

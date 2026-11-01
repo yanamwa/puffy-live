@@ -1,3 +1,4 @@
+import ResponsiveSidebar from "../../../components/ResponsiveSidebar";
 import { useEffect, useState } from "react";
 
 import { NavLink, useNavigate } from "react-router-dom";
@@ -44,7 +45,6 @@ const DEFAULT_PROFILE_IMAGE = "/images/temporaryimg.png";
 /===================================================== */
 
 const mainMenuItems = [
-
   {
     label: "Dashboard",
 
@@ -468,7 +468,7 @@ export default function AdminLayout({ children }) {
 
       ================================================= */}
 
-      <aside className="admin-sidebar">
+      <ResponsiveSidebar className="admin-sidebar" logoSrc="/images/Admin.png">
         <div
           className="sidebar-brand"
           style={{
@@ -502,11 +502,15 @@ export default function AdminLayout({ children }) {
 
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <img
-              src="/images/Admin.png"
-              alt="PuffyBrain Admin"
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
+            <picture className="role-sidebar-logo-picture">
+              <source media="(max-width: 820px)" srcSet="/images/Admin.png" />
+              <img
+                src="/images/Admin.png"
+                className="role-sidebar-logo"
+                alt="PuffyBrain Admin"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </picture>
           </button>
         </div>
 
@@ -547,7 +551,7 @@ export default function AdminLayout({ children }) {
 
           <span className="admin-logout-label">Logout</span>
         </button>
-      </aside>
+      </ResponsiveSidebar>
 
       {/* ================================================
 

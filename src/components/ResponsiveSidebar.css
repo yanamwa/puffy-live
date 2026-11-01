@@ -1,0 +1,314 @@
+.responsive-sidebar-content {
+  display: contents;
+}
+.responsive-sidebar-mobile-header {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  #root :is(.professor-layout, .admin-layout, .superadmin-layout) {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  #root .responsive-sidebar.responsive-sidebar {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 64px;
+    max-height: none;
+    display: block;
+    flex: none;
+    padding: 0;
+    overflow: visible;
+    background: #7fa8d6;
+    border: 0;
+    border-bottom: 1px solid #6f98c7;
+    z-index: 1100;
+  }
+
+  #root .responsive-sidebar .responsive-sidebar-mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    height: 64px;
+    padding: 6px 16px;
+  }
+
+  #root .responsive-sidebar-mobile-header img {
+    width: 120px;
+    height: 52px;
+    object-fit: contain;
+  }
+
+  #root .responsive-sidebar-mobile-header button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid #d6e5f7;
+    border-radius: 12px;
+    background: #e8f1ff;
+    color: #244c7a;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  #root .responsive-sidebar-mobile-header svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  #root .responsive-sidebar .responsive-sidebar-content {
+    display: none;
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px 12px 12px;
+  }
+
+  #root
+    .responsive-sidebar[data-mobile-open="true"]
+    .responsive-sidebar-content {
+    display: block;
+  }
+
+  #root
+    .responsive-sidebar
+    .responsive-sidebar-content
+    > :is(.brand-lockup, .professor-brand, .sidebar-brand) {
+    display: none;
+  }
+
+  #root .responsive-sidebar.responsive-sidebar nav {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 0;
+    gap: 6px;
+    margin: 0;
+  }
+
+  #root
+    .responsive-sidebar.responsive-sidebar
+    :is(.menu-section, .sidebar-course-group) {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  #root
+    .responsive-sidebar.responsive-sidebar
+    :is(
+      .side-nav-item,
+      .professor-link,
+      .sidebar-link,
+      .logout-button,
+      .professor-logout,
+      .logout-btn
+    ) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 48px;
+    flex: none;
+    padding: 10px 12px;
+    margin: 0;
+    gap: 12px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 16px !important;
+  }
+
+  #root
+    .responsive-sidebar.responsive-sidebar
+    :is(
+      .nav-label,
+      .professor-nav-label,
+      .admin-nav-label,
+      .sidebar-nav-label,
+      .logout-label,
+      .professor-logout-label,
+      .admin-logout-label,
+      .sidebar-logout-label
+    ) {
+    display: inline;
+    width: auto;
+    max-width: none;
+    opacity: 1;
+    visibility: visible;
+    white-space: normal;
+    font-size: 16px !important;
+  }
+
+  #root
+    .responsive-sidebar.responsive-sidebar
+    :is(.side-nav-item, .professor-link, .sidebar-link):is(:hover, .active) {
+    background: #e8f1ff;
+    border-color: #d6e5f7;
+    color: #244c7a;
+    box-shadow: 0 2px 0 #5f86b1;
+  }
+
+  #root
+    .responsive-sidebar.responsive-sidebar
+    :is(.side-nav-item, .professor-link, .sidebar-link)::after {
+    display: none;
+  }
+
+  #root .responsive-sidebar :is(button, a):focus-visible {
+    outline: 3px solid #244c7a;
+    outline-offset: 2px;
+  }
+
+  #root .responsive-sidebar .sidebar-footer {
+    margin: 8px 0 0;
+    padding: 0;
+  }
+
+  /* Keep both role headers on the same two-row mobile layout. */
+  #root .professor-layout .professor-main {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  #root header.responsive-role-header.responsive-role-header {
+    height: auto;
+    min-height: 74px;
+    flex: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+  }
+
+  #root
+    .responsive-role-header.responsive-role-header
+    :is(.professor-search, .student-header-search) {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 43px;
+    min-height: 43px;
+    max-height: 43px;
+    flex: 0 0 100%;
+    padding: 0 16px;
+    border-radius: 999px;
+  }
+
+  #root .professor-search input {
+    min-width: 0;
+    height: 100%;
+    font-size: 15px !important;
+    font-family: inherit !important;
+  }
+
+  #root .professor-search input::placeholder {
+    font-size: 15px !important;
+    font-family: inherit !important;
+  }
+
+  #root .professor-search-icon {
+    pointer-events: auto;
+  }
+
+  #root
+    .responsive-role-header.responsive-role-header
+    :is(.professor-header-actions, .student-header-actions) {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 100%;
+    gap: 12px;
+    margin: 0;
+  }
+
+  #root .professor-layout .professor-content {
+    overflow: visible;
+    padding: 24px 18px 44px;
+  }
+
+  #root .professor-header .role-notification-menu {
+    position: static;
+  }
+
+  #root .professor-header .role-notification-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 14px;
+    right: 14px;
+    width: auto;
+    max-height: 60dvh;
+    overflow-y: auto;
+  }
+}
+
+/* Let the bell-aligned popup layer over the desktop sidebar. */
+#root .professor-layout .professor-main {
+  overflow: visible;
+}
+
+#root .professor-layout .professor-header {
+  z-index: 1201;
+}
+
+#root .professor-header .role-notification-dropdown {
+  max-height: min(540px, 60dvh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#root .professor-header .role-notification-list {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+#root
+  .professor-header
+  :is(
+    .role-notification-header,
+    .role-notification-tabs,
+    .role-notification-view-all
+  ) {
+  flex-shrink: 0;
+}
+
+@media (min-width: 821px) {
+  #root .professor-header .role-notification-menu {
+    position: relative;
+  }
+
+  #root .professor-header .role-notification-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    left: auto;
+    width: min(370px, calc(100vw - 28px));
+  }
+}

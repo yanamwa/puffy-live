@@ -1,3 +1,4 @@
+import ResponsiveSidebar from "../../../components/ResponsiveSidebar";
 import { useEffect, useState } from "react";
 
 import {
@@ -375,12 +376,29 @@ export default function ProfessorLayout() {
           SIDEBAR
       ================================================= */}
 
-      <aside className="professor-sidebar">
-        <div className="professor-brand" style={{ height: 120, minHeight: 120, padding: "10px 12px", boxSizing: "border-box" }}>
+      <ResponsiveSidebar
+        className="professor-sidebar"
+        logoSrc="/images/Professor.png"
+      >
+        <div
+          className="professor-brand"
+          style={{
+            height: 120,
+            minHeight: 120,
+            padding: "10px 12px",
+            boxSizing: "border-box",
+          }}
+        >
           <button
             type="button"
             className="professor-logo-button"
-            style={{ width: "100%", maxWidth: sidebarCollapsed ? 65 : 280, height: sidebarCollapsed ? 65 : 100, flex: sidebarCollapsed ? "0 1 65px" : "0 1 280px", borderRadius: 0 }}
+            style={{
+              width: "100%",
+              maxWidth: sidebarCollapsed ? 65 : 280,
+              height: sidebarCollapsed ? 65 : 100,
+              flex: sidebarCollapsed ? "0 1 65px" : "0 1 280px",
+              borderRadius: 0,
+            }}
             onClick={toggleSidebar}
             aria-label={
               sidebarCollapsed
@@ -390,7 +408,22 @@ export default function ProfessorLayout() {
             aria-expanded={!sidebarCollapsed}
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <img src={sidebarCollapsed ? "/images/puffybrain.png" : "/images/Professor.png"} alt="PuffyBrain Professor" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <picture className="role-sidebar-logo-picture">
+              <source
+                media="(max-width: 820px)"
+                srcSet="/images/Professor.png"
+              />
+              <img
+                src={
+                  sidebarCollapsed
+                    ? "/images/puffybrain.png"
+                    : "/images/Professor.png"
+                }
+                className="role-sidebar-logo"
+                alt="PuffyBrain Professor"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </picture>
           </button>
         </div>
 
@@ -429,7 +462,7 @@ export default function ProfessorLayout() {
 
           <span className="professor-logout-label">Logout</span>
         </button>
-      </aside>
+      </ResponsiveSidebar>
 
       {/* ================================================
           MAIN
@@ -440,11 +473,17 @@ export default function ProfessorLayout() {
             HEADER
         =============================================== */}
 
-        <header className="professor-header">
-          <form className="professor-search" role="search" onSubmit={(event) => {
-            event.preventDefault();
-            navigate(`/professor/courses?search=${encodeURIComponent(headerSearch.trim())}`);
-          }}>
+        <header className="professor-header responsive-role-header">
+          <form
+            className="professor-search"
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault();
+              navigate(
+                `/professor/courses?search=${encodeURIComponent(headerSearch.trim())}`,
+              );
+            }}
+          >
             <input
               type="search"
               placeholder="Search..."
@@ -453,7 +492,11 @@ export default function ProfessorLayout() {
               onChange={(event) => setHeaderSearch(event.target.value)}
             />
 
-            <button type="submit" className="professor-search-icon" aria-label="Search courses">
+            <button
+              type="submit"
+              className="professor-search-icon"
+              aria-label="Search courses"
+            >
               <FiSearch />
             </button>
           </form>

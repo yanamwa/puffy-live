@@ -1,3 +1,4 @@
+import "./LoginFeedback.css";
 import PublicNavbar from "../../components/landing/PublicNavbar.jsx";
 import styles from "./login.module.css";
 import { useEffect, useState } from "react";
@@ -78,8 +79,21 @@ function Login() {
     setLoginError(message);
 
     Swal.fire({
+<<<<<<< HEAD
       icon: "error",
       title: "Login Failed",
+=======
+      imageUrl: "/images/loginfailed.png",
+      imageWidth: 270,
+      imageHeight: 180,
+      imageAlt: "Login failed",
+      customClass: {
+        popup: "login-feedback-popup",
+        container: "login-feedback-overlay",
+      },
+      confirmButtonText: "OK",
+      title: "",
+>>>>>>> 0aae72e0f4e2246cd44be167fe4f38ed46743645
       text: message,
     });
   };
@@ -207,8 +221,14 @@ function Login() {
 
       Swal.fire({
         imageUrl: "/images/missing_credentials.png",
-      imageWidth: 270,
-      imageHeight: 180,
+        imageWidth: 270,
+        imageHeight: 180,
+        imageAlt: "Missing login credentials",
+        customClass: {
+          popup: "login-feedback-popup",
+          container: "login-feedback-overlay",
+        },
+        confirmButtonText: "OK",
         title: "Missing Fields",
         text: message,
       });
@@ -223,7 +243,19 @@ function Login() {
       setLoginError(message);
 
       Swal.fire({
+<<<<<<< HEAD
         icon: "error",
+=======
+        imageUrl: "/images/tryagain.png",
+        imageWidth: 270,
+        imageHeight: 180,
+        imageAlt: "Too many login attempts. Try again later.",
+        customClass: {
+          popup: "login-feedback-popup",
+          container: "login-feedback-overlay",
+        },
+        confirmButtonText: "OK",
+>>>>>>> 0aae72e0f4e2246cd44be167fe4f38ed46743645
         title: "Too Many Attempts",
         text: message,
       });

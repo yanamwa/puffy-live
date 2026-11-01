@@ -1,3 +1,4 @@
+import "./LoginFeedback.css";
 import PublicNavbar from "../../components/landing/PublicNavbar.jsx";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -62,13 +63,19 @@ function ForgotPassword() {
       }
 
       await Swal.fire({
-        title: "Email Sent!",
+        title: "",
         text:
           data.message ||
           "If an account exists for that email, a password reset link has been sent.",
-        imageUrl: "/images/3.png",
-        imageWidth: 200,
-        imageHeight: 200,
+        imageUrl: "/images/emailsent.png",
+        imageWidth: 270,
+        imageHeight: 180,
+        imageAlt: "Password reset email sent",
+        customClass: {
+          popup: "login-feedback-popup",
+          container: "login-feedback-overlay",
+        },
+        confirmButtonText: "OK",
       });
 
       navigate("/login");
@@ -93,7 +100,10 @@ function ForgotPassword() {
         <PublicNavbar />
 
         <main className={styles.signupContainer}>
-          <form className={`${styles.signupCard} ${styles.loginPageCard}`} onSubmit={handleSubmit}>
+          <form
+            className={`${styles.signupCard} ${styles.loginPageCard}`}
+            onSubmit={handleSubmit}
+          >
             <h2>Forgot Password</h2>
             <label htmlFor="forgot-password-email">Email Address</label>
 

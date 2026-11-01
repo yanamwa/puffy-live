@@ -401,6 +401,22 @@
   color: #263c52;
 }
 
+.public-course-folder .add-course-button:not(:disabled) {
+  box-shadow: 2px 3px 0 #365d8b;
+}
+
+.public-course-folder .start-learning-button:not(:disabled) {
+  box-shadow: 0 3px 0 #365d8b;
+}
+
+.public-course-folder .start-learning-button:hover:not(:disabled) {
+  box-shadow: 0 4px 0 #365d8b;
+}
+
+.public-course-folder .start-learning-button:active:not(:disabled) {
+  box-shadow: 0 1px 0 #365d8b;
+}
+
 .add-course-button.requested-course-status,
 .start-learning-button.requested-course-status,
 .add-course-button.enrolled-course-status,

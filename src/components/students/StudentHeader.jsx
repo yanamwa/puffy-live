@@ -439,7 +439,10 @@ export default function StudentHeader({
 
     await Swal.fire({
       title: notificationTitle,
-      customClass: { container: "student-notification-overlay", popup: "student-notification-dialog" },
+      customClass: {
+        container: "student-notification-overlay",
+        popup: "student-notification-dialog",
+      },
       html,
       confirmButtonText: "Close",
       confirmButtonColor: "#7fa9d6",
@@ -461,13 +464,20 @@ export default function StudentHeader({
      JSX
   ===================================================== */
   return (
-    <header className="student-header">
+    <header className="student-header responsive-role-header">
       {/* SEARCH */}
       {showSearch && (
-        <form className="student-header-search" role="search" onSubmit={(event) => {
-          event.preventDefault();
-          if (!onSearchChange) navigate(`/student/enrolled-courses?search=${encodeURIComponent(localSearch.trim())}`);
-        }}>
+        <form
+          className="student-header-search"
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!onSearchChange)
+              navigate(
+                `/student/enrolled-courses?search=${encodeURIComponent(localSearch.trim())}`,
+              );
+          }}
+        >
           <input
             type="search"
             placeholder={searchPlaceholder}
@@ -481,7 +491,11 @@ export default function StudentHeader({
               }
             }}
           />
-          <button type="submit" className="student-header-search-icon" aria-label="Search courses">
+          <button
+            type="submit"
+            className="student-header-search-icon"
+            aria-label="Search courses"
+          >
             <svg viewBox="0 0 24 24">
               <circle cx="10.5" cy="10.5" r="5.5" />
               <path d="m15 15 4 4" />

@@ -1,3 +1,4 @@
+import ResponsiveSidebar from "../ResponsiveSidebar";
 import { NavLink, useLocation } from "react-router-dom";
 
 import {
@@ -108,7 +109,7 @@ export default function SuperAdminSidebar({
   };
 
   return (
-    <aside className="admin-sidebar">
+    <ResponsiveSidebar className="admin-sidebar" logoSrc="/images/superadmin.png">
       <div
         className="sidebar-brand"
         style={{
@@ -137,11 +138,15 @@ export default function SuperAdminSidebar({
           aria-expanded={!sidebarCollapsed}
           title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <img
-            src="/images/superadmin.png"
-            alt="PuffyBrain Super Admin"
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
-          />
+          <picture className="role-sidebar-logo-picture">
+            <source media="(max-width: 820px)" srcSet="/images/superadmin.png" />
+            <img
+              src="/images/superadmin.png"
+              className="role-sidebar-logo"
+              alt="PuffyBrain Super Admin"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+          </picture>
         </button>
       </div>
 
@@ -163,6 +168,6 @@ export default function SuperAdminSidebar({
           <span className="sidebar-logout-label">Logout</span>
         </button>
       </div>
-    </aside>
+    </ResponsiveSidebar>
   );
 }
