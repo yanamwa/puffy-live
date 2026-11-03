@@ -4,6 +4,7 @@ import styles from "./ContactUs.module.css";
 import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
 import { API_BASE } from "../../../config.js";
+import { FaInstagram, FaFacebookF, FaEnvelope } from "react-icons/fa";
 
 function ContactUs() {
   const [sending, setSending] = useState(false);
@@ -93,27 +94,32 @@ function ContactUs() {
       <header className={styles.header}>
         <PublicNavbar />
 
-        <div className={styles.heroContent}>
-          <div className={styles.headerText}>
-            <h3>Contact Us</h3>
+        
+          <div className={styles.heroContent}>
+            <div className={styles.headerText}>
+              <h3>Contact Us</h3>
 
-            <h1>
-              Get in touch with us. We're always happy to hear your suggestions.
-            </h1>
+              <h1>
+                Get in touch with us. We're always happy
+                to hear your suggestions.
+              </h1>
 
-            <p>
-              Have questions, suggestions, or feedback? We'd love to hear from
-              you. Fill out the form below and our team will get back to you as
-              soon as possible.
-            </p>
+              <p>
+                Have questions, suggestions, or feedback?
+                We'd love to hear from you. Fill out the
+                form below and our team will get back to
+                you as soon as possible.
+              </p>
+            </div>
+
+            <div className={styles.heroImage}>
+              <img
+                src="/images/contact.png"
+                alt="PuffyBrain Contact Us Mascot"
+              />
+            </div>
           </div>
 
-          <div className={styles.socials}>
-            <i className="fa-brands fa-facebook-f"></i>
-            <i className="fa-brands fa-instagram"></i>
-            <i className="fa-brands fa-twitter"></i>
-          </div>
-        </div>
       </header>
 
       <section className={styles.contactSection}>
@@ -177,20 +183,29 @@ function ContactUs() {
         </div>
       </section>
 
+      
+      {/* FOOTER */}
       <footer className={styles.footer}>
         <div className={styles.footerMenu}>
           <Link to="/about">About Us</Link>
-          <Link to="/terms">Terms</Link>
-          <Link to="/privacy">Privacy</Link>
+          <Link to="/toc">Terms and Conditions</Link>
+          <Link to="/privacy">Privacy Policy</Link>
           <Link to="/contact">Contact Us</Link>
         </div>
 
         <div className={styles.socialIcons}>
-          <i className="fa-brands fa-instagram"></i>
-          <i className="fa-brands fa-facebook-f"></i>
-          <i className="fa-solid fa-envelope"></i>
+          <a href="#" aria-label="Instagram">
+            <FaInstagram />
+          </a>
+          <a href="#" aria-label="Facebook">
+            <FaFacebookF />
+          </a>
+          <a href="mailto:puffybrain@gmail.com" aria-label="Email PuffyBrain">
+            <FaEnvelope />
+          </a>
         </div>
       </footer>
+
 
       <div className={styles.subFooter}>
         © 2025 – PuffyBrain All Rights Reserved

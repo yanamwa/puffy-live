@@ -84,30 +84,36 @@ const FAQ = () => {
         </p>
       </section>
 
-      {/* FOOTER */}
-      <footer className={styles.footer}>
-        <div className={styles.footerMenu}>
-          <a href="/about">About Us</a>
-          <a href="/terms">Terms and Conditions</a>
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/contact">Contact Us</a>
-        </div>
-        <div className={styles.socialIcons}>
-          <a href="#">
-            <FaInstagram />
-          </a>
-          <a href="#">
-            <FaFacebookF />
-          </a>
-          <a href="mailto:example@gmail.com">
-            <FaEnvelope />
-          </a>
-        </div>
-      </footer>
+      
+        {/* FOOTER */}
+        <footer className={styles.footer}>
+          <div className={styles.footerMenu}>
+            <a href="/about">About Us</a>
+            <a href="/toc">Terms and Conditions</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/contact">Contact Us</a>
+          </div>
 
-      <div className={styles.subFooter}>
-        <p>© 2025 – PuffyBrain All Rights Reserved</p>
-      </div>
+          <div className={styles.socialIcons}>
+            <a href="#" aria-label="Instagram">
+              <FaInstagram />
+            </a>
+            <a href="#" aria-label="Facebook">
+              <FaFacebookF />
+            </a>
+            <a
+              href="mailto:puffybrain@gmail.com"
+              aria-label="Email PuffyBrain"
+            >
+              <FaEnvelope />
+            </a>
+          </div>
+        </footer>
+
+        <div className={styles.subFooter}>
+          <p>© 2025 – PuffyBrain All Rights Reserved</p>
+        </div>
+
     </div>
   );
 };

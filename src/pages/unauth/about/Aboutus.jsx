@@ -18,7 +18,7 @@ export default function AboutUs() {
               <div className={styles["about-img-wrapper"]}>
                 <img
                   className={styles["about-img"]}
-                  src="/images/about us iamge.png"
+                  src="/images/AboutUs.png"
                   alt="Cute mascot image"
                 />
               </div>
