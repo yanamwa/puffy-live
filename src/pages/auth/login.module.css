@@ -148,12 +148,7 @@
   padding: 8px 38px;
 
   display: grid;
-  grid-template-columns:
-    minmax(70px, 1fr)
-    minmax(70px, 1fr)
-    auto
-    minmax(70px, 1fr)
-    minmax(90px, 1fr);
+  grid-template-columns: auto repeat(4, minmax(55px, 1fr)) auto;
   align-items: center;
   gap: 22px;
 
@@ -191,6 +186,32 @@
   width: 216px;
   height: 72px;
   object-fit: contain;
+}
+
+.loginStartLearning {
+  justify-self: end;
+  padding: 9px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--accent-green);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.loginStartLearning:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.loginStartLearning:active {
+  transform: translateY(1px);
 }
 
 /* =========================================================
@@ -905,6 +926,12 @@
   .loginNavLink {
     grid-row: 2;
     font-size: 14px;
+  }
+
+  .loginStartLearning {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: center;
   }
 
   .loginContainer,
@@ -2263,7 +2290,8 @@
   text-underline-offset: 6px;
 }
 .loginNavLink:focus-visible,
-.loginBrand:focus-visible {
+.loginBrand:focus-visible,
+.loginStartLearning:focus-visible {
   outline: 2px solid white;
   outline-offset: 5px;
 }

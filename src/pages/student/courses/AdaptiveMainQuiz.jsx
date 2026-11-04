@@ -42,7 +42,7 @@ export default function AdaptiveMainQuiz({ courseId, moduleId }) {
       setError(error.message);
       if (/already.*(taken|submitted)/i.test(error.message)) {
         await Swal.fire({
-          icon: "info",
+          imageUrl: "/images/reminder.png?v=2", imageWidth: 300, imageAlt: "Quiz reminder", customClass: { popup: "student-reminder-popup", title: "student-reminder-title" },
           title: "Main Quiz already taken",
           text: "You have already taken this Main Quiz. You can only access it once.",
           confirmButtonText: "OK",

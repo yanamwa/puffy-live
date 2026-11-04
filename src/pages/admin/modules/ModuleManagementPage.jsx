@@ -1,3 +1,4 @@
+import ContentDownloads from "../../../components/catalog/ContentDownloads.jsx";
 import LessonContent from "../../../components/lesson/LessonContent.jsx";
 import { CatalogModal } from "../../../components/catalog/CatalogModal.jsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -416,6 +417,7 @@ export function ProfessorClassDetails({ course, onClose }) {
   ];
   return (
     <CatalogModal title={course.title || "Professor Class Details"} variant="details" wide onClose={onClose}>
+      <ContentDownloads name={course.title || "Class lessons"} data={{ title: course.title, fields: Object.fromEntries(fields), joinCode: formatCourseId(course), description: course.summary || course.description, learningObjectives: course.learningObjectives, lessons, quizItems }} />
       <p className="catalog-class-code">Class Join Code: <strong>{formatCourseId(course)}</strong></p>
       <dl className="catalog-info catalog-class-info">
         {fields.map(([label,value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
@@ -431,3 +433,4 @@ export function ProfessorClassDetails({ course, onClose }) {
     </CatalogModal>
   );
 }
+

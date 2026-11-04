@@ -1,3 +1,4 @@
+import { FiCalendar, FiFileText, FiBookOpen } from "react-icons/fi";
 import { useEffect, useRef, useState } from "react";
 import { academicCalendarRequest } from "../../services/academicCalendarApi.js";
 import {
@@ -13,6 +14,47 @@ const empty = () => ({
 export default function AcademicCalendarPage() {
   const { records, loading, error, reload } = useAcademicCalendars();
   const [value, setValue] = useState(empty);
+  const [tab, setTab] = useState("Calendar View");
+  const [month, setMonth] = useState(
+    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  );
+  const [selectedDay, setSelectedDay] = useState("");
+  const [search, setSearch] = useState("");
+  const [eventType, setEventType] = useState("All Event Types");
+  const [eventPage, setEventPage] = useState(1);
+  const [editing, setEditing] = useState(null);
+  const addDialog = useRef(null);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    start_date: "",
+    end_date: "",
+  });
+  const upload = useRef(null);
+  const typeOf = (event) =>
+    /exam/i.test(event.title)
+      ? "Examination"
+      : /deadline|last day/i.test(event.title)
+        ? "Deadline"
+        : /payment|fee/i.test(event.title)
+          ? "Payment"
+          : "Academic";
+  const matches = (event) =>
+    event.title.toLowerCase().includes(search.toLowerCase()) &&
+    (eventType === "All Event Types" || typeOf(event) === eventType);
+  const filteredEvents = value.events
+    .map((event, index) => ({ event, index }))
+    .filter(({ event }) => matches(event));
+  const pageCount = Math.max(1, Math.ceil(filteredEvents.length / 5));
+  const currentPage = Math.min(eventPage, pageCount);
+  const pageEvents = filteredEvents.slice(
+    (currentPage - 1) * 5,
+    currentPage * 5,
+  );
+  useEffect(() => {
+    setEventPage(1);
+    setEditing(null);
+  }, [search, eventType, value.calendar_id]);
   const [files, setFiles] = useState([]);
   const [fileKey, setFileKey] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -169,36 +211,43 @@ export default function AcademicCalendarPage() {
             document can also be attached.
           </p>
         </div>
+        <div className="academic-header-controls">
+          {records.length > 0 && (
+            <label className="academic-saved-year">
+              Academic year to manage
+              <select
+                disabled={busy}
+                value={value.calendar_id || "new"}
+                onChange={(e) => {
+                  if (e.target.value === "new") reset();
+                  else {
+                    const record = records.find(
+                      (item) => String(item.calendar_id) === e.target.value,
+                    );
+                    if (record) loadCalendar(record);
+                  }
+                }}
+              >
+                {records.map((record) => (
+                  <option value={record.calendar_id} key={record.calendar_id}>
+                    {record.academic_year}
+                  </option>
+                ))}
+                <option value="new">Create a new academic year</option>
+              </select>
+            </label>
+          )}
+          <span
+            className={`academic-publication-status ${value.published ? "is-published" : "is-draft"}`}
+          >
+            {value.published ? "Published" : "Draft"}
+          </span>
+        </div>
       </header>
       {message && (
         <p className="academic-success" role="status">
           {message}
         </p>
-      )}
-      {records.length > 0 && (
-        <label className="academic-saved-year">
-          Academic year to manage
-          <select
-            disabled={busy}
-            value={value.calendar_id || "new"}
-            onChange={(e) => {
-              if (e.target.value === "new") reset();
-              else {
-                const record = records.find(
-                  (item) => String(item.calendar_id) === e.target.value,
-                );
-                if (record) loadCalendar(record);
-              }
-            }}
-          >
-            {records.map((record) => (
-              <option value={record.calendar_id} key={record.calendar_id}>
-                {record.academic_year}
-              </option>
-            ))}
-            <option value="new">Create a new academic year</option>
-          </select>
-        </label>
       )}
       {loading && <p role="status">Loading saved calendar and event dates…</p>}
       {error && (
@@ -209,7 +258,185 @@ export default function AcademicCalendarPage() {
           </button>
         </p>
       )}
-      <form className="academic-editor" onSubmit={save}>
+      <div className="academic-overview">
+        <div>
+          <FiCalendar className="academic-stat-icon" aria-hidden="true" />
+          <small>Total Events</small>
+          <strong>{value.events.length}</strong>
+        </div>
+        <div>
+          <FiFileText className="academic-stat-icon" aria-hidden="true" />
+          <small>Documents</small>
+          <strong>
+            {files.length ||
+              value.documents?.length ||
+              (value.filename ? 1 : 0)}
+          </strong>
+        </div>
+        <div>
+          <FiBookOpen className="academic-stat-icon" aria-hidden="true" />
+          <small>Academic Year</small>
+          <strong>{value.academic_year || "Not set"}</strong>
+        </div>
+      </div>
+      <nav className="academic-tabs" aria-label="Calendar views">
+        {["Calendar View", "Manage Events", "Documents"].map((name) => (
+          <button
+            type="button"
+            key={name}
+            aria-pressed={tab === name}
+            onClick={() => setTab(name)}
+          >
+            {name}
+          </button>
+        ))}
+      </nav>
+      {tab === "Calendar View" && (
+        <section
+          className="academic-dashboard-calendar"
+          aria-label="Monthly academic calendar"
+        >
+          <header>
+            <button
+              type="button"
+              className="academic-button"
+              aria-label="Previous month"
+              onClick={() =>
+                setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))
+              }
+            >
+              &lsaquo;
+            </button>
+            <h2>
+              {month.toLocaleDateString("en-US", {
+                month: "long",
+                year: "numeric",
+              })}
+            </h2>
+            <button
+              type="button"
+              className="academic-button"
+              aria-label="Next month"
+              onClick={() =>
+                setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))
+              }
+            >
+              &rsaquo;
+            </button>
+          </header>
+          <div className="academic-dashboard-grid">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <small key={day}>{day}</small>
+            ))}
+            {Array.from({ length: month.getDay() }, (_, i) => (
+              <span key={`blank-${i}`} />
+            ))}
+            {Array.from(
+              {
+                length: new Date(
+                  month.getFullYear(),
+                  month.getMonth() + 1,
+                  0,
+                ).getDate(),
+              },
+              (_, i) => {
+                const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`;
+                const events = value.events.filter(
+                  (event) =>
+                    event.start_date <= key &&
+                    (event.end_date || event.start_date) >= key,
+                );
+                return (
+                  <button
+                    type="button"
+                    key={key}
+                    className={events.length ? "has-events" : ""}
+                    aria-pressed={selectedDay === key}
+                    aria-label={`${key}, ${events.length} events`}
+                    title={events.map((event) => event.title).join("; ")}
+                    onClick={() => setSelectedDay(key)}
+                  >
+                    {i + 1}
+                    <span className="academic-date-dots">
+                      {[...new Set(events.map(typeOf))].map((type) => (
+                        <i
+                          key={type}
+                          className={`academic-category-${type.toLowerCase()}`}
+                        />
+                      ))}
+                    </span>
+                    {events.length > 0 && (
+                      <span className="academic-cell-preview">
+                        {events[0].title}
+                        {events.length > 1 ? ` +${events.length - 1}` : ""}
+                      </span>
+                    )}
+                  </button>
+                );
+              },
+            )}
+          </div>
+          <div
+            className="academic-calendar-legend"
+            aria-label="Event categories"
+          >
+            {["Academic", "Examination", "Deadline", "Payment"].map((type) => (
+              <span key={type}>
+                <i className={`academic-category-${type.toLowerCase()}`} />
+                {type}
+              </span>
+            ))}
+          </div>
+          {selectedDay && (
+            <div className="academic-selected-events" aria-live="polite">
+              <strong>
+                {new Date(`${selectedDay}T00:00:00`).toLocaleDateString(
+                  "en-US",
+                  {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  },
+                )}
+              </strong>
+              {value.events
+                .filter(
+                  (event) =>
+                    event.start_date <= selectedDay &&
+                    (event.end_date || event.start_date) >= selectedDay,
+                )
+                .map((event, i) => (
+                  <article key={i}>
+                    <span
+                      className={`academic-detail-type academic-type-${typeOf(event).toLowerCase()}`}
+                    >
+                      {typeOf(event)}
+                    </span>
+                    <strong>{event.title}</strong>
+                    <small>
+                      {event.start_date}
+                      {event.end_date && event.end_date !== event.start_date
+                        ? ` to ${event.end_date}`
+                        : ""}
+                    </small>
+                    {event.description && <p>{event.description}</p>}
+                  </article>
+                ))}
+              {!value.events.some(
+                (event) =>
+                  event.start_date <= selectedDay &&
+                  (event.end_date || event.start_date) >= selectedDay,
+              ) && <p>No activities on this date.</p>}
+            </div>
+          )}
+        </section>
+      )}
+      <form
+        className="academic-editor"
+        hidden={tab === "Calendar View"}
+        onSubmit={save}
+      >
         <h2>
           {value.calendar_id
             ? "Edit academic calendar"
@@ -217,6 +444,7 @@ export default function AcademicCalendarPage() {
         </h2>
         <fieldset disabled={busy} className="academic-editor-layout">
           <section
+            hidden={tab !== "Documents"}
             className="academic-calendar-details"
             aria-label="Calendar details and document"
           >
@@ -233,11 +461,38 @@ export default function AcademicCalendarPage() {
                 }
               />
             </label>
-            <label>
-              Official calendar attachments (optional) · PDF, PNG or JPEG · Up
-              to 5 files · Maximum 10 MB each
+            <div className="academic-document-card-heading">
+              <div>
+                <h3>Official Academic Calendar</h3>
+                <p>
+                  {files.length ||
+                    value.documents?.length ||
+                    (value.filename ? 1 : 0)}{" "}
+                  attached document(s)
+                </p>
+              </div>
+              <span>
+                {files.length || value.filename ? "Attached" : "No document"}
+              </span>
+            </div>
+            <div className="academic-upload-card">
+              <strong>Official Calendar Document</strong>
+              <p>PDF, PNG, JPEG · Maximum 10 MB per file · Up to 5 files</p>
+              <button
+                type="button"
+                className="academic-button"
+                onClick={() => upload.current?.click()}
+              >
+                {files.length || value.filename
+                  ? "Replace Document"
+                  : "Upload Document"}
+              </button>
+            </div>
+            <label className="academic-file-input">
+              Calendar attachments
               <input
                 key={fileKey}
+                ref={upload}
                 type="file"
                 multiple
                 accept=".pdf,.png,.jpg,.jpeg,.jpe,application/pdf,image/png,image/jpeg"
@@ -273,7 +528,7 @@ export default function AcademicCalendarPage() {
               disabled={!(files.length || value.filename)}
               onClick={() => importEvents()}
             >
-              {busy ? "Reading calendar…" : "Import events from image/PDF"}
+              {busy ? "Reading calendar…" : "Import Events from Document"}
             </button>
             <p>
               Selecting images or PDFs automatically combines their dated
@@ -339,6 +594,7 @@ export default function AcademicCalendarPage() {
             )}
           </section>
           <section
+            hidden={tab !== "Manage Events"}
             className="academic-calendar-dates"
             aria-labelledby="academic-dates-title"
           >
@@ -350,31 +606,119 @@ export default function AcademicCalendarPage() {
                 type="button"
                 className="academic-button"
                 disabled={value.events.length >= 200}
-                onClick={() =>
-                  setValue({
-                    ...value,
-                    events: [
-                      ...value.events,
-                      {
-                        title: "",
-                        description: "",
-                        start_date: "",
-                        end_date: "",
-                      },
-                    ],
-                  })
-                }
+                onClick={() => {
+                  setNewEvent({
+                    title: "",
+                    description: "",
+                    start_date: "",
+                    end_date: "",
+                  });
+                  addDialog.current.showModal();
+                }}
               >
-                Add event
+                + Add Event
               </button>
             </div>
             <p>
-              Review each activity and date against the calendar. Students can
-              select a date to read its details.
+              Showing {filteredEvents.length ? (currentPage - 1) * 5 + 1 : 0}–
+              {Math.min(currentPage * 5, filteredEvents.length)} of{" "}
+              {filteredEvents.length} events
             </p>
-            <div className="academic-dates-table-wrap">
+            <div className="academic-event-filters">
+              <input
+                type="search"
+                aria-label="Search activities"
+                placeholder="Search activities..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <select
+                aria-label="Event type"
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value)}
+              >
+                {[
+                  "All Event Types",
+                  "Academic",
+                  "Examination",
+                  "Deadline",
+                  "Payment",
+                ].map((type) => (
+                  <option key={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+            <div className="academic-event-list">
+              {pageEvents.map(({ event, index }) => (
+                <article key={index}>
+                  <div>
+                    <strong>{event.title || "Untitled event"}</strong>
+                    <p>
+                      {event.start_date || "Choose a date"}
+                      {event.end_date && event.end_date !== event.start_date
+                        ? ` to ${event.end_date}`
+                        : ""}
+                    </p>
+                  </div>
+                  <span
+                    className={`academic-type-badge academic-type-${typeOf(event).toLowerCase()}`}
+                  >
+                    {typeOf(event)}
+                  </span>
+                  <button
+                    className="academic-button"
+                    type="button"
+                    aria-label={`Edit ${event.title || "event"}`}
+                    onClick={() => setEditing(editing === index ? null : index)}
+                  >
+                    ✎
+                  </button>
+                </article>
+              ))}
+              {!value.events.some(matches) && <p>No matching activities.</p>}
+            </div>
+            <nav className="academic-event-pagination" aria-label="Event pages">
+              <button
+                type="button"
+                className="academic-button"
+                disabled={currentPage === 1}
+                onClick={() => {
+                  setEventPage(currentPage - 1);
+                  setEditing(null);
+                }}
+              >
+                Previous
+              </button>
+              <span aria-live="polite">
+                Page {currentPage} of {pageCount}
+              </span>
+              <button
+                type="button"
+                className="academic-button"
+                disabled={currentPage === pageCount}
+                onClick={() => {
+                  setEventPage(currentPage + 1);
+                  setEditing(null);
+                }}
+              >
+                Next
+              </button>
+            </nav>
+            {editing !== null && (
+              <button
+                type="button"
+                className="academic-button"
+                onClick={() => setEditing(null)}
+              >
+                Done editing
+              </button>
+            )}
+            <div
+              className="academic-dates-table-wrap"
+              hidden={editing === null}
+            >
               <table className="academic-dates-table">
-                <thead>
+                <thead hidden={editing === null}>
                   <tr>
                     <th scope="col">Activity / Description</th>
                     <th scope="col">Start date</th>
@@ -385,7 +729,7 @@ export default function AcademicCalendarPage() {
                 <tbody>
                   {value.events.length ? (
                     value.events.map((event, index) => (
-                      <tr key={index}>
+                      <tr key={index} hidden={editing !== index}>
                         <td>
                           <input
                             aria-label={`Event ${index + 1} title`}
@@ -502,6 +846,104 @@ export default function AcademicCalendarPage() {
           </div>
         </fieldset>
       </form>
+      <dialog ref={addDialog} className="academic-add-dialog">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setValue((current) => ({
+              ...current,
+              events: [
+                ...current.events,
+                { ...newEvent, title: newEvent.title.trim() },
+              ],
+            }));
+            setSearch("");
+            setEventType("All Event Types");
+            setEventPage(Math.ceil((value.events.length + 1) / 5));
+            addDialog.current.close();
+          }}
+        >
+          <header>
+            <h2>Add Event</h2>
+            <button
+              type="button"
+              className="academic-button"
+              aria-label="Close"
+              onClick={() => addDialog.current.close()}
+            >
+              ×
+            </button>
+          </header>
+          <label>
+            Activity title
+            <input
+              autoFocus
+              required
+              maxLength={200}
+              value={newEvent.title}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, title: e.target.value })
+              }
+            />
+          </label>
+          <div className="academic-add-dates">
+            <label>
+              Start date
+              <input
+                type="date"
+                required
+                value={newEvent.start_date}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, start_date: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              End date (optional)
+              <input
+                type="date"
+                min={newEvent.start_date}
+                value={newEvent.end_date}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, end_date: e.target.value })
+                }
+              />
+            </label>
+          </div>
+          <label>
+            Description
+            <textarea
+              rows={4}
+              maxLength={2000}
+              value={newEvent.description}
+              onChange={(e) =>
+                setNewEvent({ ...newEvent, description: e.target.value })
+              }
+            />
+          </label>
+          <p className="academic-add-note">
+            Save the calendar to publish your changes.
+          </p>
+          <footer>
+            <button
+              type="button"
+              className="academic-button"
+              onClick={() => addDialog.current.close()}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="academic-button academic-save-button"
+              disabled={
+                busy || value.events.length >= 200 || !newEvent.title.trim()
+              }
+            >
+              Add Event
+            </button>
+          </footer>
+        </form>
+      </dialog>
     </main>
   );
 }

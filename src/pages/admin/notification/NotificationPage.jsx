@@ -146,10 +146,7 @@ export default function NotificationPage({ variant = "notification" }) {
   const [sortBy, setSortBy] = useState("newest");
   const [isPosting, setIsPosting] = useState(false);
 
-  useEffect(() => {
-    writeManagedNotifications(notifications);
-  }, [notifications]);
-
+  
   useEffect(() => {
     let isMounted = true;
 
@@ -208,42 +205,55 @@ export default function NotificationPage({ variant = "notification" }) {
     });
   }, [notifications, sortBy]);
 
-  const addNotification = async (event) => {
-    event.preventDefault();
+  
 
-    if (!title.trim() || !message.trim()) {
-      window.alert("Please enter both title and message.");
-      return;
+const addNotification = async (event) => {
+  event.preventDefault();
+
+  if (!title.trim() || !message.trim()) {
+    window.alert("Please enter both title and message.");
+    return;
+  }
+
+  const nextNotification = createManagedNotification({
+    title: title.trim(),
+    message: message.trim(),
+    target,
+    createdByName: creator.name,
+    createdByRole: creator.role,
+  });
+
+  setIsPosting(true);
+
+  try {
+    await saveManagedNotificationToServer(nextNotification);
+
+    // Reload notifications from the database.
+    const savedNotifications =
+      await fetchManagedNotificationsFromServer();
+
+    if (!Array.isArray(savedNotifications)) {
+      throw new Error("Invalid notification response from server.");
     }
 
-    const nextNotification = createManagedNotification({
-      title: title.trim(),
-      message: message.trim(),
-      target,
-      createdByName: creator.name,
-      createdByRole: creator.role,
-    });
+    setNotifications(savedNotifications);
 
-    setIsPosting(true);
+    setTitle("");
+    setMessage("");
+    setTarget("all");
 
-    try {
-      const nextNotifications =
-        await saveManagedNotificationToServer(nextNotification);
+  } catch (error) {
+    console.error("Failed to post notification:", error);
 
-      setNotifications(nextNotifications);
-      setTitle("");
-      setMessage("");
-      setTarget("all");
-    } catch (error) {
-      console.warn("Unable to save notification to the server.", error);
-      setNotifications([nextNotification]);
-      setTitle("");
-      setMessage("");
-      setTarget("all");
-    } finally {
-      setIsPosting(false);
-    }
-  };
+    window.alert(
+      "Unable to confirm that the notification was saved. Please refresh and check the list before trying again."
+    );
+  } finally {
+    setIsPosting(false);
+  }
+};
+
+
 
   const canDeleteNotification = (notification) => {
     const creatorRole = normalizeCreatorRole(

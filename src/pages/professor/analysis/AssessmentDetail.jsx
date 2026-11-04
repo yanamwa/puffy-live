@@ -69,47 +69,18 @@ export default function AssessmentDetail() {
   return (
     <section className="qa-assessment-page qa-compact-assessment">
       <nav className="qa-back-bar" aria-label="Back navigation">
-        <button type="button" onClick={() => navigate("/professor/students")}>
-          <span aria-hidden="true">‹</span> Back to assessment
-        </button>
+        <button type="button" onClick={() => navigate("/professor/students")}>‹ Back to assessment</button>
       </nav>
       <header className="qa-page-heading">
-        <div>
-          <h1>Assessment Analysis</h1>
-          <p>Review practice and main quiz results for {title}.</p>
-        </div>
+        <div><h1>Assessment Analysis</h1><p>Review practice and main quiz results for {title}.</p></div>
         <div className="qa-page-print-actions">
-          <button
-            type="button"
-            className="qa-page-print"
-            onClick={() => window.print()}
-            disabled={loading || Boolean(error)}
-          >
-            Print
-          </button>
-          <button
-            type="button"
-            className="qa-page-print"
-            onClick={savePdf}
-            disabled={loading || Boolean(error) || downloading}
-            title="Download assessment as a PDF"
-          >
-            {downloading ? "Downloading…" : "Save as PDF"}
-          </button>
+          <button type="button" className="qa-page-print" onClick={() => window.print()} disabled={loading || Boolean(error)}>Print</button>
+          <button type="button" className="qa-page-print" onClick={savePdf} disabled={loading || Boolean(error) || downloading}>{downloading ? "Downloading…" : "Save as PDF"}</button>
         </div>
       </header>
       {downloadError && <p role="alert">{downloadError}</p>}
-      {loading ? (
-        <p>Loading assessment details…</p>
-      ) : error ? (
-        <p role="alert">{error}</p>
-      ) : (
-        <QuizAssessmentDashboard
-          courseId={courseId}
-          courseTitle={title}
-          items={readItems(course)}
-          course={course}
-        />
+      {loading ? <p>Loading assessment details…</p> : error ? <p role="alert">{error}</p> : (
+        <QuizAssessmentDashboard courseId={courseId} courseTitle={title} items={readItems(course)} course={course} />
       )}
     </section>
   );

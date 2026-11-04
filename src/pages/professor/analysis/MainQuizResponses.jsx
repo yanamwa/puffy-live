@@ -21,7 +21,14 @@ export default function MainQuizResponses({
   attempts,
   onBack,
   embedded = false,
+  passScore,
 }) {
+  const [search, setSearch] = useState("");
+  const [resultFilter, setResultFilter] = useState("all");
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const percentOf = (a) => a.earnedScore != null && Number.isFinite(Number(a.earnedScore)) && Number(a.total) > 0 ? Math.round(Number(a.earnedScore) / Number(a.total) * 100) : null;
+  const passed = (a) => percentOf(a) !== null && Number(a.earnedScore) >= (Number.isFinite(passScore) ? passScore : Math.max(1, Math.ceil(Number(a.total || 0) * 0.7)));
+  const visibleResponses = attempts.filter(a => `${a.name || ""} ${a.section || ""} ${a.email || ""}`.toLowerCase().includes(search.toLowerCase()) && (resultFilter === "all" || (percentOf(a) === null ? "ungraded" : passed(a) ? "passed" : "failed") === resultFilter));
   const [selectedId, setSelectedId] = useState(null);
   const [includeKey, setIncludeKey] = useState(true);
   const [sending, setSending] = useState(false);
@@ -218,10 +225,7 @@ export default function MainQuizResponses({
         <div className="main-response-toolbar-heading">
           <div>
             <span className="main-response-eyebrow">MAIN QUIZ RESPONSES</span>
-            <h2>
-              Individual responses{" "}
-              <span className="main-response-count">{attempts.length}</span>
-            </h2>
+
             <p>
               {courseTitle} · {quizTitle}
             </p>
@@ -314,29 +318,34 @@ export default function MainQuizResponses({
           </p>
         )}
       </div>
-      {attempt ? (
+      {!detailsOpen && <section className="response-directory">
+        <div className="response-directory-heading"><label htmlFor="response-search">Student responses</label><span>{visibleResponses.length} responses</span></div>
+        <input id="response-search" type="search" placeholder="Search student name, section, or email" value={search} onChange={e => setSearch(e.target.value)} />
+        <nav className="response-result-tabs" aria-label="Filter results">{["all", "passed", "failed"].map(value => <button type="button" key={value} aria-pressed={resultFilter === value} onClick={() => setResultFilter(value)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</nav>
+        {visibleResponses.map((student, i) => <article className="response-student-card" key={student.id ?? i}>
+          <div><h3>{student.name}</h3><p className="response-student-meta"><span>{student.section || "Section unavailable"}</span><span>{student.email || "Email not recorded"}</span></p><span className={`response-outcome ${passed(student) ? "passed" : "failed"}`}>{percentOf(student) === null ? "Not graded" : passed(student) ? "Passed" : "Failed"}</span></div>
+          <div className="response-card-actions"><strong className={passed(student) ? "passed" : "failed"}>{percentOf(student) === null ? "Not graded" : `${percentOf(student)}%`}</strong><button type="button" onClick={() => { setSelectedId(student.id); setDetailsOpen(true); }}>View Details</button></div>
+        </article>)}
+        {!visibleResponses.length && <p>No responses match these filters.</p>}
+        {detailsOpen && <button type="button" className="response-close-details" onClick={() => setDetailsOpen(false)}>Close details</button>}
+      </section>}
+      {detailsOpen && attempt ? (
         <div className="main-response-report qa-print-report">
-          <header className="main-response-title main-response-card">
-            <div className="main-response-score">
-              <strong>
-                {attempt.earnedScore ?? "Unavailable"} of {attempt.total} points
-              </strong>
-              {attempt.submittedAt && (
-                <span>
-                  Submitted {new Date(attempt.submittedAt).toLocaleString()}
-                </span>
-              )}
+          <nav className="response-detail-back"><button type="button" onClick={() => setDetailsOpen(false)}>‹ Back to students</button></nav>
+          <section className="response-detail-summary main-response-card">
+            <header><h2>{attempt.name}</h2><p>{attempt.section || "Section unavailable"} · {quizTitle}</p><span className={`response-outcome ${passed(attempt) ? "passed" : "failed"}`}>{passed(attempt) ? "Passed" : "Failed"}</span></header>
+            <div className="response-detail-metrics">
+              <div><span>Score</span><strong>{percentOf(attempt)}%</strong></div>
+              {["LOTS", "HOTS"].map(skill => {
+                const skillAnswers = (attempt.answers || []).filter(a => String(a.thinking_skill ?? a.thinkingSkill ?? "").toUpperCase() === skill || (skill === "LOTS" ? ["Remember", "Understand", "Apply"] : ["Analyze", "Evaluate", "Create"]).includes(a.cognitive_level ?? a.cognitiveLevel));
+                const correct = skillAnswers.filter(a => readMainQuizResponseAnswer(a).isCorrect === true).length;
+                return <div key={skill}><span>{skill}</span><strong>{skillAnswers.length ? `${Math.round(correct / skillAnswers.length * 100)}%` : "N/A"}</strong></div>;
+              })}
             </div>
-            <h1>{courseTitle}</h1>
-            <p>{quizTitle}</p>
-          </header>
-          <section className="main-response-card main-response-student">
-            <h3>STUDENT DETAILS</h3>
-            <strong>{attempt.name}</strong>
-            <p>{attempt.email || "Email not recorded"}</p>
-            <p>Section: {attempt.section}</p>
+            <h3>Quiz Details</h3>
+            <dl className="response-quiz-facts"><dt>Assessment</dt><dd>{quizTitle || "Main Quiz"}</dd><dt>Attempt</dt><dd>{attempt.attempt_number ?? attempt.attemptNumber ?? "Not recorded"}</dd><dt>Passing Score</dt><dd>{Number(attempt.total) > 0 ? `${Math.round((Number.isFinite(passScore) ? passScore : Math.max(1, Math.ceil(Number(attempt.total) * 0.7))) / Number(attempt.total) * 100)}%` : "N/A"}</dd></dl>
           </section>
-          {answers.map((answer, i) => (
+          <section className="response-student-answers"><h2>Student Answers</h2>          {answers.map((answer, i) => (
             <article
               className={`main-response-card main-response-question ${answer.isCorrect === true ? "response-correct" : answer.isCorrect === false ? "response-incorrect" : ""}`}
               key={i}
@@ -395,10 +404,10 @@ export default function MainQuizResponses({
             <p className="main-response-card">
               Question-level answers were not recorded for this response.
             </p>
-          )}
+          )}</section>
         </div>
       ) : (
-        <p className="main-response-card">No responses yet.</p>
+        !attempt && <p className="main-response-card">No responses yet.</p>
       )}
     </section>
   );

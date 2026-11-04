@@ -1,17 +1,17 @@
 :root {
-  --color-primary: #ebd3fa;
-  --color-secondary: #e3aadd;
-  --color-third: #c8a8e9;
-  --color-fourth: #a993d8;
-  --color-fifth: #c3c7f3;
-  --font-color: #2f2f2f;
-  --card-color1: #c8bbd0;
-  --card-color2: #e0bbd4;
-  --card-color3: #c3c7f3;
+  --color-primary: #eff5fc;
+  --color-secondary: #91b4df;
+  --color-third: #85a9d5;
+  --color-fourth: #7199c6;
+  --color-fifth: #7199c6;
+  --font-color: #2f3e52;
+  --card-color1: #c8d7e9;
+  --card-color2: #d7e5f4;
+  --card-color3: #c3d7ef;
   --card-color4: #90f897;
   --card-color5: #cf8686;
   --card-color6: #eecb99;
-  --color-shadow: #dddddd;
+  --color-shadow: #d5e0ed;
 }
 .wrapper {
   width: 100%;
@@ -25,10 +25,7 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-image: url("/images/background.png");
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
+  background-color: #ffffff;
 
   pointer-events: none;
 }
@@ -39,7 +36,7 @@
   min-height: 100vh;
   position: relative;
   border-radius: 25px;
-  border: 3px solid #c3a6ff;
+  border: 3px solid #7199c6;
   overflow: hidden;
 }
 
@@ -126,13 +123,13 @@
 .startBtn {
   padding: 10px 26px;
   background: white;
-  color: #bb67dd;
-  border: 1px solid #d78fed;
+  color: #7199c6;
+  border: 1px solid #91b4df;
   border-radius: 25px;
   font-family: "Jersey 15", sans-serif;
   font-size: 20px;
   cursor: pointer;
-  box-shadow: 0px 3px 0px #8e32aa;
+  box-shadow: 0px 3px 0px #557eae;
 }
 
 .startBtn:hover {
@@ -157,12 +154,12 @@
 }
 
 .studySecret {
-  color: #775bba;
+  color: #7da5d5;
   font-size: 20px;
 }
 
 .heroContent h1 {
-  color: #775bba;
+  color: #7da5d5;
   font-size: 55px;
   margin-top: 5px;
   line-height: 60px;
@@ -173,7 +170,7 @@
 
 .sub {
   font-size: 20px;
-  color: #775bba;
+  color: #7da5d5;
   margin-top: 10px;
 }
 
@@ -181,8 +178,8 @@
   margin-top: 25px;
   padding: 10px 26px;
   background: white;
-  color: #bb67dd;
-  border: 1px solid #d78fed;
+  color: #7199c6;
+  border: 1px solid #91b4df;
   border-radius: 25px;
   font-family: "Jersey 15", sans-serif;
   font-size: 20px;
@@ -228,9 +225,9 @@
   background: linear-gradient(
     to bottom,
     rgba(255, 255, 255, 0) 0%,
-    rgba(220, 195, 245, 0.4) 30%,
-    rgba(205, 175, 235, 0.75) 65%,
-    #a993d8 100%
+    rgba(145, 180, 223, 0.4) 30%,
+    rgba(113, 153, 198, 0.75) 65%,
+    #7199c6 100%
   );
   z-index: 6;
   pointer-events: none;
@@ -240,12 +237,12 @@
   padding: 180px 100px 80px;
   background: linear-gradient(
     to bottom,
-    #a993d8 0%,
-    #b7a4de 48%,
-    #ccc1e3 70%,
-    #a597d5 85%,
-    #d4d0e1 95%,
-    #f8f6fb 100%
+    #7199c6 0%,
+    #7199c6 48%,
+    #7da5d5 70%,
+    #91b4df 85%,
+    #cad9eb 95%,
+    #eff5fc 100%
   );
 }
 
@@ -267,7 +264,7 @@
 
 .text h2 {
   font-size: 35px;
-  color: hsl(288, 100%, 97%);
+  color: #ffffff;
   margin-bottom: 8px;
   font-weight: normal;
   font-family: "Jersey 15", sans-serif;
@@ -275,7 +272,7 @@
 
 .text p {
   width: 380px;
-  color: #ffffff;
+  color: #f8fbff;
   font-size: 25px;
   line-height: 1.4;
 }
@@ -303,10 +300,10 @@
   height: 160px;
   background: linear-gradient(
     to bottom,
-    #f8f6fb 0%,
-    rgba(248, 246, 251, 0.85) 30%,
-    rgba(248, 246, 251, 0.102) 60%,
-    rgba(248, 246, 251, 0) 100%
+    #eff5fc 0%,
+    rgba(239, 245, 252, 0.85) 30%,
+    rgba(239, 245, 252, 0.102) 60%,
+    rgba(239, 245, 252, 0) 100%
   );
   z-index: 2;
   pointer-events: none;
@@ -324,7 +321,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(82, 119, 164, 0.28);
   z-index: 1;
 }
 
@@ -347,13 +344,13 @@
 .startNow {
   padding: 10px 26px;
   background: rgb(255, 255, 255);
-  color: #bc66be;
+  color: #7199c6;
   border: none;
   border-radius: 25px;
   font-family: "Jersey 15", sans-serif;
   font-size: 20px;
   cursor: pointer;
-  box-shadow: 0 4px 0 var(--color-secondary);
+  box-shadow: 0 4px 0 #557eae;
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease;
@@ -365,11 +362,11 @@
 
 .startNow:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--color-secondary);
+  box-shadow: 0 1px 0 #557eae;
 }
 
 .footer {
-  background-color: #a993d8;
+  background-color: #7199c6;
   color: white;
   text-align: center;
   padding: 40px 20px;
@@ -401,7 +398,7 @@
 
 .socialIcons a {
   background: white;
-  color: #a993d8;
+  color: #7199c6;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -415,13 +412,13 @@
 }
 
 .socialIcons a:hover {
-  background: #ffe6f2;
+  background: #dce9f7;
   transform: scale(1.1);
 }
 
 .subFooter {
   background-color: white;
-  color: rgb(170, 169, 169);
+  color: #6f839b;
   text-align: center;
   padding: 10px 0;
   font-size: 15px;

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import styles from "./LandingPage.module.css";
-import LandingNavbar from "./components/landing/LandingNavbar";
+import PublicNavbar from "./components/landing/PublicNavbar";
 import LandingFooter from "./components/landing/LandingFooter";
 
 function LandingPage() {
@@ -30,7 +30,7 @@ function LandingPage() {
       <div className={styles.wrapper}>
         <section className={styles.container}>
           <div className={styles.background}></div>
-          <LandingNavbar />
+          <PublicNavbar />
           <section className={styles.heroBg}>
             <div className={styles.heroContent}>
               <p className={styles.studySecret}>shhh... a study secret</p>

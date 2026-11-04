@@ -14,6 +14,7 @@ export default function Layout() {
   }
 
   const isAuthPage = [
+    "/",
     "/about",
     "/faq",
     "/contact",

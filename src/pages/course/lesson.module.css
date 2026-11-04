@@ -1622,3 +1622,31 @@
 @media screen {
   .lessonSlideContent p { text-align: justify; text-align-last: left; }
 }
+
+:global(body .swal2-popup.module-complete-popup .swal2-actions) {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 14px;
+}
+:global(body .swal2-popup.module-complete-popup .swal2-actions button) {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 48px !important;
+  padding: 12px 14px !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font: 600 16px/1.4 Arial, sans-serif !important;
+}
+:global(body .swal2-popup.module-complete-popup .swal2-actions .swal2-cancel) {
+  background: #f4f5f7 !important;
+  color: #5f6875 !important;
+  box-shadow: 3px 4px 0 #a5abb4;
+}
+@media (max-width: 480px) {
+  :global(body .swal2-popup.module-complete-popup .swal2-actions) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding: 16px 20px 20px !important;
+  }
+}

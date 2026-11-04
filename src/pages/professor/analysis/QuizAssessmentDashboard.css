@@ -829,3 +829,170 @@
 .qa-empty-state { padding: 32px 24px; text-align: center; }
 .qa-empty-state h3 { margin: 0 0 8px; color: #294765; font-size: 18px; font-weight: 500; }
 .qa-empty-state > p { margin: 0; color: #73849a; font-size: 14px; line-height: 1.6; }
+
+
+/* Shared filters retain the spacious assessment report design. */
+.qa-compact-assessment .qa-shared-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 32px;
+  padding: 22px 44px;
+  background: #ededed;
+  border-bottom: 1px solid #d0d6df;
+}
+.qa-shared-filters .qa-filter-caption {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 14px;
+}
+.qa-filter-caption button {
+  border: 0;
+  background: transparent;
+  color: #527eaf;
+  cursor: pointer;
+  padding: 4px;
+  text-decoration: underline;
+}
+.qa-shared-filters > label,
+.qa-shared-filters .qa-filter-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 10px;
+  font-size: 14px;
+}
+.qa-compact-assessment .qa-shared-filters select {
+  width: 100%;
+  max-width: none;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 1px solid #c4c4c4;
+  border-radius: 8px;
+  background: #fff;
+  color: #526f91;
+}
+.qa-shared-filters select:focus-visible {
+  outline: 2px solid #7fa8d6;
+  outline-offset: 2px;
+}
+.qa-compact-assessment .qa-workspace-navigation {
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 18px;
+}
+.qa-compact-assessment .qa-response-button {
+  min-width: 162px;
+  margin: 0;
+  padding: 18px 24px;
+  border: 1px solid #c4c4c4;
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  background: #efefef;
+  color: #526f91;
+}
+.qa-compact-assessment .qa-response-button[aria-pressed="true"] {
+  background: #7fa8d6;
+  color: #fff;
+}
+@media (max-width: 700px) {
+  .qa-compact-assessment .qa-shared-filters {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px;
+  }
+  .qa-compact-assessment .qa-workspace-navigation { flex-wrap: wrap; gap: 8px; }
+  .qa-compact-assessment .qa-response-button { min-width: 110px; padding: 14px; }
+}
+
+/* Assessment workspace: consistent typography and report hierarchy. */
+.qa-assessment-page.qa-compact-assessment {
+  color: #26384c;
+  background: #f5f7fa;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.qa-compact-assessment .qa-page-heading { background: #fff; padding: 28px 40px; border-bottom: 1px solid #e2e8f0; }
+.qa-compact-assessment .qa-page-heading h1 { font: 600 26px/1.3 Arial, sans-serif; color: #24364b; }
+.qa-compact-assessment .qa-page-heading p { color: #738196; font-size: 14px; }
+.qa-compact-assessment .qa-shared-filters { background: #fff; padding: 24px 40px; gap: 18px 28px; border-bottom: 1px solid #e2e8f0; }
+.qa-compact-assessment .qa-filter-caption { font-weight: 600; color: #334961; }
+.qa-compact-assessment .qa-shared-filters select { min-height: 44px; border-color: #d8e0ea; color: #40566e; font: 14px Arial, sans-serif; }
+.qa-compact-assessment .qa-workspace-navigation { gap: 8px; }
+.qa-compact-assessment .qa-assessment-tabs { gap: 8px; }
+.qa-compact-assessment .qa-assessment-tabs button,
+.qa-compact-assessment .qa-response-button { min-height: 48px; min-width: 140px; border-radius: 9px 9px 0 0; font: 500 14px Arial, sans-serif; }
+.qa-compact-assessment .qa-content-panel { background: #fff; border-color: #dce4ef; }
+@media (max-width: 600px) {
+  .qa-compact-assessment .qa-page-heading,
+  .qa-compact-assessment .qa-shared-filters { padding: 20px; }
+  .qa-compact-assessment .qa-assessment-tabs button,
+  .qa-compact-assessment .qa-response-button { min-width: 0; padding: 14px 16px; }
+}
+
+/* A raised active tab, with identical resting positions for all three tabs. */
+.qa-compact-assessment .qa-workspace-navigation {
+  align-items: flex-end;
+  gap: 8px;
+  padding-top: 10px;
+}
+.qa-compact-assessment .qa-assessment-tabs { align-items: flex-end; gap: 8px; }
+.qa-compact-assessment .qa-assessment-tabs button,
+.qa-compact-assessment .qa-response-button {
+  box-sizing: border-box;
+  min-height: 52px;
+  height: 52px;
+  margin: 0;
+  padding: 14px 24px;
+  border-radius: 10px 10px 0 0;
+  font: 500 20px/1.2 Arial, sans-serif;
+  transition: height 150ms ease, background-color 150ms ease;
+}
+.qa-compact-assessment .qa-assessment-tabs button[aria-pressed="true"],
+.qa-compact-assessment .qa-response-button[aria-pressed="true"] {
+  height: 62px;
+  min-height: 62px;
+  background: #7fa8d6;
+  color: white;
+  border-color: #7fa8d6;
+}
+.qa-assessment-page.qa-compact-assessment { font-size: 20px; }
+.qa-compact-assessment p,
+.qa-compact-assessment label,
+.qa-compact-assessment select,
+.qa-compact-assessment button,
+.qa-compact-assessment td,
+.qa-compact-assessment th,
+.qa-compact-assessment dt,
+.qa-compact-assessment dd,
+.qa-compact-assessment input,
+.qa-compact-assessment .qa-shared-filters > label,
+.qa-compact-assessment .qa-filter-field,
+.qa-compact-assessment .qa-filter-caption {
+  font-size: 20px !important;
+  line-height: 1.5;
+}
+.qa-compact-assessment .qa-page-heading h1 { font-size: 32px; }
+.qa-compact-assessment h2 { font-size: 26px !important; }
+.qa-compact-assessment h3 { font-size: 22px !important; }
+.qa-compact-assessment .qa-shared-filters select { min-height: 52px; }
+.qa-compact-assessment .qa-metrics article > span,
+.qa-compact-assessment .response-detail-metrics span,
+.qa-compact-assessment .response-directory-heading label,
+.qa-compact-assessment .response-directory-heading > span,
+.qa-compact-assessment .response-outcome,
+.qa-compact-assessment .main-response-key-toggle,
+.qa-compact-assessment .main-response-email-note { font-size: 20px !important; }
+.qa-compact-assessment .main-response-action-buttons button { min-height: 48px; height: auto; white-space: normal; }
+.qa-compact-assessment .response-detail-metrics strong { font-size: 32px; }
+@media (max-width: 700px) {
+  .qa-compact-assessment .qa-workspace-navigation { gap: 6px; flex-wrap: nowrap; }
+  .qa-compact-assessment .qa-assessment-tabs { gap: 6px; margin-left: 0; flex: 2; min-width: 0; }
+  .qa-compact-assessment .qa-assessment-tabs button { flex: 1; min-width: 0; }
+  .qa-compact-assessment .qa-response-button { flex: 1; min-width: 0; }
+  .qa-compact-assessment .qa-assessment-tabs button,
+  .qa-compact-assessment .qa-response-button { padding: 8px; font-size: 18px !important; height: 68px; min-height: 68px; }
+  .qa-compact-assessment .qa-assessment-tabs button[aria-pressed="true"],
+  .qa-compact-assessment .qa-response-button[aria-pressed="true"] { height: 78px; min-height: 78px; }
+}

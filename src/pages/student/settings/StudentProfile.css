@@ -905,3 +905,84 @@
   background: var(--student-theme-dewy-blue);
   color: #263c52;
 }
+
+/* Keep the shared identity card in normal flow on smaller screens. */
+.student-profile-content .student-profile-layout,
+.student-profile-content .student-profile-details {
+  min-width: 0;
+}
+.student-profile-content .student-info-item {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .student-profile-content .student-profile-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .student-profile-content .student-identity-card {
+    position: relative;
+    top: auto;
+    inset-block-start: auto;
+    width: min(440px, 100%);
+    max-width: 100%;
+    margin: 0 auto;
+    align-self: start;
+  }
+  .student-profile-content .student-profile-details {
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+}
+@media (max-width: 560px) {
+  .student-profile-content .student-profile-layout {
+    gap: 20px;
+  }
+  .student-profile-content .student-identity-card {
+    padding: 24px 18px;
+  }
+  .student-profile-content .student-profile-details-header {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .student-profile-content .student-password-copy {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+.student-profile-page > .enrolled-main {
+  min-width: 0;
+  width: calc(100% - 320px);
+  margin-left: 320px;
+}
+.student-profile-page:has(.enrolled-sidebar.sidebar-collapsed) > .enrolled-main,
+.student-profile-page:has(.enrolled-sidebar.collapsed) > .enrolled-main {
+  width: calc(100% - 76px);
+  margin-left: 76px;
+}
+.student-profile-page > .enrolled-main > .public-heading {
+  width: 100%;
+  margin: 0;
+  padding: 24px 54px 18px;
+  box-sizing: border-box;
+}
+@media (max-width: 820px) {
+  .student-profile-page > .enrolled-main,
+  .student-profile-page:has(.enrolled-sidebar.sidebar-collapsed) > .enrolled-main,
+  .student-profile-page:has(.enrolled-sidebar.collapsed) > .enrolled-main {
+    width: 100%;
+    margin-left: 0;
+  }
+  .student-profile-page > .enrolled-main > .public-heading {
+    padding: 24px 20px 12px;
+  }
+}
+
+/* The profile uses sidebar margins rather than the shared two-column grid. */
+.enrolled-dashboard.student-profile-page {
+  display: block;
+}
+.student-profile-page > .enrolled-main {
+  grid-column: auto;
+}

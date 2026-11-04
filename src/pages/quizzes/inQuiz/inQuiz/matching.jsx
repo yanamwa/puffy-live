@@ -258,8 +258,11 @@ export default function MatchingType() {
       ? Math.round((matchedIds.length / matchingPairs.length) * 100)
       : 0;
 
-  const isWrongCard = (card, side) =>
-    wrongPair.some((item) => item.id === card.id && item.side === side);
+  const getAttempt = (card, side) =>
+    side === "left"
+      ? firstAttempts[card.id]
+      : Object.values(firstAttempts).find((attempt) => attempt.rightId === card.id);
+  const isWrongCard = (card, side) => getAttempt(card, side)?.isCorrect === false;
 
   const saveMatchingResult = (finalScore, completedIds = null) => {
     const completedSet = completedIds ? new Set(completedIds) : null;
@@ -345,7 +348,7 @@ export default function MatchingType() {
       checkpointOpen ||
       clickPending.current ||
       wrongPair.length ||
-      matchedIds.includes(card.id)
+      getAttempt(card, side)
     )
       return;
     if (!firstCard || firstCard.side === side) {
@@ -362,7 +365,7 @@ export default function MatchingType() {
         ? prev
         : {
             ...prev,
-            [questionCard.id]: { isCorrect, answer: answerCard.text },
+            [questionCard.id]: { isCorrect, answer: answerCard.text, rightId: answerCard.id },
           },
     );
     if (isCorrect) {
@@ -381,9 +384,11 @@ export default function MatchingType() {
         clickPending.current = false;
       }
     } else {
-      setWrongPair([firstCard, { ...card, side }]);
+      const updated = [...matchedIds, questionCard.id];
+      setMatchedIds(updated);
       setFirstCard(null);
-      setTimeout(() => setWrongPair([]), 500);
+      if (roundPairs.every((item) => updated.includes(item.id)))
+        setCheckpointOpen(true);
     }
   };
 
@@ -580,7 +585,7 @@ export default function MatchingType() {
                 roundPairs.some((item) => item.id === id),
               ).length
             }
-            /{roundPairs.length} matched
+            /{roundPairs.length} answered
           </p>
         </header>
 
@@ -593,7 +598,7 @@ export default function MatchingType() {
                     <td>
                       <div
                         className={`${styles.card} ${
-                          matchedIds.includes(card.id) ? styles.matched : ""
+                          firstAttempts[card.id]?.isCorrect ? styles.matched : ""
                         } ${
                           firstCard?.id === card.id &&
                           firstCard?.side === "left"
@@ -634,7 +639,7 @@ export default function MatchingType() {
                     <td>
                       <div
                         className={`${styles.card} ${
-                          matchedIds.includes(card.id) ? styles.matched : ""
+                          firstAttempts[card.id]?.isCorrect ? styles.matched : ""
                         } ${
                           firstCard?.id === card.id &&
                           firstCard?.side === "right"

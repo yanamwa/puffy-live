@@ -1189,3 +1189,174 @@ body .catalog-duplicate-dialog .swal2-html-container { margin: 0 !important; pad
 body .catalog-duplicate-dialog .swal2-actions { width: 100%; box-sizing: border-box; margin: 0 !important; padding: 18px 24px !important; border-top: 1px solid #e6e9ed; }
 body .catalog-duplicate-dialog .swal2-confirm { width: 100%; min-height: 50px; margin: 0 !important; border: 1px solid #7fa8d6 !important; border-radius: 7px !important; background: #7fa8d6 !important; color: #fff !important; box-shadow: none !important; font: 600 20px/1.4 Arial,sans-serif !important; }
 body .catalog-duplicate-dialog .swal2-confirm:hover { background: #608cbd !important; }
+
+/* Course record details: readable metadata and consistent section rhythm. */
+.catalog-modal.catalog-course-record { font-family:Arial,sans-serif; }
+.catalog-modal.catalog-course-record .catalog-modal-body { padding:24px 28px; }
+.catalog-modal.catalog-course-record .catalog-modal-body > h3 { margin:30px 0 12px; padding-bottom:12px; font-size:17px; }
+.catalog-modal.catalog-course-record .catalog-modal-body > h3:first-child { margin-top:0; }
+.catalog-modal.catalog-course-record .catalog-info { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px 28px; padding:22px; background:#f8fafc; border:1px solid #dce5ef; border-radius:10px; }
+.catalog-modal.catalog-course-record .catalog-info > div { min-width:0; }
+.catalog-modal.catalog-course-record .catalog-info .course-description-field { grid-column:1/-1; grid-row:3; padding-top:16px; border-top:1px solid #e1e8f0; }
+.catalog-modal.catalog-course-record .catalog-info dt { font-size:12px; font-weight:600; color:#718096; margin-bottom:7px; }
+.catalog-modal.catalog-course-record .catalog-info dd { margin:0; font-size:14px; line-height:1.65; color:#334e68; overflow-wrap:anywhere; }
+.catalog-modal.catalog-course-record p { font-size:13px; line-height:1.65; color:#718096; margin:8px 0 16px; }
+.catalog-modal.catalog-course-record .admin-modules-table { width:100%; table-layout:auto; }
+.catalog-modal.catalog-course-record .admin-modules-table th { font-size:11px; letter-spacing:.35px; padding:13px 14px; white-space:normal; }
+.catalog-modal.catalog-course-record .admin-modules-table td { font-size:13px; line-height:1.6; padding:16px 14px; vertical-align:top; overflow-wrap:anywhere; }
+.catalog-modal.catalog-course-record .admin-modules-table td:nth-child(3) { max-width:320px; }
+.catalog-modal.catalog-course-record details { margin-top:12px; padding:10px 12px; background:#f4f7fb; border-radius:6px; }
+.catalog-modal.catalog-course-record summary { font-size:13px; line-height:1.5; cursor:pointer; }
+.catalog-modal.catalog-course-record details li { margin:10px 0; }
+.catalog-modal.catalog-course-record .catalog-pagination { margin:12px 0 20px; font-size:12px; gap:8px; }
+.catalog-modal.catalog-course-record button { font-family:inherit; font-size:13px; }
+@media(max-width:640px) {
+ .catalog-modal.catalog-course-record .catalog-modal-body { padding:18px; }
+ .catalog-modal.catalog-course-record .catalog-info { grid-template-columns:1fr 1fr; gap:18px; padding:16px; }
+ .catalog-modal.catalog-course-record .catalog-info .course-description-field { grid-row:auto; }
+ .catalog-modal.catalog-course-record .admin-modules-table-wrap { overflow-x:auto; }
+ .catalog-modal.catalog-course-record .admin-modules-table { min-width:620px; }
+}
+
+.catalog-course-record section[hidden] { display:none; }
+.catalog-course-record .course-detail-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid #e1e8f0; }
+.catalog-course-record .course-detail-tabs button { padding:10px 16px; background:#f4f7fb; color:#52677e; border:1px solid #dce5ef; border-radius:8px; cursor:pointer; }
+.catalog-course-record .course-detail-tabs button[aria-pressed="true"] { background:#7fa8d6; border-color:#7fa8d6; color:white; }
+.catalog-course-record .course-lesson-reader { margin-top:24px; padding:20px; border:1px solid #dce5ef; border-radius:10px; }
+.catalog-course-record .course-reader-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.catalog-course-record .course-lesson-reader .lesson-content { max-width:75ch; }
+.catalog-course-record section > h3 { margin-top:0; }
+
+/* Match Academic's folder tabs inside Course Details. */
+.catalog-modal.catalog-course-record .course-detail-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  margin-bottom: 0;
+  padding: 0 10px;
+  border-bottom: 0;
+}
+.catalog-modal.catalog-course-record .course-detail-tabs button {
+  flex: 0 0 auto;
+  min-width: 150px;
+  min-height: 48px;
+  margin: 0;
+  padding: 13px 18px;
+  border: 1px solid #c4c8cf;
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: #eee;
+  color: #4f6174;
+  font-size: 14px;
+  font-weight: 400;
+  box-shadow: none;
+}
+.catalog-modal.catalog-course-record .course-detail-tabs button[aria-pressed="true"] {
+  background: #7fa8d6;
+  border-color: #7fa8d6;
+  color: #fff;
+  font-weight: 700;
+}
+.catalog-modal.catalog-course-record .course-detail-tabs button:focus-visible {
+  outline: 2px solid #35669a;
+  outline-offset: -4px;
+}
+.catalog-modal.catalog-course-record .course-detail-tabs ~ section {
+  padding: 22px;
+  border: 1px solid #d5dfec;
+  border-radius: 0 8px 8px 8px;
+}
+@media (max-width: 640px) {
+  .catalog-modal.catalog-course-record .course-detail-tabs { padding: 0 6px; gap: 5px; }
+  .catalog-modal.catalog-course-record .course-detail-tabs button { min-width: 120px; padding: 12px; }
+  .catalog-modal.catalog-course-record .course-detail-tabs ~ section { padding: 16px; }
+}
+
+.catalog-content-downloads { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 18px; }
+.catalog-modal .catalog-modal-body .catalog-button {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:38px; padding:9px 14px; border:1px solid #a8c5e5;
+  border-radius:7px; background:#eaf2fc; color:#345b83;
+  font-family:inherit; font-size:13px; font-weight:600;
+  line-height:1.3; cursor:pointer; box-shadow:none; white-space:normal;
+}
+.catalog-modal .catalog-modal-body .catalog-button:hover { background:#dbeafa; }
+.catalog-modal .catalog-modal-body .catalog-button:focus-visible { outline:2px solid #35669a; outline-offset:2px; }
+.catalog-modal .catalog-modal-body .catalog-button:disabled { opacity:.55; cursor:wait; }
+.catalog-course-record .course-reader-heading { flex-wrap:wrap; margin-bottom:16px; }
+.catalog-course-record .course-reader-heading h3 { margin:0; }
+
+/* Course workspace uses the same folder tabs as Academic. */
+.catalog-page .catalog-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  align-items: stretch;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0 10px;
+}
+.catalog-page .catalog-tabs .catalog-tab {
+  flex: 0 0 180px;
+  min-height: 48px;
+  margin: 0;
+  padding: 13px 18px;
+  border: 1px solid #c4c8cf;
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: #eee;
+  color: #4f6174;
+  font-size: 14px;
+  font-weight: 400;
+  box-shadow: none;
+  transform: none;
+}
+.catalog-page .catalog-tabs .catalog-tab:hover {
+  background: #e4ebf4;
+  color: #345b83;
+  transform: none;
+  box-shadow: none;
+}
+.catalog-page .catalog-tabs .catalog-tab[aria-selected="true"] {
+  background: #7fa8d6;
+  border-color: #7fa8d6;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: none;
+}
+.catalog-page .catalog-tabs .catalog-tab:focus-visible {
+  outline: 2px solid #35669a;
+  outline-offset: -4px;
+}
+.catalog-page .catalog-tabs + .catalog-toolbar {
+  margin-top: 0;
+  padding-top: 22px;
+  border-top: 1px solid #d5dfec;
+}
+@media (max-width: 640px) {
+  .catalog-page .catalog-tabs { gap: 5px; padding: 0 6px; }
+  .catalog-page .catalog-tabs .catalog-tab { flex-basis: 150px; padding: 12px; }
+}
+
+.catalog-page .catalog-workspace-panel {
+  background: #fff;
+  border: 1px solid #d5dfec;
+  border-radius: 0 8px 8px 8px;
+  padding: 22px;
+  margin: 0 0 20px;
+}
+.catalog-page .catalog-workspace-panel > .catalog-toolbar {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+}
+.catalog-page .catalog-workspace-panel .admin-modules-table-wrap {
+  border: 1px solid #d5dfec;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.catalog-page .catalog-workspace-panel .catalog-pagination {
+  margin-bottom: 0;
+}
+@media (max-width: 640px) {
+  .catalog-page .catalog-workspace-panel { padding: 16px; }
+}

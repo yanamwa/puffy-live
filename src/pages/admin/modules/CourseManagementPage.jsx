@@ -1,3 +1,4 @@
+import ContentDownloads from "../../../components/catalog/ContentDownloads.jsx";
 import LessonContent from "../../../components/lesson/LessonContent.jsx";
 import { findCatalogCodeMatches } from "../../../services/catalogDuplicates.js";
 import { readCoverage } from "../../../components/catalog/CoverageModules.jsx";
@@ -134,6 +135,8 @@ function ClassesTable({ records, onView, onArchive, busy }) {
   );
 }
 function CatalogDetails({ id, onClose, onClass, onPdf }) {
+  const [detailTab, setDetailTab] = useState("Overview");
+  const [lessonVersion, setLessonVersion] = useState(null);
   const [data, setData] = useState(null),
     [classes, setClasses] = useState({ records: [], total: 0 }),
     [page, setPage] = useState(1),
@@ -176,7 +179,7 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
     <CatalogModal
       title="Course Details"
       wide
-      variant="details"
+      variant="details catalog-course-record"
       onClose={onClose}
     >
       {error && (
@@ -188,6 +191,10 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
         <p role="status">Loading course…</p>
       ) : (
         <>
+          <nav className="course-detail-tabs" aria-label="Course detail sections">
+            {["Overview", "Syllabi", "Classes", "Assigned history"].map(label => <button type="button" key={label} aria-pressed={detailTab === label} onClick={() => { setDetailTab(label); setLessonVersion(null); }}>{label}</button>)}
+          </nav>
+          <section hidden={detailTab !== "Overview"}>
           <h3>Course Information</h3>
           <dl className="catalog-info">
             {[
@@ -204,13 +211,15 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
                 `${data.course.status}${data.course.archived_at ? " (archived)" : ""}`,
               ],
             ].map(([label, value]) => (
-              <div key={label}>
+              <div key={label} className={label === "Description" ? "course-description-field" : ""}>
                 <dt>{label}</dt>
                 <dd>{value}</dd>
               </div>
             ))}
           </dl>
-          <h3>Professor Assignment History</h3>
+          </section>
+          <section hidden={detailTab !== "Assigned history"}>
+          <h3>Professor Assigned History</h3>
           <p>
             Professors assigned to {data.course.code}, including archived classes.
             Dates show when each linked class was created.
@@ -234,6 +243,8 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
             </table>
           </div>
           <Pagination page={page} total={classes.total} onChange={setPage} />
+          </section>
+          <section hidden={detailTab !== "Syllabi"}>
           <h3>Syllabus Versions</h3>
           <p>
             Syllabus periods describe the uploaded document. Teaching periods
@@ -256,31 +267,11 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
                   <tr key={v.version_id}>
                     <td>#{v.version_id}</td>
                     <td>{period(v)}</td>
-                    <td>
+                    <td className="course-syllabus-file">
                       {v.filename}
                       {v.generation_status && <p role="status">Draft lessons: {v.generation_status === "completed" ? "Ready for professor review" : v.generation_status}</p>}
                       {v.generation_status === "failed" && <><p role="alert">{v.generation_error}</p><button className="catalog-button" onClick={() => retryLessons(v.version_id)}>Retry lesson generation</button></>}
-                      {readCoverage(v.coverage_modules).length > 0 && (
-                        <details>
-                          <summary>
-                            Course Coverage (
-                            {readCoverage(v.coverage_modules).length} modules)
-                          </summary>
-                          <ol>
-                            {readCoverage(v.coverage_modules).map(
-                              (module, index) => (
-                                <li key={index}>
-                                  {module.title}
-                                  {module.lesson_pages?.length > 0 && <details><summary>{module.lesson_pages.length} draft lesson pages</summary>{module.lesson_pages.map((lesson, i) => <div key={i}><h4>{lesson.title}</h4><LessonContent content={lesson.content} /></div>)}</details>}
-                                  {module.source_page
-                                    ? ` (p. ${module.source_page})`
-                                    : ""}
-                                </li>
-                              ),
-                            )}
-                          </ol>
-                        </details>
-                      )}
+                      {readCoverage(v.coverage_modules).length > 0 && <button type="button" className="catalog-button" onClick={() => setLessonVersion(v)}>View lessons ({readCoverage(v.coverage_modules).length} modules)</button>}
                     </td>
                     <td>{date(v.uploaded_at)}</td>
                     <td>{v.uploader || "Unavailable"}</td>
@@ -302,9 +293,21 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
               </tbody>
             </table>
           </div>
+          {lessonVersion && <div className="course-lesson-reader">
+            <div className="course-reader-heading"><h3>Lessons — Version #{lessonVersion.version_id}</h3><button type="button" className="catalog-button" onClick={() => setLessonVersion(null)}>Close lessons</button></div>
+            <ContentDownloads name={`Lessons Version ${lessonVersion.version_id}`} data={{ version: lessonVersion.version_id, modules: readCoverage(lessonVersion.coverage_modules) }} />
+            {readCoverage(lessonVersion.coverage_modules).map((module, index) => <details key={index}>
+              <summary>{index + 1}. {module.title} — {module.lesson_pages?.length || 0} lessons</summary>
+              {module.source_page && <p>Source page {module.source_page}</p>}
+              {module.lesson_pages?.length ? module.lesson_pages.map((lesson, i) => <details key={i}><summary>{lesson.title}</summary><LessonContent content={lesson.content} /></details>) : <p>No draft lessons available.</p>}
+            </details>)}
+          </div>}
+          </section>
+          <section hidden={detailTab !== "Classes"}>
           <h3>Linked Classes</h3>
           <ClassesTable records={classes.records} onView={onClass} />
           <Pagination page={page} total={classes.total} onChange={setPage} />
+          </section>
         </>
       )}
     </CatalogModal>
@@ -348,7 +351,7 @@ function EditDetails({ course, onClose, onSaved }) {
   return (
     <CatalogModal
       title="Edit Course Details"
-      variant="details"
+      variant="details catalog-course-record"
       busy={busy}
       onClose={onClose}
     >
@@ -643,6 +646,7 @@ export default function CourseManagementPage() {
           </button>
         ))}
       </div>
+      <section className="catalog-workspace-panel" aria-label="Course records">
       <div className="catalog-toolbar">
         <input
           aria-label="Search courses"
@@ -821,6 +825,7 @@ export default function CourseManagementPage() {
           <Pagination page={page} total={data.total} onChange={setPage} />
         </>
       )}
+      </section>
       {dialog?.type === "upload" && (
         <SyllabusWizard
           course={dialog.course}
@@ -842,7 +847,7 @@ export default function CourseManagementPage() {
       {dialog?.pdf && (
         <CatalogModal
           title="Syllabus PDF"
-          variant="details"
+          variant="details catalog-course-record"
           wide
           onClose={() => setDialog({ ...dialog, pdf: null })}
         >
@@ -858,3 +863,6 @@ export default function CourseManagementPage() {
     </div>
   );
 }
+
+
+

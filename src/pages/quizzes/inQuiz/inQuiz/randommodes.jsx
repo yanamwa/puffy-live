@@ -363,6 +363,7 @@ export default function MixedMode() {
   const [firstCard, setFirstCard] = useState(null);
   const [matchedIds, setMatchedIds] = usePracticeState("matchedIds", []);
   const [wrongPair, setWrongPair] = useState([]);
+  const [matchingAttempts, setMatchingAttempts] = usePracticeState("matchingAttempts", []);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.9);
@@ -468,6 +469,7 @@ export default function MixedMode() {
     setNotifOpen(false);
     setFirstCard(null);
     setMatchedIds([]);
+    setMatchingAttempts([]);
     setWrongPair([]);
     inputRef.current?.focus();
   }, [current]);
@@ -702,71 +704,55 @@ export default function MixedMode() {
     );
   }
 
-  function completeMatchingRound(finalMatchedIds) {
-    if (!question || question.type !== "matching") return;
-
-    const completedAnswers = question.pairs
-      .filter((pair) => finalMatchedIds.includes(pair.id))
-      .map((pair) => ({
+  function completeMatchingRound(attempts) {
+    const completedAnswers = attempts.map((attempt) => {
+      const pair = question.pairs.find((item) => item.id === attempt.leftId);
+      return {
         cardId: pair.id,
         question: pair.question,
-        userAnswer: pair.answer,
+        userAnswer: attempt.answer,
         correctAnswer: pair.answer,
         explanation: pair.explanation || pair.answer,
         quizType: "matching",
-        isCorrect: true,
-      }));
-    const nextScore = score + completedAnswers.length;
+        isCorrect: attempt.isCorrect,
+      };
+    });
+    const nextScore = score + completedAnswers.filter((item) => item.isCorrect).length;
     const nextAnswers = [...answers, ...completedAnswers];
-
     setLocked(true);
     setScore(nextScore);
     setAnswers(nextAnswers);
+    setTimeout(() => goToNext(nextScore, nextAnswers), 700);
+  }
 
-    setTimeout(() => {
-      goToNext(nextScore, nextAnswers);
-    }, 500);
+  function getMatchingAttempt(card, side) {
+    return matchingAttempts.find((attempt) =>
+      (side === "left" ? attempt.leftId : attempt.rightId) === card.id,
+    );
   }
 
   function isWrongCard(card, side) {
-    return wrongPair.some((item) => item.id === card.id && item.side === side);
+    return getMatchingAttempt(card, side)?.isCorrect === false;
   }
 
   function handleCardClick(card, side) {
-    if (locked || matchedIds.includes(card.id)) return;
-
-    if (!firstCard) {
+    if (locked || getMatchingAttempt(card, side)) return;
+    if (!firstCard || firstCard.side === side) {
       setFirstCard({ ...card, side });
       return;
     }
-
-    if (firstCard.side === side) {
-      setFirstCard({ ...card, side });
-      return;
-    }
-
-    if (!isMainQuiz) playPracticeFeedbackSound(firstCard.id === card.id);
-    if (firstCard.id === card.id) {
-      const updatedMatchedIds = [...matchedIds, card.id];
-
-      setMatchedIds(updatedMatchedIds);
-      setFirstCard(null);
-
-      if (updatedMatchedIds.length === question.pairs.length) {
-        completeMatchingRound(updatedMatchedIds);
-      }
-
-      return;
-    }
-
-    setWrongPair([firstCard, { ...card, side }]);
-
-    setTimeout(() => {
-      setWrongPair([]);
-      setFirstCard(null);
-    }, 500);
+    const left = side === "left" ? card : firstCard;
+    const right = side === "right" ? card : firstCard;
+    const isCorrect = left.id === right.id;
+    if (!isMainQuiz) playPracticeFeedbackSound(isCorrect);
+    const attempts = [...matchingAttempts, {
+      leftId: left.id, rightId: right.id, answer: right.text, isCorrect,
+    }];
+    setMatchingAttempts(attempts);
+    if (isCorrect) setMatchedIds([...matchedIds, left.id]);
+    setFirstCard(null);
+    if (attempts.length === question.pairs.length) completeMatchingRound(attempts);
   }
-
   function renderSettingsModal() {
     if (!settingsOpen) return null;
 

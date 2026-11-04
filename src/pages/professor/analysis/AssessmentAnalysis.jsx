@@ -285,7 +285,7 @@ export default function AssessmentAnalysis() {
                   <tbody>
                     {filteredCourses.map((course) => (
                       <tr key={course.id}>
-                        <td>
+                        <td data-label="Course">
                           <strong className={styles.courseTitle}>
                             {course.title}
                           </strong>
@@ -293,15 +293,15 @@ export default function AssessmentAnalysis() {
                             {course.code}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Students">
                           <span className={styles.countBadge}>
                             {course.students}
                           </span>
                         </td>
-                        <td>{course.modules}</td>
-                        <td>{course.quizzes}</td>
-                        <td>{course.date}</td>
-                        <td>
+                        <td data-label="Modules">{course.modules}</td>
+                        <td data-label="Quiz questions">{course.quizzes}</td>
+                        <td data-label="Created">{course.date}</td>
+                        <td data-label="Analysis">
                           <button
                             className={styles.viewButton}
                             type="button"

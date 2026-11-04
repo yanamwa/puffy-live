@@ -2375,7 +2375,7 @@ export default function SuperAdminUserManagementPage() {
         })}
       </div>
 
-      <section className="users-panel">
+      <>
         <div
           className="user-management-tabs"
           aria-label="User management sections"
@@ -2392,6 +2392,7 @@ export default function SuperAdminUserManagementPage() {
           ))}
         </div>
 
+        <section className="users-panel">
         <div className="users-panel-top">
           <div>
             <h2>{USER_TABS.find((tab) => tab.id === activeTab)?.label}</h2>
@@ -2425,6 +2426,7 @@ export default function SuperAdminUserManagementPage() {
         </div>
         <UserPagination pagination={pagination} loading={loading} />
       </section>
+      </>
 
       {credentialResults.length > 0 && (
         <div
@@ -2956,3 +2958,4 @@ export default function SuperAdminUserManagementPage() {
     </div>
   );
 }
+

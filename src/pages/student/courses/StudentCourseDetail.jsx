@@ -1029,7 +1029,7 @@ export default function StudentCourseDetail() {
       }
       if (data.status.taken) {
         await Swal.fire({
-          icon: "info",
+          imageUrl: "/images/reminder.png?v=2", imageWidth: 300, imageAlt: "Quiz reminder", customClass: { popup: "student-reminder-popup", title: "student-reminder-title" },
           title: "Main Quiz already taken",
           text: "You have already taken this Main Quiz.",
           confirmButtonText: "OK",
@@ -1328,7 +1328,7 @@ export default function StudentCourseDetail() {
                       onClick={startCourseLearning}
                       disabled={visibleModuleCount === 0}
                     >
-                      Start Learning
+                      {courseProgress > 0 ? "Continue Learning" : "Start Learning"}
                     </button>
 
                     <button

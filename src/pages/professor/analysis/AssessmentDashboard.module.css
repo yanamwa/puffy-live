@@ -293,3 +293,25 @@
   }
 }
 
+
+/* Preserve column space and stack course records on narrow screens. */
+.tableWrap { min-width:0; max-width:100%; overflow-x:auto; }
+.tableWrap table { min-width:700px; }
+.tableWrap td { overflow-wrap:anywhere; }
+.courseTitle,.courseCode { white-space:normal; overflow-wrap:anywhere; }
+@media(max-width:700px) {
+ .tableHeading { flex-direction:column; align-items:stretch; gap:14px; }
+ .searchBox { width:100%; min-width:0; box-sizing:border-box; }
+ .searchBox input { width:100%; min-width:0; }
+ .panel { min-width:0; }
+ .tableWrap table { display:block; min-width:0; width:100%; }
+ .tableWrap thead { display:none; }
+ .tableWrap tbody { display:block; }
+ .tableWrap tr { display:block; padding:12px 0; border-top:1px solid #e2e8f0; }
+ .tableWrap td { display:flex; justify-content:space-between; align-items:baseline; gap:16px; width:auto; padding:8px 0; border:0; white-space:normal; text-align:right; }
+ .tableWrap td::before { content:attr(data-label); font-weight:600; color:#718096; flex-shrink:0; }
+ .tableWrap td:first-child { display:block; text-align:left; padding-bottom:14px; }
+ .tableWrap td:first-child::before { display:none; }
+ .courseTitle,.courseCode { display:block; max-width:100%; }
+ .viewButton { white-space:normal; }
+}

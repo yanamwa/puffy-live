@@ -1472,6 +1472,8 @@ function buildRows(items, totals, attempts = []) {
 }
 
 export default function MainQuizAnalysis({
+  filteredAttempts,
+  analysisView,
   responseView = false,
   moduleIndex = "all",
   modules = [],
@@ -1494,6 +1496,7 @@ export default function MainQuizAnalysis({
   const [enrollmentSummary, setEnrollmentSummary] = useState(null);
   const [questionPage, setQuestionPage] = useState(0);
   const [activeView, setActiveView] = useState(VIEW_MODES.GRAPHICAL);
+  useEffect(() => { if (analysisView) setActiveView(analysisView === "table" ? VIEW_MODES.TABLE : VIEW_MODES.GRAPHICAL); }, [analysisView]);
   const [selectedMainQuiz, setSelectedMainQuiz] = useState("0");
   const [printing, setPrinting] = useState(false);
   const [studentPage, setStudentPage] = useState(0);
@@ -1601,7 +1604,7 @@ export default function MainQuizAnalysis({
   const recordedMainAttempts = useMemo(
     () =>
       filterModuleAttempts(
-        readArrayField(loadedCourse?.quizAttempts),
+        filteredAttempts ?? readArrayField(loadedCourse?.quizAttempts),
         moduleIndex,
         modules,
       )
@@ -1610,7 +1613,7 @@ export default function MainQuizAnalysis({
           ...attempt,
           answers: readArrayField(attempt.answers),
         })),
-    [loadedCourse, moduleIndex, modules],
+    [loadedCourse, moduleIndex, modules, filteredAttempts],
   );
   const mainQuizKeys = [...new Set(recordedMainAttempts.map(mainQuizKey))].sort(
     (a, b) => Number(a) - Number(b),
@@ -1899,6 +1902,7 @@ export default function MainQuizAnalysis({
         courseId={courseId}
         courseTitle={`${activeCourse.title} - ${moduleTitle}`}
         quizTitle={quizTitle}
+        passScore={quizAnalytics.passScore}
         attempts={studentResults}
         onBack={onSummary}
         embedded

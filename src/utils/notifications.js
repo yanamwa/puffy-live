@@ -15,7 +15,7 @@ export const managedNotificationTargetOptions = [
   { value: "student", label: "Students" },
   { value: "professor", label: "Professors" },
   { value: "admin", label: "Admins" },
-  { value: "superAdmin", label: "Super admins" },
+  { value: "super_admin", label: "Super admins" }
 ];
 
 const seedManagedNotifications = [];
@@ -98,27 +98,39 @@ export function normalizeNotificationTarget(target = "all") {
   if (normalized === "admins" || normalized === "administrators") {
     return "admin";
   }
-  if (normalized === "superadmins" || normalized === "superadministrators") {
-    return "superAdmin";
-  }
+  if (
+  normalized === "superadmin" ||
+  normalized === "superadmins" ||
+  normalized === "superadministrators"
+) {
+  return "super_admin";
+}
 
   return normalizeNotificationRole(normalized) || "all";
 }
+
 
 export function notificationTargetsRole(target, role) {
   const normalizedTarget = normalizeNotificationTarget(target);
   const normalizedRole = normalizeNotificationRole(role);
 
   if (normalizedTarget === "all") return true;
+
   if (normalizedTarget === "user") {
     return ["student", "professor"].includes(normalizedRole);
   }
+
   if (normalizedTarget === "admin") {
     return ["admin", "superAdmin"].includes(normalizedRole);
   }
 
+  if (normalizedTarget === "super_admin") {
+    return normalizedRole === "superAdmin";
+  }
+
   return normalizedTarget === normalizedRole;
 }
+
 
 function normalizeStoredNotification(notification, index = 0) {
   if (!notification || typeof notification !== "object") {
@@ -439,67 +451,66 @@ function normalizeNotificationApiPayload(data, fallback = []) {
   );
 }
 
+
 export async function fetchManagedNotificationsFromServer() {
-  const data = await requestManagedNotificationApi("/notifications");
+  const data = await requestManagedNotificationApi(
+    "/notifications/posted"
+  );
+
+  if (!Array.isArray(data.notifications)) {
+    throw new Error("Invalid posted notifications response.");
+  }
+
   const notifications = normalizeNotificationApiPayload(data);
 
   return writeManagedNotifications(notifications);
 }
 
+
+
 export async function saveManagedNotificationToServer(notification) {
-  const normalizedNotification = normalizeStoredNotification(notification);
+  const normalizedNotification =
+    normalizeStoredNotification(notification);
 
   if (!normalizedNotification) {
     throw new Error("Notification is invalid.");
   }
 
-  /*
-   * First create the new announcement.
-   */
   await requestManagedNotificationApi("/notifications", {
     method: "POST",
-
     body: JSON.stringify({
       title: normalizedNotification.title,
       message: normalizedNotification.message,
       target: normalizedNotification.target,
-      type: normalizedNotification.type,
-      createdByName: normalizedNotification.createdByName,
-      createdByRole: normalizedNotification.createdByRole,
+      type: "announcement",
     }),
   });
 
-  /*
-   * IMPORTANT:
-   * Do not use the POST response as the entire notification list.
-   *
-   * After creating the announcement, fetch the complete list
-   * from the server again.
-   */
-  const data = await requestManagedNotificationApi("/notifications");
-
-  const notifications = normalizeNotificationApiPayload(data);
-
-  return writeManagedNotifications(notifications);
+  return await fetchManagedNotificationsFromServer();
 }
 
-export async function deleteManagedNotificationFromServer(notificationOrId) {
-  const notificationId = normalizeManagedNotificationId(notificationOrId);
+
+
+export async function deleteManagedNotificationFromServer(
+  notificationOrId
+) {
+  const notificationId =
+    normalizeManagedNotificationId(notificationOrId);
 
   if (!notificationId) {
     throw new Error("Notification id is invalid.");
   }
 
-  const data = await requestManagedNotificationApi(
+  await requestManagedNotificationApi(
     `/notifications/${encodeURIComponent(notificationId)}`,
     {
       method: "DELETE",
-    },
+    }
   );
-  const notifications = normalizeNotificationApiPayload(data, []);
 
-  return writeManagedNotifications(notifications);
+  return await fetchManagedNotificationsFromServer();
 }
+
 
 let lastManagedNotificationServerSyncAt = 0;
 

@@ -637,20 +637,20 @@ export default function ProfessorHome() {
               ) : (
                 overviewCourses.map((course) => (
                   <tr key={course.id}>
-                    <td>
+                    <td data-label="Course">
                       <strong>{course.title}</strong>
                       <span>{course.summary || course.section}</span>
                     </td>
-                    <td>{course.section}</td>
-                    <td>{course.students}</td>
-                    <td>{course.modules}</td>
-                    <td>{course.publishedQuizzes}</td>
-                    <td>
+                    <td data-label="Section">{course.section}</td>
+                    <td data-label="Students">{course.students}</td>
+                    <td data-label="Modules">{course.modules}</td>
+                    <td data-label="Quizzes">{course.publishedQuizzes}</td>
+                    <td data-label="Mastery">
                       <span className="dashboard-mastery-pill">
                         {course.averageMastery}%
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Action">
                       <Link
                         className="dashboard-table-action"
                         to={`/professor/courses/view/${encodeURIComponent(course.id)}`}
@@ -703,15 +703,15 @@ export default function ProfessorHome() {
                     <tr
                       key={`${student.courseId}-${student.id || student.name}`}
                     >
-                      <td>{student.name}</td>
-                      <td>{student.courseTitle}</td>
-                      <td>{student.concern}</td>
-                      <td>
+                      <td data-label="Student">{student.name}</td>
+                      <td data-label="Course">{student.courseTitle}</td>
+                      <td data-label="Concern">{student.concern}</td>
+                      <td data-label="Latest score">
                         {student.latestScore === null
                           ? "No score"
                           : `${student.latestScore}%`}
                       </td>
-                      <td>
+                      <td data-label="Action">
                         <Link
                           className="dashboard-table-action"
                           to="/professor/students"

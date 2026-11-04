@@ -1383,3 +1383,43 @@
 .superadmin-layout .users-page .users-header-actions .users-create-btn:active {
   box-shadow: 0 2px 0 #4f759e;
 }
+
+/* Folder tabs shared visually with the Academic workspace. */
+.users-page .user-management-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  margin: 0;
+  padding: 0 10px;
+}
+.users-page .user-management-tabs button {
+  flex: 0 0 auto;
+  min-width: 150px;
+  min-height: 48px;
+  padding: 13px 18px;
+  margin: 0;
+  border: 1px solid #c4c8cf;
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: #eee;
+  color: #4f6174;
+  font-size: 14px;
+  font-weight: 400;
+  box-shadow: none;
+}
+.users-page .user-management-tabs button.active {
+  background: #7fa8d6;
+  border-color: #7fa8d6;
+  color: #fff;
+  font-weight: 700;
+}
+.users-page .users-panel {
+  border: 1px solid #d5dfec;
+  border-radius: 0 8px 8px 8px;
+  box-shadow: none;
+  padding: 22px;
+}
+.users-page .user-management-tabs button:focus-visible {
+  outline: 2px solid #35669a;
+  outline-offset: -4px;
+}

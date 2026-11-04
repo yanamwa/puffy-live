@@ -4032,3 +4032,59 @@
 .professor-layout .professor-section-heading p { margin: 6px 0 0; color: #64748b; font: 400 13px/1.5 Arial,sans-serif; }
 .professor-layout .professor-section-heading .professor-settings-eyebrow { display: none; }
 @media(max-width: 600px) { .professor-layout .professor-section-heading { padding: 20px; } }
+
+/* Keep mobile header controls on one aligned action row. */
+@media (max-width: 767px) {
+  #root .professor-layout header.professor-header.responsive-role-header {
+    box-sizing: border-box;
+    width: 100%;
+    gap: 12px;
+    padding: 12px;
+  }
+  #root .professor-layout .responsive-role-header.responsive-role-header .professor-header-actions {
+    display: grid;
+    grid-template-columns: 32px auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  #root .professor-header-actions > * { min-width: 0; }
+  #root .professor-header-actions .professor-create-course {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 10px;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+  #root .professor-header-actions .header-profile-wrapper { justify-self: end; max-width: 100%; }
+  #root .professor-header-actions .header-profile-chip { gap: 4px; }
+  #root .professor-header-actions .header-profile-main-button { min-width: 0; gap: 6px; }
+  #root .professor-header-actions .header-profile-avatar img { width: 32px; height: 32px; }
+  #root .professor-header-actions .header-profile-user-info { min-width: 0; }
+  #root .professor-header-actions .header-profile-user-info strong { max-width: 90px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 380px) {
+  #root .professor-header-actions .header-profile-user-info { display: none; }
+}
+
+/* Mobile dashboard tables become labeled records rather than clipped columns. */
+@media (max-width: 640px) {
+  #root .professor-layout :is(.dashboard-course-overview, .dashboard-attention) { min-width:0; padding:18px; }
+  #root .professor-layout :is(.dashboard-course-overview, .dashboard-attention) .dashboard-section-header { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+  #root .professor-layout :is(.dashboard-course-overview, .dashboard-attention) .dashboard-section-header > a { width:100%; display:flex; justify-content:space-between; }
+  #root .professor-layout :is(.dashboard-course-overview, .dashboard-attention) .dashboard-table-wrap { width:100%; min-width:0; overflow:visible; }
+  #root .professor-layout :is(.dashboard-course-table, .dashboard-attention-table) { display:block; width:100%; min-width:0; table-layout:auto; }
+  #root .professor-layout :is(.dashboard-course-table, .dashboard-attention-table) thead { display:none; }
+  #root .professor-layout :is(.dashboard-course-table, .dashboard-attention-table) tbody { display:block; }
+  #root .professor-layout :is(.dashboard-course-table, .dashboard-attention-table) tr { display:block; padding:12px 0; border-top:1px solid #e1e7ef; }
+  #root .professor-layout :is(.dashboard-course-table, .dashboard-attention-table) td { display:flex; justify-content:space-between; align-items:baseline; gap:12px; width:auto; max-width:none; min-width:0; padding:7px 0; border:0; white-space:normal; overflow-wrap:anywhere; font-size:13px; text-align:right; }
+  #root .professor-layout :is(.dashboard-course-table, .dashboard-attention-table) td[data-label]::before { content:attr(data-label); flex-shrink:0; color:#7d8798; font-size:12px; font-weight:600; }
+  #root .professor-layout .dashboard-course-table td:first-child { display:block; text-align:left; padding-bottom:12px; }
+  #root .professor-layout .dashboard-course-table td:first-child::before { display:none; }
+  #root .professor-layout .dashboard-course-table td:first-child strong { display:block; margin-bottom:6px; }
+  #root .professor-layout .dashboard-course-table td:first-child > span { display:block; line-height:1.6; }
+  #root .professor-layout :is(.dashboard-course-table, .dashboard-attention-table) .dashboard-empty-row td { display:block; width:auto; text-align:center; padding:20px 0; white-space:normal; }
+}

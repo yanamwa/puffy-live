@@ -4,9 +4,9 @@ export default function LandingFooter() {
       style={{
         width: "100%",
         padding: "2rem 1.5rem",
-        background: "rgba(255, 255, 255, 0.95)",
+        background: "#7199c6",
         textAlign: "center",
-        color: "#4b2bd9",
+        color: "#ffffff",
         fontWeight: 600,
         marginTop: "2rem",
       }}

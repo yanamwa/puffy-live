@@ -194,7 +194,7 @@ export default function StudentProfile() {
 
   const [profileImageUploading, setProfileImageUploading] = useState(false);
 
-  const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
+
 
   const [joinModalOpen, setJoinModalOpen] = useState(false);
 
@@ -581,37 +581,37 @@ export default function StudentProfile() {
   };
 
   return (
-    <div className="enrolled-dashboard striped-dashboard">
-            <StudentSidebar />     {" "}
+    <div className="enrolled-dashboard striped-dashboard student-profile-page">
+            <StudentSidebar />
       <main className="enrolled-main">
-               {" "}
+
         <StudentHeader
           searchPlaceholder="Search your course"
 
           onJoinCourse={() => setJoinModalOpen(true)}
         />
         <section className="public-heading">
-                    <h1>Student Profile</h1>       {" "}
+                    <h1>Student Profile</h1>       {" "}
         </section>
-               {" "}
+
         {profileLoading && (
           <div className="student-empty-state">
-                        Loading your profile             information...        
-             {" "}
+                        Loading your profile             information...        
+
           </div>
         )}
-               {" "}
+
         {!profileLoading && profileError && (
           <div className="student-empty-state">
-                          {profileError}           {" "}
+                          {profileError}           {" "}
           </div>
         )}
-               {" "}
+
         {!profileLoading && !profileError && (
           <section className="student-profile-content">
-                         {" "}
+
             <div className="student-profile-layout">
-                             {" "}
+
               <StudentIdentityCard
                 student={studentData}
                 editable={true}
@@ -619,31 +619,31 @@ export default function StudentProfile() {
                 profileImageUploading={profileImageUploading}
                 onProfileImageChange={changeProfilePicture}
               />
-                             {" "}
+
               <div className="student-profile-details">
-                                 {" "}
+
                 <div className="student-profile-details-header">
-                                     {" "}
+
                   <div>
-                                         {" "}
+
                     <span className="student-profile-eyebrow">
-                                              Profile overview                  
-                         {" "}
+                                              Profile overview                  
+
                     </span>
-                                         {" "}
+
                     <h2>
-                                              Student Information              
-                             {" "}
+                                              Student Information              
+
                     </h2>
-                                         {" "}
+
                     <p>
-                                              Your personal,                    
-                          academic, and account                        
-                      information.                      {" "}
+                                              Your personal,                    
+                          academic, and account                        
+                      information.                      {" "}
                     </p>
-                                       {" "}
+
                   </div>
-                                     {" "}
+
                   <button
                     type="button"
 
@@ -655,13 +655,13 @@ export default function StudentProfile() {
 
                     aria-label="Copy profile link"
                   >
-                                         {" "}
+
                     <svg
                       viewBox="0 0 24 24"
 
                       aria-hidden="true"
                     >
-                                             {" "}
+
                       <circle
                         cx="18"
 
@@ -669,7 +669,7 @@ export default function StudentProfile() {
 
                         r="2.5"
                       />
-                                             {" "}
+
                       <circle
                         cx="6"
 
@@ -677,7 +677,7 @@ export default function StudentProfile() {
 
                         r="2.5"
                       />
-                                             {" "}
+
                       <circle
                         cx="18"
 
@@ -685,27 +685,27 @@ export default function StudentProfile() {
 
                         r="2.5"
                       />
-                                              <path d="m8.2 10.8 7.5-4.4" />
-                                              <path d="m8.2 13.2 7.5 4.4" />   
-                                       {" "}
+                                              <path d="m8.2 10.8 7.5-4.4" />
+                                              <path d="m8.2 13.2 7.5 4.4" />   
+
                     </svg>
-                                       {" "}
+
                   </button>
-                                   {" "}
+
                 </div>
-                                 {" "}
+
                 <section className="student-info-section">
-                                     {" "}
+
                   <div className="student-info-section-heading">
-                                         {" "}
+
                     <span className="student-info-section-icon">
-                                             {" "}
+
                       <svg
                         viewBox="0 0 24 24"
 
                         aria-hidden="true"
                       >
-                                                 {" "}
+
                         <circle
                           cx="12"
 
@@ -713,319 +713,169 @@ export default function StudentProfile() {
 
                           r="4"
                         />
-                                                 {" "}
-                        <path d="M5 20c.8-4 3.2-6 7-6s6.2 2 7 6" />             
-                                 {" "}
+
+                        <path d="M5 20c.8-4 3.2-6 7-6s6.2 2 7 6" />             
+
                       </svg>
-                                           {" "}
+
                     </span>
-                                         {" "}
+
                     <div>
-                                             {" "}
+
                       <h3>
-                                                  Personal Information          
-                                     {" "}
+                                                  Personal Information          
+
                       </h3>
-                                             {" "}
+
                       <p>
-                                                  Basic student account        
-                                          details                        {" "}
+                                                  Basic student account        
+                                          details                        {" "}
                       </p>
-                                           {" "}
+
                     </div>
-                                       {" "}
+
                   </div>
-                                     {" "}
+
                   <div className="student-info-grid">
-                                         {" "}
+
                     <div className="student-info-item">
-                                             {" "}
+
                       <span className="student-info-label">
-                                                  Full Name                    
-                           {" "}
+                                                  Full Name                    
+
                       </span>
-                                             {" "}
+
                       <strong>
-                                                  {studentData.name}           
-                                   {" "}
+                                                  {studentData.name}           
+
                       </strong>
-                                           {" "}
+
                     </div>
-                                         {" "}
+
                     <div className="student-info-item">
-                                             {" "}
+
                       <span className="student-info-label">
-                                                  Student Number                
-                               {" "}
+                                                  Student Number                
+
                       </span>
-                                             {" "}
+
                       <strong>
-                                                  {studentData.studentNumber}   
-                                           {" "}
+                                                  {studentData.studentNumber}   
+
                       </strong>
-                                           {" "}
+
                     </div>
-                                         {" "}
+
                     <div className="student-info-item student-info-item-wide">
-                                             {" "}
+
                       <span className="student-info-label">
-                                                  Email Address                
-                               {" "}
+                                                  Email Address                
+
                       </span>
-                                             {" "}
+
                       <strong>
-                                                  {studentData.email}           
-                                   {" "}
+                                                  {studentData.email}           
+
                       </strong>
-                                           {" "}
+
                     </div>
-                                       {" "}
+
                   </div>
-                                   {" "}
+
                 </section>
-                                 {" "}
+
                 <section className="student-info-section">
-                                     {" "}
+
                   <div className="student-info-section-heading">
-                                         {" "}
+
                     <span className="student-info-section-icon">
-                                             {" "}
+
                       <svg
                         viewBox="0 0 24 24"
 
                         aria-hidden="true"
                       >
-                                                 {" "}
-                        <path d="m3.5 8.2 8.5-4.7 8.5 4.7-8.5 4.7-8.5-4.7Z" /> 
-                                               {" "}
+
+                        <path d="m3.5 8.2 8.5-4.7 8.5 4.7-8.5 4.7-8.5-4.7Z" /> 
+
                         <path d="M6.5 10.2v5c0 1.3 2.5 3 5.5 3s5.5-1.7 5.5-3v-5" />
-                                               {" "}
+
                       </svg>
-                                           {" "}
+
                     </span>
-                                         {" "}
+
                     <div>
-                                             {" "}
+
                       <h3>
-                                                  Academic Information          
-                                     {" "}
+                                                  Academic Information          
+
                       </h3>
-                                             {" "}
+
                       <p>
-                                                  Year level and class          
-                                        assignment                        {" "}
+                                                  Year level and class          
+                                        assignment                        {" "}
                       </p>
-                                           {" "}
+
                     </div>
-                                       {" "}
+
                   </div>
-                                     {" "}
+
                   <div className="student-info-grid">
-                                         {" "}
+
                     <div className="student-info-item student-info-item-wide">
-                                             {" "}
+
                       <span className="student-info-label">
-                                                  Course                      
-                         {" "}
+                                                  Course                      
+
                       </span>
-                                             {" "}
+
                       <strong>
-                                                  {studentData.course}         
-                                     {" "}
+                                                  {studentData.course}         
+
                       </strong>
-                                           {" "}
+
                     </div>
-                                         {" "}
+
                     <div className="student-info-item">
-                                             {" "}
+
                       <span className="student-info-label">
-                                                  Year Level                    
-                           {" "}
+                                                  Year Level                    
+
                       </span>
-                                             {" "}
+
                       <strong>
-                                                  {studentData.year}           
-                                   {" "}
+                                                  {studentData.year}           
+
                       </strong>
-                                           {" "}
+
                     </div>
-                                         {" "}
+
                     <div className="student-info-item">
-                                             {" "}
+
                       <span className="student-info-label">
-                                                  Section                      
-                         {" "}
+                                                  Section                      
+
                       </span>
-                                             {" "}
+
                       <strong>
-                                                  {studentData.section}         
-                                     {" "}
+                                                  {studentData.section}         
+
                       </strong>
-                                           {" "}
+
                     </div>
-                                       {" "}
+
                   </div>
-                                   {" "}
+
                 </section>
-                                 {" "}
-                <section className="student-info-section student-security-section">
-                                     {" "}
-                  <div className="student-info-section-heading">
-                                         {" "}
-                    <span className="student-info-section-icon">
-                                             {" "}
-                      <svg
-                        viewBox="0 0 24 24"
 
-                        aria-hidden="true"
-                      >
-                                                 {" "}
-                        <rect
-                          x="5"
 
-                          y="10"
-
-                          width="14"
-
-                          height="10"
-
-                          rx="2"
-                        />
-                                                 {" "}
-                        <path d="M8 10V7a4 4 0 0 1 8 0v3" />                   
-                           {" "}
-                      </svg>
-                                           {" "}
-                    </span>
-                                         {" "}
-                    <div>
-                                             {" "}
-                      <h3>
-                                                  Account Security              
-                                 {" "}
-                      </h3>
-                                             {" "}
-                      <p>
-                                                  Temporary account            
-                                      credentials                        {" "}
-                      </p>
-                                           {" "}
-                    </div>
-                                       {" "}
-                  </div>
-                                     {" "}
-                  <div className="student-password-card">
-                                         {" "}
-                    <div className="student-password-copy">
-                                             {" "}
-                      <span className="student-info-label">
-                                                  Temporary Password            
-                                   {" "}
-                      </span>
-                                             {" "}
-                      <strong
-                        className={
-                          showTemporaryPassword
-                            ? "student-password-visible"
-                            : "student-password-hidden"
-                        }
-                      >
-                                                 {" "}
-                        {showTemporaryPassword
-                          ? studentData.temporaryPassword
-                          : "••••••••••••••"}
-                                               {" "}
-                      </strong>
-                                           {" "}
-                    </div>
-                                         {" "}
-                    <button
-                      type="button"
-
-                      className="student-password-toggle"
-
-                      onClick={() =>
-                        setShowTemporaryPassword(
-                          (currentValue) => !currentValue,
-                        )
-                      }
-
-                      title={
-                        showTemporaryPassword
-                          ? "Hide temporary password"
-                          : "Show temporary password"
-                      }
-
-                      aria-label={
-                        showTemporaryPassword
-                          ? "Hide temporary password"
-                          : "Show temporary password"
-                      }
-
-                      aria-pressed={showTemporaryPassword}
-                    >
-                                             {" "}
-                      {showTemporaryPassword ? (
-                        <svg
-                          viewBox="0 0 24 24"
-
-                          aria-hidden="true"
-                        >
-                                                      <path d="m3 3 18 18" />   
-                                                 {" "}
-                          <path d="M10.6 6.2A10.3 10.3 0 0 1 12 6c6 0 9.5 6 9.5 6a18.8 18.8 0 0 1-2.5 3.2" />
-                                                     {" "}
-                          <path d="M6.2 6.2C3.8 8 2.5 12 2.5 12S6 18 12 18a9.7 9.7 0 0 0 3.8-.8" />
-                                                     {" "}
-                          <path d="M9.8 9.8a3 3 0 0 0 4.4 4.4" />               
-                                   {" "}
-                        </svg>
-                      ) : (
-                        <svg
-                          viewBox="0 0 24 24"
-
-                          aria-hidden="true"
-                        >
-                                                     {" "}
-                          <path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-                                                     {" "}
-                          <circle
-                            cx="12"
-
-                            cy="12"
-
-                            r="3"
-                          />
-                                                   {" "}
-                        </svg>
-                      )}
-                                             {" "}
-                      <span>
-                                                 {" "}
-                        {showTemporaryPassword ? "Hide" : "Show"}               
-                               {" "}
-                      </span>
-                                           {" "}
-                    </button>
-                                       {" "}
-                  </div>
-                                     {" "}
-                  <p className="student-password-note">
-                                          This is the password assigned        
-                                  when your account was created.                
-                          Keep it private and change it                      
-                    from the Settings page.                    {" "}
-                  </p>
-                                   {" "}
-                </section>
-                               {" "}
               </div>
-                           {" "}
+
             </div>
-                       {" "}
+
           </section>
         )}
-               {" "}
+
         <JoinCourseModal
           open={joinModalOpen}
 
@@ -1037,9 +887,9 @@ export default function StudentProfile() {
 
           onJoin={joinByCourseCode}
         />
-             {" "}
+
       </main>
-         {" "}
+
     </div>
   );
 }

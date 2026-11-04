@@ -565,7 +565,7 @@ function Lesson() {
         imageWidth: 300,
         imageAlt: "Reminder to answer the quick check",
         customClass: {
-          popup: "quiz-popup module-complete-popup",
+          popup: "quiz-popup student-reminder-popup",
           title: "quiz-popup-title",
           confirmButton: "quiz-popup-button",
         },

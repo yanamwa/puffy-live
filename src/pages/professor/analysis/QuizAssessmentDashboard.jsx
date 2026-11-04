@@ -38,6 +38,7 @@ function Bars({ rows }) {
 export default function QuizAssessmentDashboard({
   courseId,
   courseTitle,
+  exportActions,
   items = [],
   course,
 }) {
@@ -103,16 +104,40 @@ export default function QuizAssessmentDashboard({
       });
     return () => controller.abort();
   }, [courseId, refresh]);
-  const summary = useMemo(
+  const [yearFilter, setYearFilter] = useState("all");
+  const [sectionFilter, setSectionFilter] = useState("all");
+  const [enrolledStudents, setEnrolledStudents] = useState([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    setEnrolledStudents([]);
+    fetch(`${API_BASE}/courses/${encodeURIComponent(courseId)}/enrollments`, { credentials: "include", headers: lessonAuthHeaders(), signal: controller.signal })
+      .then(async response => { if (!response.ok) return; const result = await response.json(); if (!controller.signal.aborted) setEnrolledStudents(Array.isArray(result.enrolled) ? result.enrolled : []); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [courseId]);
+  const yearOf = (s) => {
+    const value = String(s.year_level ?? s.yearLevel ?? s.student_year_level ?? s.year ?? s.student?.year_level ?? "").trim();
+    return value.match(/[1-4]/)?.[0] || value;
+  };
+  const sectionOf = (s) => String(s.section_name ?? s.sectionName ?? s.student_section ?? s.section ?? s.student?.section ?? "").trim();
+  const years = ["1", "2", "3", "4"];
+  const roster = [...new Map([...data.students, ...enrolledStudents].map(s => [String(s.user_id ?? s.userId ?? s.id), s])).values()];
+  const sections = [...new Set([...roster, ...data.attempts].map(sectionOf).filter(value => value && value !== "N/A"))].sort();
+  const studentMatches = s => (yearFilter === "all" || yearOf(s) === yearFilter) && (sectionFilter === "all" || sectionOf(s) === sectionFilter);
+  const filteredStudents = roster.filter(studentMatches);
+  const filteredAttempts = data.attempts.filter(a => {
+    const student = roster.find(s => String(s.user_id ?? s.userId ?? s.id) === String(a.user_id ?? a.userId));
+    return studentMatches({ ...a, ...student });
+  });  const summary = useMemo(
     () =>
       summarizeAssessment(
-        filterModuleAttempts(data.attempts, moduleIndex, modules).filter(
+        filterModuleAttempts(filteredAttempts, moduleIndex, modules).filter(
           (a) => a.assessment_type === type,
         ),
-        data.students,
+        filteredStudents,
         scopedItems,
       ),
-    [data, type, scopedItems, moduleIndex, modules],
+    [data, type, scopedItems, moduleIndex, modules, yearFilter, sectionFilter, enrolledStudents],
   );
   const cognitiveRows = ["LOTS", "HOTS"].map((label) => ({
     label,
@@ -157,14 +182,18 @@ export default function QuizAssessmentDashboard({
   return (
     <section className="qa-dashboard">
       {refreshError && <p role="status">{refreshError}</p>}
-      <div className="qa-module-filter">
+      <div className="qa-module-filter qa-shared-filters">
+        <div className="qa-filter-caption">Filter Responses <button type="button" onClick={() => { setYearFilter("all"); setSectionFilter("all"); setModuleIndex("all"); setView("graph"); }}>Clear all</button></div>
+        <label>Year Level<select value={yearFilter} onChange={e => setYearFilter(e.target.value)}><option value="all">All Year Levels</option>{years.map(y => <option key={y}>{y}</option>)}</select></label>
+        <label>Section<select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}><option value="all">All Sections</option>{sections.map(s => <option key={s}>{s}</option>)}</select></label>
+        <div className="qa-filter-field">
         <label htmlFor="analysis-module">Module</label>
         <select
           id="analysis-module"
           value={moduleIndex}
           onChange={(event) => {
             setModuleIndex(event.target.value);
-            setResponseView(false);
+
           }}
         >
           <option value="all">All Modules</option>
@@ -173,35 +202,36 @@ export default function QuizAssessmentDashboard({
               {index + 1}. {module.title || `Module ${index + 1}`}
             </option>
           ))}
-        </select>
+        </select></div><label>View as<select value={view} onChange={e => setView(e.target.value)}><option value="graph">Graphical View</option><option value="table">Table View</option></select></label>
       </div>
       <div className="qa-workspace-navigation">
         <nav className="qa-assessment-tabs" aria-label="Assessment type">
           {["practice", "main"].map((value) => (
             <button
               key={value}
-              aria-pressed={type === value}
+              aria-pressed={type === value && !responseView}
               onClick={() => selectType(value)}
             >
               {value === "practice" ? "Practice Quiz" : "Main Quiz"}
             </button>
           ))}
         </nav>
-        {type === "main" && (
+        {(
           <button
             className="qa-response-button"
             type="button"
             aria-pressed={responseView}
-            onClick={() => setResponseView((value) => !value)}
+            onClick={() => { setType("main"); setResponseView(true); }}
           >
-            {responseView ? "Summary" : "Individual Responses"}
+            Responses
           </button>
         )}
       </div>
-      {type === "main" && (moduleIndex !== "all" || responseView) ? (
+      {(moduleIndex !== "all" || responseView) ? (
         <div className="qa-main-analysis">
           <MainQuizAnalysis
             key={`${courseId}:${moduleIndex}`}
+            filteredAttempts={filteredAttempts} analysisView={view}
             moduleIndex={moduleIndex}
             modules={modules}
             moduleTitle={moduleTitle}
@@ -211,7 +241,7 @@ export default function QuizAssessmentDashboard({
         </div>
       ) : (
         <div className="qa-content-panel qa-print-report">
-          <div className={`${styles.detailTop} qa-heading`}>
+          <div className={`${styles.detailTop} qa-heading`}> {exportActions}
             <div className={styles.detailTitle}>
               <p className={styles.detailEyebrow}>
                 {type === "practice"
@@ -229,25 +259,7 @@ export default function QuizAssessmentDashboard({
             >
               Print / Save as PDF
             </button>
-            <div className={styles.viewSwitch} aria-label="Analysis view">
-              <span>View as</span>
-              <div>
-                <button
-                  className={view === "graph" ? styles.activeViewButton : ""}
-                  aria-pressed={view === "graph"}
-                  onClick={() => setView("graph")}
-                >
-                  Graphical View
-                </button>
-                <button
-                  className={view === "table" ? styles.activeViewButton : ""}
-                  aria-pressed={view === "table"}
-                  onClick={() => setView("table")}
-                >
-                  Table View
-                </button>
-              </div>
-            </div>
+
           </div>
 
           {status ? (

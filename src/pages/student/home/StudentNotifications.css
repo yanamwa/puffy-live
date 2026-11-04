@@ -686,3 +686,54 @@
     margin-left: 76px;
   }
 }
+
+/* Release the desktop sidebar space when the mobile menu is active. */
+.student-notifications-main-area,
+.student-notifications-body,
+.student-notifications-page {
+  min-width: 0;
+}
+.student-notification-content {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 820px) {
+  .student-notifications-layout .student-notifications-main-area {
+    width: 100%;
+    margin-left: 0;
+  }
+  .student-notifications-page {
+    padding-inline: 0;
+  }
+  .student-notification-toolbar,
+  .student-notification-tabs {
+    min-width: 0;
+  }
+  .student-notification-tabs {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .student-notification-tabs button,
+  .student-mark-read {
+    min-height: 44px;
+  }
+}
+@media (max-width: 520px) {
+  .student-notifications-summary {
+    width: 100%;
+  }
+  .student-mark-read {
+    width: 100%;
+  }
+  .student-notification-item {
+    align-items: start;
+    grid-template-columns: 36px minmax(0, 1fr) 9px;
+    padding: 14px 12px;
+  }
+  .student-notification-icon {
+    width: 36px;
+    height: 36px;
+  }
+  .student-notification-unread-dot {
+    margin-top: 8px;
+  }
+}

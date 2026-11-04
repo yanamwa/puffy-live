@@ -100,6 +100,7 @@ export default function QuizManagement() {
               )
               .map((item) => {
                 const itemId = item.id || item.course_id;
+                const description = Array.from(String(item.summary || item.description || item.subject || ""));
                 const dateValue =
                   item.createdAt ||
                   item.created_at ||
@@ -114,7 +115,7 @@ export default function QuizManagement() {
                   <button
                     type="button"
                     key={itemId}
-                    className={styles.courseCard}
+                    className={`${styles.courseCard} quiz-course-envelope`}
                     onClick={() => setParams({ course: String(itemId) })}
                   >
                     <span className={styles.dateText}>
@@ -128,7 +129,7 @@ export default function QuizManagement() {
                       {item.title || item.course_name || "Untitled Course"}
                     </strong>
                     <span className={styles.description}>
-                      {item.summary || item.description || item.subject}
+                      {description.length > 50 ? `${description.slice(0, 50).join("").trimEnd()}...` : description.join("")}
                     </span>
                     <span className={styles.divider} />
                     <span className={styles.stats}>

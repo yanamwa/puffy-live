@@ -309,7 +309,7 @@
   width: 100%;
   min-width: 0;
   gap: 24px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 360px));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 380px));
 }
 @media (max-width: 600px) {
   .quiz-management .quiz-management-course-grid {
@@ -388,3 +388,11 @@
     margin-right: 16px;
   }
 }
+
+.quiz-management .quiz-course-envelope { min-height: 240px; padding: 58px 30px 18px 20px; }
+.quiz-management .quiz-course-envelope::before { inset: 6px 0 0 11px; }
+.quiz-management .quiz-course-envelope::after { inset: 0 13px 4px 0; }
+
+.quiz-management .quiz-course-envelope { min-height: 240px; padding: 58px 30px 18px 20px; }
+.quiz-management .quiz-course-envelope::before { inset: 6px 0 0 11px; }
+.quiz-management .quiz-course-envelope::after { inset: 0 13px 4px 0; }

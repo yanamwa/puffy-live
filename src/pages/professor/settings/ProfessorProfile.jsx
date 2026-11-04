@@ -3,7 +3,6 @@ import {
   FiBookOpen,
   FiBriefcase,
   FiCamera,
-  FiLock,
   FiMail,
   FiUser,
 } from "react-icons/fi";
@@ -691,39 +690,7 @@ export default function ProfessorProfile() {
               </div>
             </section>
 
-            {/* ACCOUNT SECURITY */}
 
-            <section className="professor-info-section professor-security-section">
-              <div className="professor-info-section-heading">
-                <span className="professor-info-section-icon">
-                  <FiLock aria-hidden="true" />
-                </span>
-
-                <div>
-                  <h3>Account Security</h3>
-
-                  <p>Password and account status</p>
-                </div>
-              </div>
-
-              <div className="professor-password-card">
-                <div className="professor-password-copy">
-                  <span className="professor-info-label">Password Status</span>
-
-                  <strong>
-                    {professorData.mustChangePassword
-                      ? "Temporary password issued"
-                      : "Password updated"}
-                  </strong>
-                </div>
-              </div>
-
-              <p className="professor-password-note">
-                {professorData.mustChangePassword
-                  ? "Your account is currently using a temporary password. Please change it from the Settings page."
-                  : "Your account password has already been updated."}
-              </p>
-            </section>
           </div>
         </div>
       </section>

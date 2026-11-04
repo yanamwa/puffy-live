@@ -484,3 +484,23 @@
     margin-right: -16px;
   }
 }
+
+/* Use the same notebook paper and rating bar as the practice cards. */
+.flashcard {
+  border-color: #c2c2c2 !important;
+}
+.flashcardFace {
+  background-color: #fff !important;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, #d3e2f5 31px, #d3e2f5 32px) !important;
+  background-size: 100% 32px !important;
+  border-color: #c2c2c2 !important;
+}
+.difficulty {
+  background: #c2c2c2 !important;
+}
+.tab span {
+  border-bottom-color: #c2c2c2 !important;
+}
+.tab span.active {
+  border-bottom-color: #696969 !important;
+}
