@@ -1,3 +1,5 @@
+import ProfessorProofImage from "../../../components/ProfessorProofImage.jsx";
+import { professorProofUrl } from "../../../utils/professorProof.js";
 import UserPagination, { useUserPagination } from "../../../components/UserPagination";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -290,8 +292,6 @@ function isUrl(value) {
   return /^(https?:\/\/|\/)/i.test(String(value || "").trim());
 }
 
-const IMAGE_PROOF_PATTERN = /\.(avif|bmp|gif|jpe?g|png|svg|webp)(?:[?#].*)?$/i;
-
 function getProofSource(value) {
   const proof = String(value || "").trim();
 
@@ -302,12 +302,6 @@ function getProofSource(value) {
   if (proof.startsWith("/")) return proof;
 
   return proof;
-}
-
-function isImageProof(value) {
-  const proof = String(value || "").trim();
-
-  return IMAGE_PROOF_PATTERN.test(proof) || /\/api\/uploads\//i.test(proof);
 }
 
 function formatFileSize(bytes) {
@@ -2005,41 +1999,8 @@ export default function SuperAdminUserManagementPage() {
 
     if (!proofSrc) return "Not submitted";
 
-    if (isUrl(proofSrc) && isImageProof(proofSrc)) {
-      if (compact) {
-        return (
-          <a
-            className="users-proof-cell"
-            href={proofSrc}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <img
-              className="users-proof-thumb"
-              src={proofSrc}
-              alt={`${user.name || "Professor"} proof thumbnail`}
-              loading="lazy"
-            />
-            <span>View proof</span>
-          </a>
-        );
-      }
-
-      return (
-        <a
-          className="users-proof-preview"
-          href={proofSrc}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <img
-            className="users-proof-image"
-            src={proofSrc}
-            alt={`${user.name || "Professor"} employment proof`}
-            loading="lazy"
-          />
-        </a>
-      );
+    if (professorProofUrl(proof, API_BASE)) {
+      return <ProfessorProofImage proof={proof} name={user.name} compact={compact} />;
     }
 
     if (isUrl(proofSrc)) {
