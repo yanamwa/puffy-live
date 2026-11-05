@@ -294,9 +294,10 @@ function getProofSource(value) {
   const proof = String(value || "").trim();
 
   if (!proof) return "";
-  if (/^https?:\/\//i.test(proof) || proof.startsWith("/")) return proof;
-  if (/^api\//i.test(proof)) return `/${proof}`;
-  if (/^uploads\//i.test(proof)) return `${API_BASE}/${proof}`;
+  if (/^https?:\/\//i.test(proof)) return proof;
+  const uploadPath = proof.replace(/^\/?(?:api\/)?uploads\//i, "");
+  if (uploadPath !== proof) return `${API_BASE}/uploads/${uploadPath}`;
+  if (proof.startsWith("/")) return proof;
 
   return proof;
 }

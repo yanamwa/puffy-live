@@ -37,9 +37,14 @@ export default function Otp() {
     Swal.fire({
       title,
       text,
-      imageUrl: "/images/think.png",
-      imageWidth: 200,
-      imageHeight: 200,
+      imageUrl: "/images/failed_otp.png",
+      imageWidth: 270,
+      imageHeight: 180,
+      imageAlt: "Verification code could not be sent or verified",
+      customClass: {
+        popup: "login-feedback-popup",
+        container: "login-feedback-overlay",
+      },
       confirmButtonText: "OK",
     });
   };
@@ -64,9 +69,14 @@ export default function Otp() {
     Swal.fire({
       title,
       text,
-      imageUrl: "/images/error.png",
-      imageWidth: 200,
-      imageHeight: 200,
+      imageUrl: "/images/failed_otp.png",
+      imageWidth: 270,
+      imageHeight: 180,
+      imageAlt: "Verification code could not be sent or verified",
+      customClass: {
+        popup: "login-feedback-popup",
+        container: "login-feedback-overlay",
+      },
       confirmButtonText: "OK",
     });
   };
