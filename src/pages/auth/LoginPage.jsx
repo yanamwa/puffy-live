@@ -468,7 +468,7 @@ function Login() {
             )}
 
             <p className={styles.signupText}>
-              Don&apos;t have an account? <Link to="/signup">Signup</Link>
+              Be a professor? <Link to="/signup">Signup</Link>
             </p>
           </form>
         </div>

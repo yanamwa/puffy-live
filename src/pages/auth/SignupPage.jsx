@@ -12,7 +12,6 @@ function Signup() {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [facultyId, setFacultyId] = useState("");
   const [department, setDepartment] = useState("");
   const [employmentProof, setEmploymentProof] = useState(null);
   const [proofPreview, setProofPreview] = useState("");
@@ -67,7 +66,6 @@ function Signup() {
   const resetForm = () => {
     setFullName("");
     setEmail("");
-    setFacultyId("");
     setDepartment("");
     setEmploymentProof(null);
     setProofPreview("");
@@ -129,7 +127,6 @@ function Signup() {
 
     const cleanFullName = fullName.trim();
     const cleanEmail = email.trim().toLowerCase();
-    const cleanFacultyId = facultyId.trim();
     const cleanDepartment = department.trim();
 
     if (!cleanFullName) {
@@ -146,22 +143,6 @@ function Signup() {
 
     if (!emailPattern.test(cleanEmail)) {
       showError("Invalid Email", "Please enter a valid email address.");
-      return;
-    }
-
-    if (!cleanFacultyId) {
-      showError(
-        "Employee or Faculty ID Required",
-        "Please enter your employee or faculty ID.",
-      );
-      return;
-    }
-
-    if (cleanFacultyId.length > 100) {
-      showError(
-        "Employee or Faculty ID Too Long",
-        "Employee or faculty ID must be 100 characters or fewer.",
-      );
       return;
     }
 
@@ -210,7 +191,6 @@ function Signup() {
       formData.append("email", cleanEmail);
       formData.append("password", password);
       formData.append("role", "professor");
-      formData.append("facultyId", cleanFacultyId);
       formData.append("department", cleanDepartment);
       formData.append("employmentProof", employmentProof);
 
@@ -313,25 +293,7 @@ function Signup() {
                 />
               </div>
 
-              <div className={styles.professorFormGroup}>
-                <label htmlFor="professor-faculty-id">
-                  Employee or Faculty ID
-                </label>
-
-                <input
-                  id="professor-faculty-id"
-                  type="text"
-                  placeholder="Enter your employee or faculty ID"
-                  value={facultyId}
-                  disabled={isSigningUp}
-                  autoComplete="off"
-                  maxLength={100}
-                  required
-                  onChange={(event) => setFacultyId(event.target.value)}
-                />
-              </div>
-
-              <div className={styles.professorFormGroup}>
+              <div className={`${styles.professorFormGroup} ${styles.professorFullWidth}`}>
                 <label htmlFor="department">Department</label>
 
                 <select
@@ -356,13 +318,13 @@ function Signup() {
                 className={`${styles.professorFormGroup} ${styles.professorFullWidth}`}
               >
                 <label htmlFor="employment-proof">
-                  Upload Your Faculty or Employee ID
+                  Upload Proof of Employment
                 </label>
 
                 <p className={styles.professorUploadDescription}>
-                  Upload a clear photo of the front of your valid school faculty
-                  or employee ID. Accepted formats are JPG, PNG, and WEBP, up to
-                  5 MB.
+                 Upload a clear photo or document proving your current employment with the school.
+                 You may submit your faculty or employee ID, certificate of employment, or
+                 other official employment documents.
                 </p>
 
                 <div className={styles.professorUploadArea}>
@@ -381,7 +343,7 @@ function Signup() {
                   >
                     <i className="fa-solid fa-image" />
 
-                    <span>
+                    <span style={{ color: "white" }}>
                       {employmentProof ? "Change ID Photo" : "Choose ID Photo"}
                     </span>
                   </label>
