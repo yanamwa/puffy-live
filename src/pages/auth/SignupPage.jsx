@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 
 import { API_BASE } from "../../config.js";
 import styles from "./login.module.css";
+import "./LoginFeedback.css";
 
 function Signup() {
   const navigate = useNavigate();
@@ -40,9 +41,15 @@ function Signup() {
 
   const showError = (title, text) => {
     Swal.fire({
-      imageUrl: "/images/error.png",
-      imageWidth: 170,
-      imageHeight: 170,
+      imageUrl: "/images/required.png",
+      imageWidth: 270,
+      imageHeight: 180,
+      imageAlt: "Please complete the required signup information",
+      customClass: {
+        popup: "login-feedback-popup",
+        container: "login-feedback-overlay",
+      },
+      confirmButtonText: "OK",
       title,
       text,
     });
