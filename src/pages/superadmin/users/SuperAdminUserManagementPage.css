@@ -800,6 +800,10 @@
   margin: 0;
 }
 
+.users-detail-grid .users-detail-wide {
+  grid-column: 1 / -1;
+}
+
 .users-detail-grid div {
   background: #f6f6f6;
   border: 1px solid #eeeeee;
@@ -1275,6 +1279,214 @@
   flex-wrap: wrap;
 }
 
+.users-page .users-action-group.users-approval-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  min-width: 228px;
+}
+
+.users-approval-decisions,
+.users-approval-tools {
+  display: grid;
+  gap: 6px;
+}
+
+.users-approval-decisions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.users-approval-decisions:empty {
+  display: none;
+}
+
+.users-approval-tools {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.users-page .users-approval-actions .users-icon-btn {
+  width: 100%;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.users-page .users-approvals-table {
+  table-layout: fixed;
+  min-width: 1240px;
+}
+
+.users-page .users-approvals-table :is(th, td) {
+  padding: 16px 12px;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.users-approvals-table th:nth-child(1) { width: 16%; }
+.users-approvals-table th:nth-child(2) { width: 18%; }
+.users-approvals-table th:nth-child(3) { width: 13%; }
+.users-approvals-table th:nth-child(4) { width: 11%; }
+.users-approvals-table th:nth-child(5) { width: 10%; }
+.users-approvals-table th:nth-child(6) { width: 10%; }
+.users-approvals-table th:nth-child(7) { width: 22%; }
+
+.users-approvals-table .users-proof-cell {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.users-approval-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+body .swal2-container.professor-decision-overlay {
+  z-index: 3000;
+  padding: 16px;
+  background: rgba(38, 60, 82, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+body .swal2-popup.professor-decision-dialog {
+  width: 680px !important;
+  max-width: calc(100vw - 32px) !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid #cbdced;
+  border-radius: 12px !important;
+  background: #ffffff;
+  box-shadow: 0 24px 64px rgba(24, 45, 66, 0.24) !important;
+}
+
+body .professor-decision-dialog .swal2-title {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 0 !important;
+  padding: 20px 52px 20px 24px !important;
+  background: #7fa9d6;
+  color: #263e5b !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  text-align: left !important;
+}
+
+body .professor-decision-dialog .swal2-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  color: #263e5b !important;
+}
+
+body .professor-decision-dialog .swal2-html-container {
+  margin: 0 !important;
+  padding: 22px 24px 16px !important;
+  color: #637c97 !important;
+  font-size: 20px !important;
+  line-height: 1.6 !important;
+  overflow-wrap: anywhere;
+  text-align: center !important;
+  white-space: pre-line;
+}
+
+body .professor-decision-dialog .swal2-input-label {
+  justify-content: center;
+  text-align: center;
+  margin: 0 24px 8px !important;
+  color: #365d88 !important;
+  font-size: 20px !important;
+}
+
+body .professor-decision-dialog .swal2-textarea {
+  width: calc(100% - 48px);
+  min-height: 160px !important;
+  margin: 0 24px 24px !important;
+  padding: 12px !important;
+  border: 1px solid #cbdced;
+  border-radius: 8px !important;
+  color: #263e5b !important;
+  background: #f7faff;
+  font-size: 20px !important;
+  box-shadow: none !important;
+}
+
+body .professor-decision-dialog .swal2-textarea:focus {
+  border-color: #7fa9d6;
+  box-shadow: 0 0 0 3px rgba(127, 169, 214, 0.2) !important;
+}
+
+body .professor-decision-dialog .swal2-actions {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 12px !important;
+  width: 100%;
+  margin: 0 !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #e1eaf4;
+}
+
+body .professor-decision-dialog .swal2-actions button {
+  flex: 1 1 250px;
+  min-height: 54px !important;
+  margin: 0 !important;
+  padding: 10px 16px !important;
+  border: 1px solid #cbdced;
+  border-radius: 7px !important;
+  font-size: 20px !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+body .professor-decision-dialog .swal2-confirm {
+  background: #7fa9d6;
+  color: #ffffff !important;
+}
+
+body .professor-decision-dialog .swal2-confirm:hover {
+  background: #6f98c7;
+}
+
+body .professor-decision-dialog .swal2-cancel {
+  background: #ffffff;
+  color: #365d88 !important;
+}
+
+body .professor-decision-dialog .swal2-validation-message {
+  font-size: 20px !important;
+  overflow-wrap: anywhere;
+}
+
+body .users-success-dialog .swal2-title {
+  grid-row: 1;
+}
+
+body .users-success-dialog .swal2-image {
+  grid-row: 2;
+  width: 260px !important;
+  height: 200px !important;
+  max-width: calc(100% - 48px);
+  object-fit: contain;
+  margin: 24px auto 0 !important;
+}
+
+body .users-success-dialog .swal2-html-container {
+  grid-row: 3;
+}
+
+body .users-success-dialog .swal2-actions {
+  grid-row: 4;
+}
+
+body .swal2-container .swal2-popup.professor-decision-dialog,
+body .swal2-container .swal2-popup.professor-decision-dialog * {
+  font-family: Arial, sans-serif !important;
+  box-sizing: border-box;
+}
+
 .users-page .users-icon-btn {
   width: auto;
   min-width: 72px;
@@ -1550,4 +1762,39 @@
 
 .users-create-modal .users-student-form .professor-proof-upload-btn:is(:hover, :focus-within) {
   background: #527eae;
+}
+
+:is(.admin-layout, .superadmin-layout) .users-page .users-modal {
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 48px);
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+
+.users-page .users-modal :is(h2, h3, p, label, input, select, textarea, button, dt, dd, strong, small, span) {
+  font-size: 20px !important;
+  line-height: 1.5;
+}
+
+.users-page .users-modal .users-modal-profile h2 {
+  font-size: 26px !important;
+}
+
+.users-page .users-modal .users-student-form :is(input, select) {
+  min-height: 52px;
+}
+
+.users-page .users-modal :is(.users-submit-btn, .users-secondary-btn) {
+  min-height: 52px;
+  height: auto;
+  white-space: normal;
+}
+
+.users-page .users-modal .users-detail-grid dd {
+  overflow-wrap: anywhere;
+}
+
+.users-page .users-modal .users-modal-close {
+  font-size: 24px !important;
+  line-height: 1;
 }

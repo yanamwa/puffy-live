@@ -4,6 +4,7 @@ import { findCatalogCodeMatches } from "../../../services/catalogDuplicates.js";
 import { readCoverage } from "../../../components/catalog/CoverageModules.jsx";
 import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import { FiUpload } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getUserRole } from "../../../utils/roles.js";
 import {
@@ -609,6 +610,7 @@ export default function CourseManagementPage() {
           type="button"
           onClick={() => setDialog({ type: "upload" })}
         >
+          <FiUpload aria-hidden="true" />
           Upload Syllabus
         </button>
       </div>

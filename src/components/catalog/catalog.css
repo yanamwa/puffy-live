@@ -725,16 +725,26 @@
   color: #80501c;
 }
 
-.catalog-button.catalog-upload-syllabus {
-  background: #c6ddf4;
-  border-color: #a0c2e6;
-  color: #234f7b;
+.catalog-page .catalog-heading .catalog-button.catalog-upload-syllabus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  background: #7fa9d6;
+  border-color: #7fa9d6;
+  border-radius: 14px;
+  box-shadow: 0 5px 0 #6088b2;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
 }
 
-.catalog-button.catalog-upload-syllabus:hover {
-  background: #a5c5e8;
+.catalog-page .catalog-heading .catalog-button.catalog-upload-syllabus:hover {
+  background: #6f98c7;
   border-color: #80a9d6;
-  color: #234f7b;
+  color: #ffffff;
 }
 
 .catalog-button.catalog-upload-version {

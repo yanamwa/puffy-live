@@ -21,6 +21,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { API_BASE } from "../../../config";
+import { formatUserDisplayId } from "../../../utils/userDisplayId.js";
 import "./SuperAdminUserManagementPage.css";
 import Swal from "sweetalert2";
 
@@ -68,7 +69,6 @@ const initialAdminForm = {
 const initialProfessorForm = {
   name: "",
   email: "",
-  facultyId: "",
   department: "",
   employmentProof: null,
 };
@@ -162,15 +162,17 @@ function normalizeUser(user) {
     user.temporary_expired === true ||
     isTemporaryExpired(user);
 
+  const id = user.id || user.userId || user.user_id || user.UserID || displayName;
+  const joined = user.joined || user.created_at || user.createdAt || "";
   return {
-    id: user.id || user.userId || user.user_id || user.UserID || displayName,
+    id,
     name: displayName,
     email: user.email || "No email found",
     profileImage: user.profileImage || user.profile_image || user.avatar || "",
     role,
     status: getStatusFromUser(user),
     verificationStatus,
-    joined: user.joined || user.created_at || user.createdAt || "",
+    joined,
     studentId: user.studentId || user.student_id || "",
     professorId: user.professorId || user.professor_id || "",
     professorFacultyId:
@@ -369,7 +371,16 @@ function UserAvatar({ user, large = false }) {
 
 function showSuccess(message, title = "Success") {
   return Swal.fire({
-    icon: "success",
+    imageUrl: "/images/complete.png",
+    imageAlt: "Action completed successfully",
+    imageWidth: 260,
+    imageHeight: 200,
+    customClass: {
+      popup: "professor-decision-dialog users-success-dialog",
+      container: "professor-decision-overlay",
+    },
+    buttonsStyling: false,
+    showCloseButton: true,
     title,
     text: message,
     confirmButtonText: "OK",
@@ -579,6 +590,7 @@ export default function SuperAdminUserManagementPage() {
         user.name,
         user.email,
         user.id,
+        formatUserDisplayId(user),
         user.studentId,
         user.professorFacultyId,
         user.professorDepartment,
@@ -733,6 +745,38 @@ export default function SuperAdminUserManagementPage() {
   );
 
   const handleProfessorDecision = async (user, status) => {
+    const declining = status === "declined";
+    const confirmation = await Swal.fire({
+      title: declining ? "Decline professor registration" : "Are you sure you want to approve?",
+      text: declining
+        ? `The decision will be emailed to ${user.email}.`
+        : `Approve ${user.name}'s professor account?\nAn approval email will be sent to ${user.email}.`,
+      input: declining ? "textarea" : undefined,
+      inputLabel: declining ? "Reason for decline" : undefined,
+      inputPlaceholder: declining ? "Explain why the registration is being declined" : undefined,
+      inputAttributes: { maxlength: "2000" },
+      customClass: {
+        popup: "professor-decision-dialog",
+        container: "professor-decision-overlay",
+      },
+      showCloseButton: true,
+      showCancelButton: true,
+      reverseButtons: true,
+      cancelButtonText: "Cancel",
+      buttonsStyling: false,
+      confirmButtonText: declining ? "Decline and notify" : "Yes, approve account",
+      confirmButtonColor: "#527eae",
+      preConfirm: (value) => {
+        const reason = String(value || "").trim();
+        if (declining && !reason) {
+          Swal.showValidationMessage("Please enter a reason for declining.");
+          return false;
+        }
+        return reason;
+      },
+    });
+    if (!confirmation.isConfirmed) return;
+
     try {
       setBusyUserId(`${user.id}-${status}`);
       const response = await fetch(
@@ -740,7 +784,8 @@ export default function SuperAdminUserManagementPage() {
         {
           method: "PATCH",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ status }),
+          credentials: "include",
+          body: JSON.stringify({ status, reason: confirmation.value || "" }),
         },
       );
       const data = await response.json();
@@ -750,7 +795,11 @@ export default function SuperAdminUserManagementPage() {
       }
 
       updateUserInList(data.user);
-      showSuccess(data.message);
+      if (data.emailSent === false) {
+        showWarning(data.message, "Decision saved — email not sent");
+      } else {
+        showSuccess(data.message);
+      }
     } catch (error) {
       showError(error.message || "Could not update registration.");
     } finally {
@@ -784,6 +833,17 @@ export default function SuperAdminUserManagementPage() {
   };
 
   const handleResetCredentials = async (user) => {
+    const confirmation = await Swal.fire({
+      icon: "warning",
+      title: "Reset account password?",
+      text: `This replaces ${user.name}'s current password with a temporary password. It does not resend their email verification code.`,
+      showCancelButton: true,
+      confirmButtonText: "Reset password",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#527eae",
+    });
+    if (!confirmation.isConfirmed) return;
+
     try {
       setBusyUserId(`${user.id}-credentials`);
       const response = await fetch(
@@ -791,9 +851,10 @@ export default function SuperAdminUserManagementPage() {
         {
           method: "POST",
           headers: getAuthHeaders(),
+          credentials: "include",
         },
       );
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok || !data.success) {
         throw new Error(data.message || "Could not generate credentials.");
@@ -807,9 +868,13 @@ export default function SuperAdminUserManagementPage() {
           temporaryExpiresAt: user.temporaryExpiresAt,
         },
       ]);
-      showSuccess("Temporary credentials generated.");
+      showSuccess("Password reset. Save the temporary credentials shown below.");
     } catch (error) {
-      showError(error.message || "Could not generate credentials.");
+      showError(
+        error instanceof TypeError
+          ? "Could not reach the server. Check that the backend is running, then refresh the user list before retrying."
+          : error.message || "Could not generate credentials.",
+      );
     } finally {
       setBusyUserId("");
     }
@@ -931,7 +996,6 @@ export default function SuperAdminUserManagementPage() {
 
     const cleanName = professorForm.name.trim();
     const cleanEmail = professorForm.email.trim().toLowerCase();
-    const cleanFacultyId = professorForm.facultyId.trim();
     const cleanDepartment = professorForm.department.trim();
     const proofError = validateProfessorProofFile(
       professorForm.employmentProof,
@@ -944,16 +1008,6 @@ export default function SuperAdminUserManagementPage() {
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       showWarning("Please enter a valid professor email address.");
-      return;
-    }
-
-    if (!cleanFacultyId) {
-      showWarning("Employee or faculty ID is required.");
-      return;
-    }
-
-    if (cleanFacultyId.length > 100) {
-      showWarning("Employee or faculty ID must be 100 characters or fewer.");
       return;
     }
 
@@ -970,7 +1024,6 @@ export default function SuperAdminUserManagementPage() {
     const formData = new FormData();
     formData.append("name", cleanName);
     formData.append("email", cleanEmail);
-    formData.append("facultyId", cleanFacultyId);
     formData.append("department", cleanDepartment);
     formData.append("employmentProof", professorForm.employmentProof);
 
@@ -2000,8 +2053,41 @@ export default function SuperAdminUserManagementPage() {
     return proof;
   };
 
+  const renderProfessorDecisionButtons = (user) => {
+    if (user.role !== "professor" || user.isArchived ||
+        String(user.verificationStatus).toLowerCase() !== "pending") return null;
+
+    const busy = busyUserId.startsWith(`${user.id}-`);
+    return (
+      <>
+        <button
+          className="users-icon-btn users-approve-btn"
+          type="button"
+          onClick={() => handleProfessorDecision(user, "approved")}
+          disabled={busy}
+        >
+          <FiCheck />
+          <span>{busyUserId === `${user.id}-approved` ? "Approving..." : "Approve"}</span>
+        </button>
+        <button
+          className="users-icon-btn users-decline-btn"
+          type="button"
+          onClick={() => handleProfessorDecision(user, "declined")}
+          disabled={busy}
+        >
+          <FiX />
+          <span>{busyUserId === `${user.id}-declined` ? "Declining..." : "Decline"}</span>
+        </button>
+      </>
+    );
+  };
+
   const renderApprovalActions = (user) => (
-    <div className="users-action-group">
+    <div className="users-action-group users-approval-actions">
+      <div className="users-approval-decisions">
+        {renderProfessorDecisionButtons(user)}
+      </div>
+      <div className="users-approval-tools">
       <button
         className="users-icon-btn users-view-btn"
         type="button"
@@ -2041,6 +2127,7 @@ export default function SuperAdminUserManagementPage() {
           </button>
         </>
       )}
+      </div>
     </div>
   );
 
@@ -2075,7 +2162,7 @@ export default function SuperAdminUserManagementPage() {
               <UserAvatar user={user} />
               <div>
                 <strong>{user.name}</strong>
-                <small>ID: {user.id}</small>
+                <small>User ID: {formatUserDisplayId(user)}</small>
               </div>
             </div>
           </td>
@@ -2152,10 +2239,14 @@ export default function SuperAdminUserManagementPage() {
           {visibleUsers.map((user) => (
             <tr key={user.id}>
               <td>
-                <strong>{user.name}</strong>
+                <div className="users-person">
+                  <div>
+                    <strong>{user.name}</strong>
+                    <small>User ID: {formatUserDisplayId(user)}</small>
+                  </div>
+                </div>
               </td>
               <td>{user.email}</td>
-              <td>{user.professorFacultyId || "Not submitted"}</td>
               <td>{user.professorDepartment || "Not submitted"}</td>
               <td>{renderProof(user, { compact: true })}</td>
               <td>{formatDate(user.joined)}</td>
@@ -2177,7 +2268,7 @@ export default function SuperAdminUserManagementPage() {
                   <UserAvatar user={user} />
                   <div>
                     <strong>{user.name}</strong>
-                    <small>{user.studentId || "No student ID"}</small>
+                    <small>User ID: {formatUserDisplayId(user)}</small>
                   </div>
                 </div>
               </td>
@@ -2238,7 +2329,12 @@ export default function SuperAdminUserManagementPage() {
           {visibleUsers.map((user) => (
             <tr key={user.id}>
               <td>
-                <strong>{user.name}</strong>
+                <div className="users-person">
+                  <div>
+                    <strong>{user.name}</strong>
+                    <small>User ID: {formatUserDisplayId(user)}</small>
+                  </div>
+                </div>
               </td>
               <td>{user.email}</td>
               <td>{titleCase(user.role)}</td>
@@ -2279,7 +2375,6 @@ export default function SuperAdminUserManagementPage() {
       ? [
           "Full Name",
           "Email Address",
-          "Employee or Faculty ID",
           "Department",
           "Submitted Proof",
           "Registration Date",
@@ -2440,7 +2535,7 @@ export default function SuperAdminUserManagementPage() {
         </div>
 
         <div className="users-table-wrap">
-          <table className="users-table">
+          <table className={`users-table${activeTab === "approvals" ? " users-approvals-table" : ""}`}>
             <thead>
               <tr>
                 {tableHeaders.map((header) => (
@@ -2635,19 +2730,6 @@ export default function SuperAdminUserManagementPage() {
                   placeholder="Enter professor email"
                   disabled={creatingProfessor}
                   autoComplete="email"
-                  required
-                />
-              </label>
-
-              <label>
-                Employee or Faculty ID
-                <input
-                  type="text"
-                  value={professorForm.facultyId}
-                  onChange={handleProfessorFieldChange("facultyId")}
-                  placeholder="Enter employee or faculty ID"
-                  disabled={creatingProfessor}
-                  maxLength={100}
                   required
                 />
               </label>
@@ -2932,7 +3014,7 @@ export default function SuperAdminUserManagementPage() {
             <dl className="users-detail-grid">
               <div>
                 <dt>User ID</dt>
-                <dd>{selectedUser.id}</dd>
+                <dd>{formatUserDisplayId(selectedUser)}</dd>
               </div>
               <div>
                 <dt>Role</dt>
@@ -2946,11 +3028,7 @@ export default function SuperAdminUserManagementPage() {
                 <dt>Registered</dt>
                 <dd>{formatDate(selectedUser.joined)}</dd>
               </div>
-              <div>
-                <dt>Faculty ID</dt>
-                <dd>{selectedUser.professorFacultyId || "None"}</dd>
-              </div>
-              <div>
+              <div className="users-detail-wide">
                 <dt>Department</dt>
                 <dd>{selectedUser.professorDepartment || "None"}</dd>
               </div>
@@ -2979,6 +3057,12 @@ export default function SuperAdminUserManagementPage() {
                 </dd>
               </div>
             </dl>
+            {selectedUser.role === "professor" && !selectedUser.isArchived &&
+              String(selectedUser.verificationStatus).toLowerCase() === "pending" && (
+                <div className="users-action-group users-approval-dialog-actions">
+                  {renderProfessorDecisionButtons(selectedUser)}
+                </div>
+              )}
           </section>
         </div>
       )}

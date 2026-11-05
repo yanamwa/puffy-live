@@ -5,6 +5,7 @@ import {
   FiPlus, FiSearch, FiUpload, FiUser, FiUsers, FiX, FiRefreshCw,
 } from "react-icons/fi";
 import { API_BASE } from "../../../config";
+import { formatUserDisplayId } from "../../../utils/userDisplayId.js";
 import "./Users.css";
 import Swal from "sweetalert2";
 
@@ -98,14 +99,17 @@ async function apiRequest(path, options = {}) {
 }
 function normalizeUser(user = {}) {
   const archived = user.isArchived === true || user.is_archived === 1 || user.is_archived === true || user.status === "Archived";
+  const id = user.id ?? user.userId ?? user.user_id;
+  const role = String(user.role || "").toLowerCase();
+  const joined = user.joined || user.created_at || user.createdAt || "";
   return {
-    id: user.id ?? user.userId ?? user.user_id,
+    id,
     name: user.displayName || user.display_name || user.name || "Unnamed User",
     email: user.email || "",
-    role: String(user.role || "").toLowerCase(),
+    role,
     status: archived ? "Archived" : user.status || "Active",
     verificationStatus: String(user.verificationStatus || user.verification_status || "").toLowerCase(),
-    joined: user.joined || user.created_at || "",
+    joined,
     studentId: user.studentId || user.student_id || "",
     gender: user.gender || "",
     yearLevel: user.yearLevel || user.year_level || "",
@@ -348,7 +352,7 @@ export default function UserManagementPage() {
   const filteredUsers = useMemo(() => {
     const search = query.trim().toLowerCase();
     return (userGroups[activeTab] || userGroups.all).filter(user =>
-      !search || [user.name, user.email, user.id, user.studentId, user.professorDepartment]
+      !search || [user.name, user.email, user.id, formatUserDisplayId(user), user.studentId, user.professorDepartment]
         .some(value => String(value ?? "").toLowerCase().includes(search)));
   }, [userGroups, activeTab, query]);
   const pagination = useUserPagination(filteredUsers, activeTab, query);
@@ -383,7 +387,7 @@ export default function UserManagementPage() {
       {loadError && <div className="users-notice" role="alert">{loadError} <button type="button" onClick={loadUsers}>Retry</button></div>}
       <div className="users-table-wrap"><table className="users-table"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Security</th><th>Action</th></tr></thead>
         <tbody>{loading ? <tr><td className="users-empty" colSpan={7}>Loading users...</td></tr> : filteredUsers.length === 0 ? <tr><td className="users-empty" colSpan={7}>{loadError ? "Unable to load users." : "No users match your filters."}</td></tr> : pagination.rows.map(user => <tr key={user.id}>
-          <td><div className="users-person"><UserAvatar user={user} /><div><strong>{user.name}</strong><small>ID: {user.id}</small></div></div></td>
+          <td><div className="users-person"><UserAvatar user={user} /><div><strong>{user.name}</strong><small>User ID: {formatUserDisplayId(user)}</small></div></div></td>
           <td>{user.email}</td><td><span className="users-role">{titleCase(user.role)}</span></td>
           <td><span className={`users-status is-${String(user.status).toLowerCase()}`}>{titleCase(user.status)}</span></td>
           <td>{formatDate(user.joined)}</td><td>{securityLabel(user)}</td>
@@ -395,7 +399,7 @@ export default function UserManagementPage() {
       <button className="users-modal-close" type="button" onClick={() => setSelectedUser(null)} aria-label="Close user details"><FiX /></button>
       <div className="users-modal-profile"><UserAvatar user={selectedUser} large /><div><h2>{selectedUser.name}</h2><p>{selectedUser.email}</p></div></div>
       <dl className="users-detail-grid">{[
-        ["User ID", selectedUser.id], ["Role", titleCase(selectedUser.role)], ["Status", titleCase(selectedUser.status)],
+        ["User ID", formatUserDisplayId(selectedUser)], ["Role", titleCase(selectedUser.role)], ["Status", titleCase(selectedUser.status)],
         ["Email Verification", selectedUser.verified ? "Verified" : "Not verified"], ["Gender", selectedUser.gender || "Not provided"],
         ["Student ID", selectedUser.studentId || "None"], ["Year Level", selectedUser.yearLevel || "None"], ["Section", selectedUser.sectionName || "None"],
         ["Professor ID", selectedUser.professorId || "None"], ["Department", selectedUser.professorDepartment || "None"],

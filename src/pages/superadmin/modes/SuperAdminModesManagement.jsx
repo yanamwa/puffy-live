@@ -16,6 +16,17 @@ const emptyForm = {
   image: "",
 };
 
+function ModeImagePreview({ source, title }) {
+  const [failedSource, setFailedSource] = useState("");
+  if (!source) return <p className="mode-image-placeholder">No image selected.</p>;
+  if (failedSource === source) return <p className="mode-image-placeholder">Image unavailable. Check the image path.</p>;
+  return (
+    <figure className="mode-image-card">
+      <img src={source} alt={`${title || "Mode"} preview`} onError={() => setFailedSource(source)} />
+    </figure>
+  );
+}
+
 /* =====================================================
    MODE CODE
 ===================================================== */
@@ -525,10 +536,14 @@ export default function SuperAdminModesManagement() {
         <div className="feature-modal-backdrop" onClick={closeForm}>
           <form
             className="feature-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={editingMode ? "Edit Mode" : "Add New Mode"}
             onSubmit={saveMode}
             onClick={(event) => event.stopPropagation()}
           >
             <h2>{editingMode ? "Edit Mode" : "Add New Mode"}</h2>
+            <button className="mode-modal-close" type="button" onClick={closeForm} disabled={saving} aria-label="Close mode form">×</button>
 
             {/* TITLE */}
 
@@ -607,6 +622,8 @@ export default function SuperAdminModesManagement() {
 
             {/* ACTIONS */}
 
+            <ModeImagePreview source={form.image.trim()} title={form.title} />
+
             <div className="feature-modal-actions">
               <button
                 type="button"
@@ -644,9 +661,13 @@ export default function SuperAdminModesManagement() {
         >
           <section
             className="feature-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="View Mode"
             onClick={(event) => event.stopPropagation()}
           >
             <h2>View Mode</h2>
+            <button className="mode-modal-close" type="button" onClick={() => setViewMode(null)} aria-label="Close mode details">×</button>
 
             <dl className="feature-details">
               <div>
@@ -676,7 +697,7 @@ export default function SuperAdminModesManagement() {
               <div>
                 <dt>Image</dt>
 
-                <dd>{viewMode.image || "Default image"}</dd>
+                <dd><ModeImagePreview source={viewMode.image} title={viewMode.title} /></dd>
               </div>
             </dl>
 

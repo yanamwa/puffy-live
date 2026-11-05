@@ -1,0 +1,32 @@
+:is(.admin-layout, .superadmin-layout) .system-page-search { z-index: 1202; }
+:is(.admin-layout, .superadmin-layout) .system-page-search input:focus {
+  border-color: #7fa9d6;
+  box-shadow: 0 0 0 3px rgba(127, 169, 214, 0.2);
+}
+.system-search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: max(100%, 220px);
+  max-width: calc(100vw - 24px);
+  max-height: min(400px, 60dvh);
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid #cbdced;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(38, 62, 91, 0.18);
+}
+.system-search-results button {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #365d88;
+  text-align: left;
+  cursor: pointer;
+}
+.system-search-results button:is(:hover, [aria-selected="true"]) { background: #edf5fd; }
+.system-search-results p { margin: 0; padding: 12px; color: #637c97; }

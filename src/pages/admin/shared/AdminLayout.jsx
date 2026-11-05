@@ -16,13 +16,13 @@ import {
   FiActivity,
   FiSettings,
   FiUser,
-  FiSearch,
   FiLogOut,
 } from "react-icons/fi";
 
 import RoleNotificationMenu from "../../../components/rolenotif/RoleNotificationMenu";
 
 import HeaderProfileChip from "../../../components/HeaderProfileChip";
+import SystemPageSearch from "../../../components/SystemPageSearch.jsx";
 
 import "./AdminLayout.css";
 
@@ -567,19 +567,7 @@ export default function AdminLayout({ children }) {
         =============================================== */}
 
         <header className="admin-header">
-          <label className="admin-header-search">
-            <input
-              type="search"
-
-              placeholder="Search..."
-
-              aria-label="Search admin pages"
-            />
-
-            <span className="search-icon" aria-hidden="true">
-              <FiSearch />
-            </span>
-          </label>
+          <SystemPageSearch role="admin" />
 
           <div className="admin-header-actions">
             <RoleNotificationMenu role="admin" />

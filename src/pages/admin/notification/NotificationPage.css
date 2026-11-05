@@ -1,0 +1,429 @@
+/* Notification Management page-specific styles */
+
+.notification-management-grid {
+
+  display: grid;
+
+  grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
+
+  gap: 28px;
+
+}
+
+
+
+.notification-management-page .feature-card,
+
+.notification-management-page .notification-list-card {
+
+  min-width: 0;
+
+}
+
+
+
+.notification-list-card .feature-card-body {
+
+  padding-inline: 24px;
+
+}
+
+
+
+.feature-section-top {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 14px;
+
+  margin-bottom: 20px;
+
+  padding-bottom: 16px;
+
+  border-bottom: 1px solid var(--feature-soft-line);
+
+}
+
+
+
+.feature-section-top h2 {
+
+  margin-bottom: 0;
+
+  border-bottom: 0;
+
+  padding-bottom: 0;
+
+}
+
+
+
+.sort-control {
+
+  position: relative;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  min-height: 38px;
+
+  border: 1.5px solid var(--feature-line);
+
+  border-radius: 999px;
+
+  background: #ffffff;
+
+  color: var(--feature-ink);
+
+  padding: 0 12px;
+
+}
+
+
+
+.sort-control span {
+
+  font-size: 13px;
+
+}
+
+
+
+.sort-control select {
+
+  position: absolute;
+
+  inset: 0;
+
+  cursor: pointer;
+
+  opacity: 0;
+
+}
+
+
+/* Posted Notifications List */
+.notification-list-card .notification-list {
+  display: grid;
+  gap: 10px;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+
+/* Individual Notification */
+.notification-list-card .notification-item {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+
+  background: #f4f7fb;
+  border: 1px solid #e4edf7;
+  border-radius: 10px;
+
+  padding: 12px 100px 12px 15px;
+
+  cursor: default;
+  text-align: left;
+  transition: background 150ms ease,
+              border-color 150ms ease;
+}
+
+.notification-list-card .notification-item:hover {
+  background: #edf4fc;
+  border-color: #c9dcef;
+}
+
+/* Title and Target */
+.notification-list-card .notification-item-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.notification-list-card .notification-item h3 {
+  margin: 0;
+  color: #263c58;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+/* Target Badge */
+.notification-list-card .notification-item-top span {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 22px;
+
+  background: #e4effb;
+  border: 1px solid #c8ddf3;
+  border-radius: 6px;
+
+  color: #477eae !important;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+
+/* Notification Message */
+.notification-list-card .notification-item p {
+  margin: 2px 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Posted By and Date */
+.notification-list-card .notification-item-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.notification-list-card .notification-item
+.notification-item-meta small {
+  display: inline-flex;
+  position: static;
+  min-width: 0;
+
+  color: #6488ad;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.notification-list-card .notification-item
+.notification-creator-meta {
+  color: #64748b;
+}
+
+/* Delete Button - Upper Right */
+.notification-list-card .notification-item
+.danger-feature-btn {
+  position: absolute;
+  top: -5px;
+  right: 10px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  min-height: 27px;
+  padding: 5px 10px;
+
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 7px;
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .notification-management-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .notification-list-card .notification-item {
+    padding: 12px;
+  }
+
+  .notification-list-card .notification-item-top {
+    padding-right: 75px;
+  }
+
+  .notification-list-card .notification-item
+  .danger-feature-btn {
+    top: 10px;
+    right: 10px;
+  }
+}
+
+/* ========================================
+   COMPACT SEARCH + SORT TOOLBAR
+======================================== */
+
+.notification-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.notification-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  width: 175px;
+  height: 36px;
+  padding: 0 11px;
+
+  background: #ffffff;
+  border: 1px solid #cbd9e8;
+  border-radius: 9px;
+
+  transition: border-color 150ms ease;
+}
+
+.notification-search:focus-within {
+  border-color: #7fa8d6;
+}
+
+.notification-search-icon {
+  flex-shrink: 0;
+  color: #7fa8d6;
+  font-size: 14px;
+}
+
+.notification-search input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+
+  border: none;
+  outline: none;
+  background: transparent;
+
+  color: #263c58;
+  font-size: 12px;
+}
+
+.notification-search input::placeholder {
+  color: #94a3b8;
+}
+
+/* Match Sort By Height */
+.notification-toolbar .sort-control {
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+/* ========================================
+   FIXED PAGE + SCROLLABLE NOTIFICATIONS
+======================================== */
+
+/* Desktop layout only */
+@media (min-width: 981px) {
+
+  .notification-management-page {
+    height: calc(100dvh - 100px);
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .notification-management-grid {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .notification-list-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .notification-list-card .feature-card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .notification-list-card .feature-section-top {
+    flex-shrink: 0;
+  }
+
+  .notification-list-card .notification-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+
+    padding-right: 5px;
+  }
+
+  .notification-list-card .notification-item {
+    flex-shrink: 0;
+  }
+
+  /* Blue Scrollbar */
+  .notification-list-card .notification-list {
+    scrollbar-width: thin;
+    scrollbar-color: #a6c5e5 transparent;
+  }
+
+  .notification-list-card
+  .notification-list::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .notification-list-card
+  .notification-list::-webkit-scrollbar-thumb {
+    background: #a6c5e5;
+    border-radius: 10px;
+  }
+}
+
+/* ========================================
+   RESPONSIVE TOOLBAR
+======================================== */
+
+@media (max-width: 1250px) {
+  .feature-section-top {
+    flex-wrap: wrap;
+  }
+
+  .notification-toolbar {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .notification-toolbar {
+    width: 100%;
+  }
+
+  .notification-search {
+    flex: 1;
+    width: auto;
+  }
+}

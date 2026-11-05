@@ -1,4 +1,4 @@
-import { FiSearch } from "react-icons/fi";
+import SystemPageSearch from "../SystemPageSearch.jsx";
 
 import RoleNotificationMenu from "../rolenotif/RoleNotificationMenu";
 
@@ -13,15 +13,7 @@ export default function SuperAdminHeader({
 }) {
   return (
     <header className="admin-header">
-      <div className="admin-header-search">
-        <FiSearch className="search-icon" />
-
-        <input
-          type="search"
-          placeholder="Search system records..."
-          aria-label="Search system records"
-        />
-      </div>
+      <SystemPageSearch role="super_admin" />
 
       <div className="admin-header-actions">
         <RoleNotificationMenu role="superAdmin" />
