@@ -224,9 +224,14 @@ function Signup() {
       sessionStorage.setItem("otp_expires_at", String(otpExpiresAt));
 
       await Swal.fire({
-        imageUrl: "/images/success.png",
-        imageWidth: 170,
-        imageHeight: 170,
+        imageUrl: "/images/emailsent.png",
+        imageWidth: 270,
+        imageHeight: 180,
+        imageAlt: "Verification email sent",
+        customClass: {
+          popup: "login-feedback-popup",
+          container: "login-feedback-overlay",
+        },
         title: "Verification Code Sent",
         text: "Please verify your email. After verification, the Super Admin will review your professor account and uploaded ID.",
         confirmButtonText: "Continue",

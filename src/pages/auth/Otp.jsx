@@ -3,11 +3,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { API_BASE } from "../../config.js";
 import styles from "./login.module.css";
+import "./LoginFeedback.css";
 import LandingNavbar from "../../components/landing/LandingNavbar";
 import LandingFooter from "../../components/landing/LandingFooter";
 
 export default function Otp() {
   const inputsRef = useRef([]);
+  const resendInFlight = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -18,16 +20,15 @@ export default function Otp() {
     const stateDeadline = Number(location.state?.otpExpiresAt);
     const storedDeadline = Number(sessionStorage.getItem("otp_expires_at"));
     const deadline =
-      stateDeadline || storedDeadline || Date.now() + OTP_DURATION * 1000;
+      Math.max(stateDeadline || 0, storedDeadline || 0) || Date.now() + OTP_DURATION * 1000;
 
     sessionStorage.setItem("otp_expires_at", String(deadline));
     return deadline;
   };
 
-  const initialOtpDeadline = getInitialOtpDeadline();
-  const [otpDeadline, setOtpDeadline] = useState(initialOtpDeadline);
+  const [otpDeadline, setOtpDeadline] = useState(getInitialOtpDeadline);
   const [timeLeft, setTimeLeft] = useState(() =>
-    Math.max(0, Math.ceil((initialOtpDeadline - Date.now()) / 1000)),
+    Math.max(0, Math.ceil((otpDeadline - Date.now()) / 1000)),
   );
   const [resending, setResending] = useState(false);
   const [inlineError, setInlineError] = useState("");
@@ -47,9 +48,14 @@ export default function Otp() {
     return Swal.fire({
       title,
       text,
-      imageUrl: "/images/success.png",
-      imageWidth: 200,
-      imageHeight: 200,
+      imageUrl: "/images/complete.png",
+      imageWidth: 270,
+      imageHeight: 180,
+      imageAlt: "Completed successfully",
+      customClass: {
+        popup: "login-feedback-popup",
+        container: "login-feedback-overlay",
+      },
       confirmButtonText: "OK",
     });
   };
@@ -168,12 +174,15 @@ export default function Otp() {
   };
 
   const handleResend = () => {
+    if (resendInFlight.current || Date.now() < otpDeadline) return;
+
     if (!email) {
       showThinkAlert("Session Expired", "Please sign up again.");
       navigate("/signup");
       return;
     }
 
+    resendInFlight.current = true;
     setResending(true);
 
     fetch(`${API_BASE}/resend-otp`, {
@@ -185,7 +194,7 @@ export default function Otp() {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          showSuccessAlert("Sent!", "New verification code sent.");
+          showSuccessAlert("Verification Code Resent", "A new verification code has been sent to your email.");
           const secondsRemaining = Number(
             data.otpSecondsRemaining || OTP_DURATION,
           );
@@ -200,6 +209,13 @@ export default function Otp() {
             if (input) input.value = "";
           });
         } else {
+          if (Number(data.otpSecondsRemaining) > 0) {
+            const remaining = Number(data.otpSecondsRemaining);
+            const nextDeadline = Date.now() + remaining * 1000;
+            sessionStorage.setItem("otp_expires_at", String(nextDeadline));
+            setOtpDeadline(nextDeadline);
+            setTimeLeft(remaining);
+          }
           showThinkAlert(
             "Resend Failed",
             data.message || "Could not resend code.",
@@ -209,7 +225,10 @@ export default function Otp() {
       .catch(() => {
         showErrorAlert("Server Error", "Could not resend OTP.");
       })
-      .finally(() => setResending(false));
+      .finally(() => {
+        resendInFlight.current = false;
+        setResending(false);
+      });
   };
 
   return (
@@ -256,7 +275,7 @@ export default function Otp() {
               <button
                 type="button"
                 className={styles.resendBtn}
-                disabled={resending || !email}
+                disabled={resending || !email || timeLeft > 0}
                 onClick={handleResend}
               >
                 {resending ? "Sending..." : "Resend"}
