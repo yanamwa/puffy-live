@@ -138,10 +138,10 @@ export default function SuperAdminSidebar({
           aria-expanded={!sidebarCollapsed}
           title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <picture className="role-sidebar-logo-picture">
+          <picture className={`role-sidebar-logo-picture${sidebarCollapsed ? " sidebar-brain-logo" : ""}`}>
             <source media="(max-width: 820px)" srcSet="/images/superadmin.png" />
             <img
-              src="/images/superadmin.png"
+              src={sidebarCollapsed ? "/images/logo.png" : "/images/superadmin.png"}
               className="role-sidebar-logo"
               alt="PuffyBrain Super Admin"
               style={{ width: "100%", height: "100%", objectFit: "contain" }}

@@ -502,10 +502,10 @@ export default function AdminLayout({ children }) {
 
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <picture className="role-sidebar-logo-picture">
+            <picture className={`role-sidebar-logo-picture${sidebarCollapsed ? " sidebar-brain-logo" : ""}`}>
               <source media="(max-width: 820px)" srcSet="/images/Admin.png" />
               <img
-                src="/images/Admin.png"
+                src={sidebarCollapsed ? "/images/logo.png" : "/images/Admin.png"}
                 className="role-sidebar-logo"
                 alt="PuffyBrain Admin"
                 style={{ width: "100%", height: "100%", objectFit: "contain" }}

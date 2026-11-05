@@ -206,6 +206,13 @@
   color: #25714e;
 }
 
+:is(.admin-layout, .superadmin-layout)
+  .header-profile-dropdown-menu > button:not(.header-profile-logout-option):is(:hover, :focus-visible) {
+  padding-left: 14px;
+  background: #edf5fd;
+  color: #365d88;
+}
+
 .header-profile-dropdown-menu > button svg {
   width: 17px;
   height: 17px;

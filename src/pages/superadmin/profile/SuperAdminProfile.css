@@ -3,6 +3,13 @@
 ===================================================== */
 
 .superadmin-profile-page {
+  --admin-ink: #263e5b;
+  --admin-muted: #637c97;
+  --admin-line: #cbdced;
+  --admin-shadow: #e1eaf4;
+  --profile-accent: #365d88;
+  --profile-soft: #edf5fd;
+
   display: grid;
   gap: 22px;
 
@@ -16,14 +23,14 @@
 .superadmin-profile-header {
   padding: 22px 24px;
 
-  border: 1px solid #d7dce0;
+  border: 1px solid var(--admin-line);
   border-radius: 16px;
 
   background: #ffffff;
 
   box-shadow:
     0 12px 30px rgba(23, 25, 39, 0.05),
-    4px 5px 0 rgba(25, 135, 84, 0.09);
+    4px 5px 0 var(--admin-shadow);
 }
 
 .superadmin-profile-header-kicker {
@@ -34,7 +41,7 @@
 
   margin-bottom: 6px;
 
-  color: #198754;
+  color: var(--profile-accent);
 
   font-size: 10px;
   font-weight: 800;
@@ -52,7 +59,7 @@
 .superadmin-profile-header h1 {
   margin: 0;
 
-  color: #4f535a;
+  color: var(--admin-ink);
 
   font-size: 32px;
   font-weight: 700;
@@ -65,7 +72,7 @@
 
   margin: 8px 0 0;
 
-  color: #858d97;
+  color: var(--admin-muted);
 
   font-size: 12px;
   font-weight: 500;
@@ -80,12 +87,12 @@
 .superadmin-profile-status {
   padding: 18px 20px;
 
-  border: 1px solid #d8ddda;
+  border: 1px solid var(--admin-line);
   border-radius: 13px;
 
   background: #ffffff;
 
-  color: #707780;
+  color: var(--admin-muted);
 
   font-size: 12px;
   font-weight: 600;
@@ -106,14 +113,14 @@
 .superadmin-profile-card {
   overflow: hidden;
 
-  border: 1px solid #d7dce0;
+  border: 1px solid var(--admin-line);
   border-radius: 16px;
 
   background: #ffffff;
 
   box-shadow:
     0 12px 30px rgba(23, 25, 39, 0.05),
-    5px 5px 0 rgba(25, 135, 84, 0.09);
+    5px 5px 0 var(--admin-shadow);
 }
 
 .superadmin-profile-card-body {
@@ -149,10 +156,10 @@
   border: 4px solid #ffffff;
   border-radius: 50%;
 
-  background: #edf2ef;
+  background: var(--profile-soft);
 
   box-shadow:
-    0 0 0 2px #198754,
+    0 0 0 2px var(--superadmin-green, #7fa9d6),
     0 8px 20px rgba(23, 25, 39, 0.12);
 }
 
@@ -186,7 +193,7 @@
   border: 3px solid #ffffff;
   border-radius: 50%;
 
-  background: #198754;
+  background: var(--profile-accent);
 
   color: #ffffff;
 
@@ -200,7 +207,7 @@
 }
 
 .superadmin-profile-photo-button:hover {
-  background: #157347;
+  background: #294e75;
 
   transform: scale(1.05);
 }
@@ -219,7 +226,7 @@
 ===================================================== */
 
 .superadmin-profile-photo-column > strong {
-  color: #454b53;
+  color: var(--admin-ink);
 
   font-size: 15px;
   font-weight: 800;
@@ -232,9 +239,9 @@
 
   border-radius: 999px;
 
-  background: #eaf6ef;
+  background: var(--profile-soft);
 
-  color: #198754;
+  color: var(--profile-accent);
 
   font-size: 9px;
   font-weight: 800;
@@ -260,7 +267,7 @@
 
   margin-bottom: 8px;
 
-  color: #198754;
+  color: var(--profile-accent);
 
   font-size: 9px;
   font-weight: 800;
@@ -278,7 +285,7 @@
 .superadmin-profile-info h2 {
   margin: 0;
 
-  color: #40464d;
+  color: var(--admin-ink);
 
   font-size: 27px;
   font-weight: 800;
@@ -292,7 +299,7 @@
 
   margin: 8px 0 23px;
 
-  color: #858d97;
+  color: var(--admin-muted);
 
   font-size: 11px;
   font-weight: 600;
@@ -302,7 +309,7 @@
   width: 15px;
   height: 15px;
 
-  color: #198754;
+  color: var(--profile-accent);
 }
 
 /* =====================================================
@@ -324,10 +331,10 @@
 
   padding: 14px;
 
-  border: 1px solid #e0e4e2;
+  border: 1px solid var(--admin-line);
   border-radius: 11px;
 
-  background: #f8faf9;
+  background: #f5f9fd;
 }
 
 .superadmin-profile-details-grid dt {
@@ -338,7 +345,7 @@
 
   margin-bottom: 7px;
 
-  color: #858d97;
+  color: var(--admin-muted);
 
   font-size: 9px;
   font-weight: 800;
@@ -350,7 +357,7 @@
   width: 13px;
   height: 13px;
 
-  color: #198754;
+  color: var(--profile-accent);
 }
 
 .superadmin-profile-details-grid dd {
@@ -358,7 +365,7 @@
 
   overflow-wrap: anywhere;
 
-  color: #4c535b;
+  color: var(--admin-ink);
 
   font-size: 11px;
   font-weight: 700;

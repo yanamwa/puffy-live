@@ -612,6 +612,8 @@
 
 .admin-header {
 
+  position: relative;
+
   flex: 0 0 68px;
 
   min-height: 68px;
@@ -641,6 +643,8 @@
 \===================================================== */
 
 .admin-header-search {
+
+  min-width: 0;
 
   position: relative;
 
@@ -752,6 +756,35 @@
 
   flex: 0 0 auto;
 
+}
+
+:is(.admin-layout, .superadmin-layout) .admin-header .role-notification-menu {
+  position: static;
+  z-index: auto;
+}
+
+:is(.admin-layout, .superadmin-layout) .admin-header .role-notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 12px;
+  left: auto;
+  z-index: 1201;
+  box-sizing: border-box;
+  width: min(390px, calc(100% - 24px));
+  max-height: min(540px, 60dvh);
+  display: flex;
+  flex-direction: column;
+}
+
+:is(.admin-layout, .superadmin-layout) .admin-header .role-notification-list {
+  min-height: 0;
+  flex: 1 1 auto;
+  overscroll-behavior: contain;
+}
+
+:is(.admin-layout, .superadmin-layout) .admin-header
+  :is(.role-notification-header, .role-notification-tabs, .role-notification-view-all) {
+  flex-shrink: 0;
 }
 
 /* =====================================================

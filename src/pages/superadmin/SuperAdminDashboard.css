@@ -614,6 +614,32 @@
 }
 
 @media (max-width: 760px) {
+  .superadmin-layout .admin-content .super-dashboard-welcome.super-page-heading {
+    align-items: stretch;
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .superadmin-layout .admin-content .super-dashboard-welcome.super-page-heading > div:first-child {
+    flex: 0 1 auto;
+    overflow-wrap: anywhere;
+  }
+
+  .super-dashboard-welcome .super-dashboard-health {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .super-dashboard-health > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .super-dashboard-health .dashboard-health-dot {
+    flex-shrink: 0;
+  }
+
   .super-dashboard-welcome,
   .dashboard-panel-header {
     align-items: stretch;

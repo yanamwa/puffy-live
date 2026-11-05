@@ -184,6 +184,7 @@
 
 .loginBrand img {
   width: 216px;
+  max-width: 100%;
   height: 72px;
   object-fit: contain;
 }
@@ -831,6 +832,40 @@
    MOBILE RESPONSIVE LAYOUT
    ========================================================= */
 
+@media (max-width: 1100px) {
+  .loginNavbar {
+    padding: 26px 24px 0;
+  }
+
+  .loginNavbarInner {
+    padding: 14px 20px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px 12px;
+    border-radius: 28px;
+  }
+
+  .loginBrand {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .loginNavLink {
+    grid-row: 2;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .loginStartLearning {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    justify-self: center;
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
 @media (max-width: 760px) {
   html,
   body {
@@ -906,32 +941,8 @@
     display: none;
   }
 
-  .loginNavbar {
-    padding: 26px 24px 0;
-  }
-
-  .loginNavbarInner {
-    padding: 14px 20px;
-
-    grid-template-columns: repeat(4, auto);
-    justify-content: center;
-    gap: 17px;
-  }
-
-  .loginBrand {
-    grid-column: 1 / -1;
-    grid-row: 1;
-  }
-
   .loginNavLink {
-    grid-row: 2;
     font-size: 14px;
-  }
-
-  .loginStartLearning {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    justify-self: center;
   }
 
   .loginContainer,
@@ -2309,7 +2320,7 @@
   .loginNavLink {
     font-size: 16px;
     text-align: center;
-    white-space: nowrap;
+    white-space: normal;
   }
   .loginBrand {
     font-size: 24px;

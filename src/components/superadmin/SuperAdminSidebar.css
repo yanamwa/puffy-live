@@ -429,14 +429,14 @@
   padding: 0;
 
   border: 0;
-  border-top: 1px solid #ececec;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 0;
 
-  background: #f2f2f2;
+  background: var(--superadmin-green);
 
   box-shadow: none;
 
-  color: #666666;
+  color: #ffffff;
 
   font-family: "Jersey 15", system-ui, sans-serif;
 
@@ -450,11 +450,11 @@
 
 /* Hover */
 .superadmin-layout .logout-btn:hover {
-  border-color: #ececec;
+  border-color: rgba(255, 255, 255, 0.3);
 
-  background: #f2f2f2;
+  background: #527eae;
 
-  color: var(--superadmin-dark);
+  color: #ffffff;
 
   transform: none;
 

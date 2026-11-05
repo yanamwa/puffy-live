@@ -485,17 +485,26 @@
 .users-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 2000;
   background: rgba(0, 0, 0, 0.55);
   display: grid;
   place-items: center;
   padding: 24px;
-  padding-top: 90px;
+  overflow-y: auto;
 }
 
 .users-modal {
+  --admin-ink: #263e5b;
+  --admin-muted: #637c97;
+  --admin-card: #ffffff;
+  --admin-line: #cbdced;
+  --admin-shadow: #e1eaf4;
+  --admin-peach: #edf5fd;
+  --admin-peach-line: #cbdff2;
+
   width: min(560px, 100%);
   max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
   overflow-y: auto;
   background: #ffffff;
   border-radius: 10px;
@@ -1172,7 +1181,44 @@
 }
 
 .users-modal-backdrop {
-  background: rgba(25, 27, 42, 0.42);
+  background: rgba(38, 60, 82, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+:is(.admin-layout, .superadmin-layout):has(.users-modal-backdrop) .admin-header {
+  visibility: hidden;
+}
+
+.users-modal :is(.users-modal-avatar, .users-modal-close, .users-submit-btn),
+.users-modal .users-temp-box button {
+  background: #7fa9d6;
+  color: #ffffff;
+  box-shadow: 0 4px 0 rgba(82, 126, 174, 0.24);
+}
+
+.users-modal :is(.users-modal-close, .users-submit-btn):is(:hover, :focus-visible),
+.users-modal .users-temp-box button:is(:hover, :focus-visible) {
+  background: #527eae;
+}
+
+.users-modal .users-student-form :is(input, select) {
+  border-color: var(--admin-line);
+  color: var(--admin-ink);
+}
+
+.users-modal .users-student-form :is(input, select):focus {
+  border-color: #7fa9d6;
+  box-shadow: 0 0 0 3px rgba(127, 169, 214, 0.2);
+}
+
+.users-modal .users-student-form label,
+.users-modal .users-temp-box span {
+  color: var(--admin-muted);
+}
+
+.users-modal .users-temp-box {
+  background: var(--admin-peach);
+  border-color: var(--admin-peach-line);
 }
 
 /* Final table/action button polish to match the labeled lifted pill style. */
@@ -1422,4 +1468,86 @@
 .users-page .user-management-tabs button:focus-visible {
   outline: 2px solid #35669a;
   outline-offset: -4px;
+}
+
+.users-role-avatar,
+.users-role[data-role] {
+  --user-role-color: #637c97;
+  --user-role-soft: #edf2f7;
+}
+
+:is(.users-role-avatar, .users-role)[data-role="admin"] {
+  --user-role-color: #527eae;
+  --user-role-soft: #eaf3fd;
+}
+
+:is(.users-role-avatar, .users-role)[data-role="student"] {
+  --user-role-color: #233f70;
+  --user-role-soft: #e8eef8;
+}
+
+:is(.users-role-avatar, .users-role)[data-role="professor"] {
+  --user-role-color: #24758a;
+  --user-role-soft: #e6f3f7;
+}
+
+:is(.users-role-avatar, .users-role)[data-role="super_admin"] {
+  --user-role-color: #4a5899;
+  --user-role-soft: #eceefa;
+}
+
+.users-page :is(.users-avatar, .users-modal-avatar).users-role-avatar {
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--user-role-color);
+  color: #ffffff;
+  box-shadow: 0 0 0 2px var(--user-role-soft), 0 0 0 3px var(--user-role-color);
+}
+
+.users-page .users-role[data-role] {
+  border-color: var(--user-role-color);
+  background: var(--user-role-soft);
+  color: var(--user-role-color);
+}
+
+.users-modal.users-create-modal {
+  border: 1px solid #cbdced;
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(24, 45, 66, 0.24);
+}
+
+.users-create-modal .users-modal-profile {
+  margin: -26px -26px 24px;
+  padding: 22px 64px 22px 26px;
+  background: #7fa9d6;
+  border-radius: 11px 11px 0 0;
+}
+
+.users-create-modal .users-modal-profile :is(h2, p) {
+  color: #ffffff;
+}
+
+.users-create-modal .users-modal-avatar {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.users-create-modal .users-modal-close {
+  background: transparent;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.users-create-modal .users-modal-close:is(:hover, :focus-visible) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.users-create-modal .users-student-form .professor-proof-upload-btn {
+  background: #7fa9d6;
+  color: #ffffff;
+}
+
+.users-create-modal .users-student-form .professor-proof-upload-btn:is(:hover, :focus-within) {
+  background: #527eae;
 }
