@@ -177,9 +177,9 @@
 .pressStart {
   margin-top: 25px;
   padding: 10px 26px;
-  background: white;
-  color: #7199c6;
-  border: 1px solid #91b4df;
+  background: #7199c6;
+  color: #ffffff;
+  border: 1px solid #6990be;
   border-radius: 25px;
   font-family: "Jersey 15", sans-serif;
   font-size: 20px;
@@ -234,23 +234,16 @@
 }
 
 .features {
-  padding: 180px 100px 80px;
-  background: linear-gradient(
-    to bottom,
-    #7199c6 0%,
-    #7199c6 48%,
-    #7da5d5 70%,
-    #91b4df 85%,
-    #cad9eb 95%,
-    #eff5fc 100%
-  );
+  padding: 120px clamp(24px, 5vw, 100px) 40px;
+  background: #7199c6;
 }
 
 .feature {
   display: flex;
   align-items: center;
   gap: 60px;
-  margin-bottom: 90px;
+  max-width: 1100px;
+  margin: 0 auto 80px;
   position: relative;
 }
 
@@ -258,8 +251,22 @@
   flex-direction: row-reverse;
 }
 
+.feature:last-child {
+  margin-bottom: 0;
+}
+
 .frame {
-  width: 750px;
+  display: block;
+  width: min(44%, 480px);
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 1 480px;
+  object-fit: contain;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
 }
 
 .text h2 {
@@ -271,10 +278,12 @@
 }
 
 .text p {
-  width: 380px;
+  width: 100%;
   color: #f8fbff;
   font-size: 25px;
   line-height: 1.4;
+  text-align: justify;
+  text-align-last: left;
 }
 
 .sparkle {
@@ -289,10 +298,11 @@
   text-align: center;
   height: 380px;
   overflow: hidden;
+  background: #ffffff;
 }
 
 .library::before {
-  content: "";
+  content: none;
   position: absolute;
   top: 0;
   left: 0;
@@ -318,7 +328,7 @@
 }
 
 .library::after {
-  content: "";
+  content: none;
   position: absolute;
   inset: 0;
   background: rgba(82, 119, 164, 0.28);
@@ -336,7 +346,7 @@
 
 .libraryContent h2 {
   font-size: 40px;
-  color: white;
+  color: #365d88;
   margin-bottom: 20px;
   font-weight: normal;
 }
@@ -534,6 +544,23 @@
 
   .heroContent {
     top: 28%;
+  }
+}
+
+@media (max-width: 900px) {
+  .feature,
+  .feature.reverse {
+    flex-direction: column;
+  }
+
+  .frame {
+    flex: none;
+    width: min(100%, 400px);
+  }
+
+  .text {
+    flex: none;
+    width: min(100%, 600px);
   }
 }
 

@@ -62,26 +62,9 @@ function LandingPage() {
       <div className={styles.cloudBottomFade}></div>
 
       <section className={styles.features}>
-        <div className={`${styles.feature} ${styles.fadeIn}`}>
-          <img
-            src="/images/card1.png"
-            className={styles.frame}
-            alt="Create study tools"
-          />
-
-          <div className={styles.text}>
-            <h2>Create your own study tools</h2>
-
-            <p>
-              No more one-fits-all learning. PuffyBrain lets you design quizzes
-              and flashcards for any subject, any topic, any time.
-            </p>
-          </div>
-        </div>
-
         <div className={`${styles.feature} ${styles.reverse} ${styles.fadeIn}`}>
           <img
-            src="/images/card2.png"
+            src="/images/masterpractice.png"
             className={styles.frame}
             alt="Master through practice"
           />
@@ -99,7 +82,7 @@ function LandingPage() {
 
         <div className={`${styles.feature} ${styles.fadeIn}`}>
           <img
-            src="/images/card3.png"
+            src="/images/organized.png"
             className={styles.frame}
             alt="Stay organized"
           />
@@ -116,21 +99,6 @@ function LandingPage() {
         </div>
       </section>
 
-      <section className={styles.library}>
-        <img
-          src="/images/background.jpg"
-          className={styles.libraryBg}
-          alt="Library background"
-        />
-
-        <div className={styles.libraryContent}>
-          <h2>Ready to learn?</h2>
-
-          <a href="/login">
-            <button className={styles.startNow}>Start Now!</button>
-          </a>
-        </div>
-      </section>
       <LandingFooter />
     </>
   );
