@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import "./JoinCourseModal.css";
 
 export default function JoinCourseModal({
@@ -7,13 +8,32 @@ export default function JoinCourseModal({
   onCancel,
   onJoin,
 }) {
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+
+  const handleJoin = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      await onJoin();
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (!submittingRef.current) onCancel();
+  };
+
   if (!open) return null;
 
   return (
     <div
       className="join-course-overlay"
       role="presentation"
-      onMouseDown={onCancel}
+      onMouseDown={handleCancel}
     >
       <section
         className="join-course-modal"
@@ -21,6 +41,7 @@ export default function JoinCourseModal({
         aria-modal="true"
         aria-labelledby="join-course-title"
         aria-describedby="join-course-description"
+        aria-busy={submitting}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="join-course-header">
@@ -30,7 +51,7 @@ export default function JoinCourseModal({
         <div className="join-course-body">
           <p id="join-course-description">
             Ask your professor for the class code, then enter the course code
-            here.
+            here to request enrollment. Your professor will review your request.
           </p>
           <input
             type="text"
@@ -38,10 +59,14 @@ export default function JoinCourseModal({
             value={courseCode}
             placeholder="Course Code"
             autoFocus
+            disabled={submitting}
             onChange={(event) => onCourseCodeChange(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter") onJoin();
-              if (event.key === "Escape") onCancel();
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleJoin();
+              }
+              if (event.key === "Escape") handleCancel();
             }}
           />
         </div>
@@ -50,12 +75,18 @@ export default function JoinCourseModal({
           <button
             type="button"
             className="join-course-cancel"
-            onClick={onCancel}
+            onClick={handleCancel}
+            disabled={submitting}
           >
             Cancel
           </button>
-          <button type="button" className="join-course-submit" onClick={onJoin}>
-            Join
+          <button
+            type="button"
+            className="join-course-submit"
+            onClick={handleJoin}
+            disabled={submitting}
+          >
+            {submitting ? "Sending..." : "Join"}
           </button>
         </footer>
       </section>

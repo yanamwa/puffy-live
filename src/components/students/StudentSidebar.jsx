@@ -264,12 +264,6 @@ export default function StudentSidebar({ collapsed, onCollapsedChange }) {
                     course.courseCode ||
                     course.course_code;
 
-                  const courseCode =
-                    course.code ||
-                    course.courseCode ||
-                    course.course_code ||
-                    "COURSE";
-
                   const courseTitle =
                     course.title ||
                     course.courseName ||
@@ -282,13 +276,12 @@ export default function StudentSidebar({ collapsed, onCollapsedChange }) {
                       key={courseId}
                       to={`/student/enrolled-courses/${courseId}`}
                       className="sidebar-enrolled-course"
+                      title={courseTitle}
                     >
                       <span className="sidebar-course-indicator" />
 
                       <span className="sidebar-enrolled-course-text">
-                        <strong>{courseCode}</strong>
-
-                        <small>{courseTitle}</small>
+                        <strong>{courseTitle}</strong>
                       </span>
                     </Link>
                   );

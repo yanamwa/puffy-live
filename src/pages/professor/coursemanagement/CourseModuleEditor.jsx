@@ -31,7 +31,6 @@ const TITLE_LIMIT = 100;
 const LONG_LIMIT = 750;
 const LESSON_LIMIT = 6000;
 const QUIZ_LIMIT = 500;
-const LESSON_TAB_PAGE_SIZE = 10;
 const QUIZ_TAB_PAGE_SIZE = 10;
 const COURSE_DRAFT_STORAGE_PREFIX = "puffy-course-builder-draft";
 const MAIN_QUIZ_SETTINGS_STORAGE_KEY = "puffy-main-quiz-settings";
@@ -358,18 +357,28 @@ function writeMainQuizSettingsMap(settingsMap) {
   });
 }
 
-function getPagerPages(totalItems, pageSize) {
-  const pageCount = Math.ceil(totalItems / pageSize);
-
-  return Array.from({ length: pageCount }, (_, index) => index);
-}
-
-function clampPageStart(pageIndex, totalItems, pageSize) {
-  if (!totalItems) {
-    return 0;
+function getLessonPageNumbers(totalPages, currentPage) {
+  if (totalPages <= 8) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
 
-  return Math.min(totalItems - 1, Math.max(0, pageIndex * pageSize));
+  const start = Math.max(1, Math.min(currentPage - 2, totalPages - 5));
+  const end = Math.min(totalPages, start + 5);
+  const pages = [];
+
+  if (start > 1) {
+    pages.push(1);
+    if (start > 2) pages.push("start-gap");
+  }
+  for (let page = start; page <= end; page += 1) {
+    pages.push(page);
+  }
+  if (end < totalPages) {
+    if (end < totalPages - 1) pages.push("end-gap");
+    pages.push(totalPages);
+  }
+
+  return pages;
 }
 
 function getCourseSettingKeys(course = {}, routeId = "") {
@@ -685,21 +694,10 @@ export default function CourseModuleEditor({ quizManagement = false }) {
     baselinePreview,
   ]);
   const practiceQuizCount = moduleDraft?.quizItems?.length || 0;
-  const activeLessonTabPageIndex = Math.floor(
-    activePageIndex / LESSON_TAB_PAGE_SIZE,
-  );
-  const activeLessonTabPageStart =
-    activeLessonTabPageIndex * LESSON_TAB_PAGE_SIZE;
-  const activeLessonTabPageEnd = Math.min(
-    activeLessonTabPageStart + LESSON_TAB_PAGE_SIZE,
+  const lessonPageNumbers = getLessonPageNumbers(
     lessonCount,
+    activePageIndex + 1,
   );
-  const visibleLessonPages =
-    moduleDraft?.lessonPages?.slice(
-      activeLessonTabPageStart,
-      activeLessonTabPageEnd,
-    ) || [];
-  const lessonTabPages = getPagerPages(lessonCount, LESSON_TAB_PAGE_SIZE);
   const activeQuizPageIndex = Math.floor(activeQuizIndex / QUIZ_TAB_PAGE_SIZE);
   const activeQuizPageStart = activeQuizPageIndex * QUIZ_TAB_PAGE_SIZE;
   const activeQuizPageEnd = Math.min(
@@ -722,12 +720,6 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
   const canShowPreviousQuizPage = activeQuizPageStart > 0;
   const canShowNextQuizPage = activeQuizPageEnd < quizCount;
-
-  const goToLessonTabPage = (pageIndex) => {
-    setActivePageIndex(
-      clampPageStart(pageIndex, lessonCount, LESSON_TAB_PAGE_SIZE),
-    );
-  };
 
   const goToPreviousQuizPage = () => {
     setActiveQuizIndex(Math.max(0, activeQuizPageStart - QUIZ_TAB_PAGE_SIZE));
@@ -1928,12 +1920,12 @@ export default function CourseModuleEditor({ quizManagement = false }) {
             </div>
 
             <div className={styles.moduleEditorWorkspace}>
-              <div className={styles.lessonPageTabs}>
-                {lessonCount === 0 ? (
-                  <span className={styles.moduleEditorEmptyTab}>No pages</span>
-                ) : (
+              <div className={styles.popupQuizCard}>
+                {activePage ? (
                   <>
-                    <div className={styles.questionSelectionControls}>
+                    <div
+                      className={`${styles.questionSelectionControls} ${styles.lessonSelectionControls}`}
+                    >
                       <label>
                         <input
                           type="checkbox"
@@ -1956,6 +1948,22 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                         />
                         Select All
                       </label>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={selectedPageIndexes.includes(activePageIndex)}
+                          onChange={(event) =>
+                            setSelectedPageIndexes((current) =>
+                              event.target.checked
+                                ? [...current, activePageIndex]
+                                : current.filter(
+                                    (index) => index !== activePageIndex,
+                                  ),
+                            )
+                          }
+                        />
+                        Select This Page
+                      </label>
                       <button
                         type="button"
                         className={styles.popupAddBtn}
@@ -1965,71 +1973,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                         Remove Selected ({selectedPageIndexes.length})
                       </button>
                     </div>
-                    {visibleLessonPages.map((page, offset) => {
-                      const index = activeLessonTabPageStart + offset;
-                      return (
-                        <div
-                          key={page.id || index}
-                          className={styles.questionSelectionRow}
-                        >
-                          <input
-                            type="checkbox"
-                            aria-label={`Select page ${index + 1}`}
-                            checked={selectedPageIndexes.includes(index)}
-                            onChange={(event) =>
-                              setSelectedPageIndexes((current) =>
-                                event.target.checked
-                                  ? [...current, index]
-                                  : current.filter((value) => value !== index),
-                              )
-                            }
-                          />
-                          <button
-                            type="button"
-                            className={`${styles.lessonPageTab} ${index === activePageIndex ? styles.lessonPageTabActive : ""}`}
-                            onClick={() => setActivePageIndex(index)}
-                          >
-                            Page {index + 1}
-                          </button>
-                        </div>
-                      );
-                    })}
 
-                    {lessonTabPages.length > 1 && (
-                      <div className={styles.questionTabPager}>
-                        <div className={styles.questionTabPagerControls}>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              goToLessonTabPage(activeLessonTabPageIndex - 1)
-                            }
-                            disabled={activeLessonTabPageIndex === 0}
-                          >
-                            Previous
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              goToLessonTabPage(activeLessonTabPageIndex + 1)
-                            }
-                            disabled={
-                              activeLessonTabPageIndex >=
-                              lessonTabPages.length - 1
-                            }
-                          >
-                            Next
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              <div className={styles.popupQuizCard}>
-                {activePage ? (
-                  <>
                     <label className={styles.popupLabel}>
                       Page Title{" "}
                       <span className={styles.required}>*required</span>
@@ -2095,7 +2039,10 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                     />
                     <LessonSourceEvidence page={activePage} />
 
-                    <div className={styles.lessonPageNavigation}>
+                    <nav
+                      className={styles.lessonPageNavigation}
+                      aria-label="Lesson pages"
+                    >
                       <button
                         className={styles.lessonNavigationBtn}
                         type="button"
@@ -2109,37 +2056,25 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                         Previous
                       </button>
 
-                      <div className={styles.lessonPageCenterNavigation}>
-                        <span className={styles.lessonPageIndicator}>
-                          page {activePageIndex + 1} of {lessonCount}
-                        </span>
-
-                        {lessonTabPages.length > 1 && (
-                          <div
-                            className={styles.lessonBottomPageGroups}
-                            aria-label="Lesson page groups"
-                          >
-                            {lessonTabPages.map((pageIndex) => (
-                              <button
-                                key={pageIndex}
-                                type="button"
-                                className={
-                                  pageIndex === activeLessonTabPageIndex
-                                    ? styles.lessonBottomPageGroupActive
-                                    : ""
-                                }
-                                onClick={() => goToLessonTabPage(pageIndex)}
-                                aria-label={`Show lesson pages ${
-                                  pageIndex * LESSON_TAB_PAGE_SIZE + 1
-                                } to ${Math.min(
-                                  (pageIndex + 1) * LESSON_TAB_PAGE_SIZE,
-                                  lessonCount,
-                                )}`}
-                              >
-                                {pageIndex + 1}
-                              </button>
-                            ))}
-                          </div>
+                      <div className={styles.lessonPageNumbers}>
+                        {lessonPageNumbers.map((page) =>
+                          typeof page === "number" ? (
+                            <button
+                              key={page}
+                              type="button"
+                              aria-label={`Page ${page}`}
+                              aria-current={
+                                page === activePageIndex + 1 ? "page" : undefined
+                              }
+                              onClick={() => setActivePageIndex(page - 1)}
+                            >
+                              {page}
+                            </button>
+                          ) : (
+                            <span key={page} aria-hidden="true">
+                              …
+                            </span>
+                          ),
                         )}
                       </div>
 
@@ -2155,7 +2090,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                       >
                         Next
                       </button>
-                    </div>
+                    </nav>
                   </>
                 ) : (
                   <div className={styles.popupEmptyQuiz}>

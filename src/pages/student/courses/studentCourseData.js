@@ -129,6 +129,7 @@ async function readJsonResponse(response, fallbackMessage) {
   if (!response.ok || data.success === false) {
     const error = new Error(data.message || fallbackMessage);
     error.status = response.status;
+    error.data = data;
     throw error;
   }
 
@@ -173,10 +174,9 @@ async function fetchEnrolledCoursesRequest(params = {}) {
 
 async function enrollCourseRequest(course) {
   const token = getStoredToken();
-  const userId = getStoredUserId();
 
-  if (!token && !userId) {
-    return null;
+  if (!token) {
+    throw new Error("You must be logged in to send an enrollment request.");
   }
 
   const response = await fetch(`${API_BASE}/courses/enroll?summaryOnly=true`, {
@@ -184,16 +184,32 @@ async function enrollCourseRequest(course) {
     credentials: "include",
     headers: getAuthHeaders(),
     body: JSON.stringify({
-      userId,
       courseId: course?.id || course?.course_id || null,
       courseCode:
         course?.courseCode || course?.course_code || course?.code || "",
       summaryOnly: true,
     }),
   });
-  const data = await readJsonResponse(response, "Could not enroll in course.");
-
-  return data.course || null;
+  try {
+    return await readJsonResponse(
+      response,
+      "Could not send enrollment request.",
+    );
+  } catch (error) {
+    if (
+      error.status === 409 &&
+      ["approved", "pending"].includes(error.data?.status)
+    ) {
+      return {
+        ...error.data,
+        enrolled: error.data.status === "approved",
+        pending: error.data.status === "pending",
+        alreadyEnrolled: error.data.status === "approved",
+        alreadyRequested: error.data.status === "pending",
+      };
+    }
+    throw error;
+  }
 }
 
 function dispatchEnrollmentUpdate(course) {
@@ -566,27 +582,27 @@ export function findJoinableCourseByCode(code) {
 }
 
 export async function findJoinableCourseByCodeAsync(code) {
-  const normalizedCode = String(code || "")
-    .trim()
-    .toLowerCase();
+  const normalizedCode = String(code || "").trim();
 
   if (!normalizedCode) return null;
 
-  const courses = await loadProfessorCourses({
-    published: true,
-    summaryOnly: true,
+  const query = new URLSearchParams({
+    courseCode: normalizedCode,
+    summaryOnly: "true",
+  });
+  const response = await fetch(`${API_BASE}/courses/join?${query}`, {
+    method: "GET",
+    credentials: "include",
+    headers: getAuthHeaders(),
   });
 
-  return (
-    courses.find(
-      (course) =>
-        !course.archived &&
-        course.status === "published" &&
-        String(course.code || course.courseCode || course.course_code || "")
-          .trim()
-          .toLowerCase() === normalizedCode,
-    ) || null
+  if (response.status === 404) return null;
+
+  const data = await readJsonResponse(
+    response,
+    "Could not find the course. Please try again.",
   );
+  return data.course || null;
 }
 
 export function enrollStudentInCourse(course) {
@@ -602,18 +618,16 @@ export function enrollStudentInCourse(course) {
 }
 
 export async function enrollStudentInCourseAsync(course) {
-  let enrolledCourse = course;
+  const result = await enrollCourseRequest(course);
+  const enrolledCourse = result.course || course;
 
-  try {
-    enrolledCourse = (await enrollCourseRequest(course)) || course;
-  } catch (error) {
-    if (error.status && error.status !== 401) {
-      console.warn("Course enrollment API fallback:", error.message);
-    }
+  if (result.enrolled) {
+    enrollStudentInCourse(enrolledCourse);
+  } else if (!result.pending) {
+    throw new Error("The server did not confirm your enrollment request.");
   }
 
-  enrollStudentInCourse(enrolledCourse);
-  return enrolledCourse;
+  return { ...result, course: enrolledCourse };
 }
 
 export function getStudentEnrolledCourses() {

@@ -3994,38 +3994,6 @@
   color: #ffffff;
 }
 
-.courseModuleEditorPage .lessonPageCenterNavigation {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-}
-
-.courseModuleEditorPage .lessonBottomPageGroups {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  max-width: 320px;
-}
-
-.courseModuleEditorPage .lessonBottomPageGroups button {
-  min-width: 34px;
-  height: 30px;
-  border: 1px solid #7fa8d6;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #375a7f;
-  cursor: pointer;
-  font: inherit;
-  font-size: 14px;
-  line-height: 1;
-}
-
-.courseModuleEditorPage .lessonBottomPageGroups .lessonBottomPageGroupActive {
-  background: #5f86b1;
-  color: #ffffff;
-}
-
 @media (max-width: 900px) {
   .courseModuleEditorPage .moduleMaterialBand .customFileBtn,
   .courseModuleEditorPage .moduleMaterialBand .fileName,
@@ -5498,6 +5466,110 @@
 
 .courseModuleEditorPage .lessonPageEditor .questionSelectionRow:has(.lessonPageTabActive) {
   background: #7fa8d6;
+}
+
+/* Lesson selection stays above the editor; page navigation appears once below. */
+.courseModuleEditorPage .lessonPageEditor .moduleEditorWorkspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.courseModuleEditorPage .lessonSelectionControls {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0 0 16px;
+  padding: 0 0 12px;
+}
+
+.courseModuleEditorPage .lessonSelectionControls label {
+  min-height: 36px;
+  padding: 0;
+}
+
+.courseModuleEditorPage .lessonSelectionControls .popupAddBtn {
+  width: auto;
+  margin-left: auto;
+  padding: 8px 12px;
+  font-size: 13px !important;
+  white-space: nowrap;
+}
+
+.courseModuleEditorPage .lessonPageEditor .lessonPageNavigation {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.courseModuleEditorPage .lessonPageEditor .lessonNavigationBtn {
+  width: auto;
+  min-width: 84px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px !important;
+}
+
+.courseModuleEditorPage .lessonPageNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.courseModuleEditorPage .lessonPageNumbers button {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid #7fa8d6;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #375a7f;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.courseModuleEditorPage .lessonPageNumbers button:hover {
+  background: #edf4fc;
+}
+
+.courseModuleEditorPage .lessonPageNumbers button[aria-current="page"] {
+  border-color: #6f98c7;
+  background: #7fa8d6;
+  color: #ffffff;
+}
+
+.courseModuleEditorPage .lessonPageNumbers button:focus-visible,
+.courseModuleEditorPage .lessonPageEditor .lessonNavigationBtn:focus-visible {
+  outline: 2px solid #5f86b1;
+  outline-offset: 3px;
+}
+
+.courseModuleEditorPage .lessonPageNumbers span {
+  padding: 0 4px;
+  color: #677086;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .courseModuleEditorPage .lessonPageEditor .lessonPageNavigation {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .courseModuleEditorPage .lessonPageNumbers {
+    order: -1;
+    flex: 1 0 100%;
+  }
+
+  .courseModuleEditorPage .lessonPageEditor .lessonNavigationBtn {
+    flex: 1;
+  }
 }
 
 /* Match the practice quiz generator, above the entire app shell. */

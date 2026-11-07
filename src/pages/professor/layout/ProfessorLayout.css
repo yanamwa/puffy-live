@@ -3868,6 +3868,21 @@
   border-right-color: #6f98c7;
 }
 
+#root .professor-layout .professor-sidebar .professor-logout {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--professor-theme-morning-breeze);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+#root .professor-layout .professor-sidebar .professor-logout:hover,
+#root .professor-layout .professor-sidebar .professor-logout:focus-visible {
+  border-color: #6f98c7;
+  background: var(--professor-theme-dewy-blue);
+  color: #263c52;
+  box-shadow: none;
+}
+
 #root .professor-layout .professor-brand::after {
   background: rgba(255, 247, 214, 0.8);
 }

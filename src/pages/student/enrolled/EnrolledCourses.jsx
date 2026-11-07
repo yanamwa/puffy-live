@@ -6,10 +6,7 @@ import StudentSidebar from "../../../components/students/StudentSidebar";
 import StudentHeader from "../../../components/students/StudentHeader";
 import JoinCourseModal from "../courses/JoinCourseModal";
 
-import {
-  enrollStudentInCourseAsync,
-  findJoinableCourseByCodeAsync,
-} from "../courses/studentCourseData";
+import { requestCourseEnrollmentByCode } from "../courses/courseEnrollment.js";
 
 import "./EnrolledCoursespage.css";
 
@@ -310,71 +307,8 @@ export default function EnrolledCourses() {
     setCourseCode("");
   };
 
-  const joinByCourseCode = async () => {
-    try {
-      const trimmedCode = courseCode.trim();
-
-      if (!trimmedCode) {
-        await Swal.fire({
-          icon: "warning",
-          title: "Enter Course Code",
-          text: "Please enter the course code provided by your professor.",
-          confirmButtonText: "OK",
-          confirmButtonColor: "#7FA8D6",
-        });
-        return;
-      }
-
-      const course = await findJoinableCourseByCodeAsync(trimmedCode);
-
-      if (!course) {
-        await Swal.fire({
-          icon: "error",
-          title: "Course Not Found",
-          text: "Course code not found. Please check the code from your professor.",
-          confirmButtonText: "OK",
-          confirmButtonColor: "#7FA8D6",
-        });
-        return;
-      }
-
-      await enrollStudentInCourseAsync(course);
-      closeJoinModal();
-
-      await Swal.fire({
-        icon: "success",
-        title: "Course Joined!",
-        text: `You have successfully joined ${
-          course.title ||
-          course.courseName ||
-          course.course_name ||
-          course.name ||
-          "the course"
-        }.`,
-        confirmButtonText: "Continue",
-        confirmButtonColor: "#7FA8D6",
-      });
-
-      const joinedCourseId =
-        course.id || course.courseId || course.course_id || course.code;
-
-      if (joinedCourseId) {
-        navigate(`/student/enrolled-courses/${joinedCourseId}`);
-      } else {
-        await loadEnrolledCourses();
-      }
-    } catch (error) {
-      console.error("Join course error:", error);
-
-      await Swal.fire({
-        icon: "error",
-        title: "Unable to Join Course",
-        text: error?.message || "Unable to join the course.",
-        confirmButtonText: "OK",
-        confirmButtonColor: "#7FA8D6",
-      });
-    }
-  };
+  const joinByCourseCode = () =>
+    requestCourseEnrollmentByCode(courseCode, { onSubmitted: closeJoinModal });
 
   const handleUnenrollCourse = async (course) => {
     const courseId = course.id || course.code;

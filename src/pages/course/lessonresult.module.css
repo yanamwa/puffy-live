@@ -207,33 +207,33 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 26px 34px 20px;
+  gap: 16px;
+  padding: 18px 24px 14px;
 }
 
 .understandingBadge {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
-  padding: 11px 24px;
+  gap: 8px;
+  padding: 8px 14px;
   border: 0.5px solid #a380c5;
   border-radius: 999px;
   background: #e6b7ff;
   box-shadow: 5px 6px 0 #c8a8e9;
   color: var(--font-color);
-  font-size: 19px;
+  font-size: 15px;
 }
 
 .understandingIcon {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   color: var(--font-color);
   stroke-width: 2.4;
 }
 
 .masteryRing {
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -245,47 +245,46 @@
 }
 
 .masteryRingCenter {
-  width: 54px;
-  height: 54px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: #fff;
   color: #333;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .adaptiveDivider {
-  height: 4px;
-  margin: 0 18px;
+  height: 2px;
+  margin: 0 24px;
   background: #e4e4e4;
 }
 
 .topicHeading {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 22px 38px 12px;
+  gap: 12px;
+  padding: 16px 24px 8px;
 }
 
 .quizTypeIcon {
-  width: 70px;
-  height: 70px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   overflow: hidden;
   border: 0.5px solid #a380c5;
-  border-radius: 18px;
+  border-radius: 12px;
   background: #e6b7ff;
   box-shadow: 4px 5px 0 #c8a8e9;
 }
 
 .quizTypeIcon img {
-  width: 64px;
-  height: 64px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
-  transform: scale(1.15);
 }
 
 .quizTypeName {
@@ -298,17 +297,19 @@
 .topicHeading h3 {
   margin: 0;
   color: var(--font-color);
-  font-size: 22px;
+  font-size: 19px;
   font-weight: normal;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .confidenceHeader {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 38px 4px;
+  padding: 8px 24px 4px;
   color: var(--font-color);
-  font-size: 18px;
+  font-size: 14px;
 }
 
 .confidenceHeader strong {
@@ -319,21 +320,23 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  padding: 12px 38px 0;
+  padding: 10px 24px 0;
+  align-items: start;
 }
 
 .insightCard {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid #dedede;
   border-radius: 14px;
   background: #fafafa;
+  min-width: 0;
 }
 
 .insightCard h4,
 .reviewAndGoal h4 {
   margin: 0 0 8px;
   color: var(--font-color);
-  font-size: 20px;
+  font-size: 16px;
   font-weight: normal;
 }
 
@@ -347,14 +350,15 @@
 .insightCard p {
   margin: 4px 0;
   color: var(--font-color);
-  font-size: 18px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .strengthList li,
 .improvementList li {
   position: relative;
-  padding-left: 25px;
+  padding-left: 20px;
 }
 
 .strengthList li::before,
@@ -375,10 +379,14 @@
   color: #c43d3d;
 }
 
+.improvementSection {
+  margin: 12px 24px 0;
+}
+
 .adaptivePlanCard {
-  margin: 14px 38px 0;
-  padding: 14px 16px;
-  border-left: 5px solid #a380c5;
+  margin: 12px 24px;
+  padding: 12px 14px;
+  border-left: 3px solid #a380c5;
   border-radius: 12px;
   background: #f3e4ff;
 }
@@ -393,29 +401,29 @@
 .planLabel,
 .adaptivePlanCard strong {
   color: var(--font-color);
-  font-size: 18px;
+  font-size: 14px;
   font-weight: normal;
 }
 
 .adaptivePlanCard p {
   margin: 8px 0 0;
   color: var(--font-color);
-  font-size: 18px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
-.adaptiveRecommendation {
-  margin: 14px 38px;
-  color: var(--font-color);
-  font-size: 18px;
-  line-height: 1.55;
+.adaptivePlanCard .adaptiveRecommendation {
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--course-soft-line);
 }
 
 .reviewAndGoal {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
-  padding: 0 38px 20px;
+  padding: 0 24px 16px;
+  align-items: start;
 }
 
 .reviewAndGoal > div {
@@ -423,6 +431,7 @@
   padding: 12px 14px;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
+  min-width: 0;
 }
 
 .reviewTopics {
@@ -431,43 +440,28 @@
   gap: 10px;
 }
 
-.reviewTopics span {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  border-radius: 12px;
-  line-height: 1.45;
-  white-space: normal;
-  overflow-wrap: break-word;
-  word-break: normal;
-  text-align: left;
-  background: #5a5a5a;
-  color: #fff;
-  font-size: 18px;
-}
 
 .nextGoal p {
   margin: 0;
   color: var(--font-color);
-  font-size: 18px;
+  font-size: 14px;
   line-height: 1.45;
 }
 
 .adaptiveFooter {
-  min-height: 78px;
+  min-height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 12px 34px;
+  gap: 12px;
+  padding: 10px 24px;
   background: #5a5a5a;
+  box-sizing: border-box;
 }
 
 .feedbackCounter {
   color: #fff;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .feedbackNavigation {
@@ -476,8 +470,8 @@
 }
 
 .feedbackNavigation button {
-  min-width: 120px;
-  padding: 10px 24px;
+  min-width: 76px;
+  padding: 7px 14px;
   border: 1px solid #2f2f2f;
   border-radius: 999px;
   background: #fff;
@@ -485,7 +479,7 @@
   color: #111;
   cursor: pointer;
   font-family: inherit;
-  font-size: 17px;
+  font-size: 14px;
 }
 
 .feedbackNavigation button:disabled {
@@ -725,26 +719,26 @@
   }
 
   .adaptiveTopRow {
-    padding: 20px;
+    padding: 16px;
   }
 
   .understandingBadge {
-    padding: 9px 16px;
-    font-size: 16px;
+    padding: 7px 12px;
+    font-size: 14px;
   }
 
   .masteryRing {
-    width: 62px;
-    height: 62px;
+    width: 48px;
+    height: 48px;
   }
 
   .masteryRingCenter {
-    width: 60px;
-    height: 60px;
+    width: 36px;
+    height: 36px;
   }
 
   .topicHeading {
-    padding: 20px 20px 10px;
+    padding: 16px 16px 8px;
   }
 
   .topicHeading h3 {
@@ -752,21 +746,21 @@
   }
 
   .confidenceHeader {
-    padding-right: 20px;
-    padding-left: 20px;
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .learningInsights,
   .reviewAndGoal {
     grid-template-columns: 1fr;
-    padding-right: 20px;
-    padding-left: 20px;
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
-  .adaptivePlanCard,
-  .adaptiveRecommendation {
-    margin-right: 20px;
-    margin-left: 20px;
+  .improvementSection,
+  .adaptivePlanCard {
+    margin-right: 16px;
+    margin-left: 16px;
   }
 
   .adaptivePlanCard > div {
@@ -776,13 +770,11 @@
   }
 
   .adaptiveFooter {
-    align-items: stretch;
-    flex-direction: column;
-    padding: 16px 20px 20px;
+    padding: 10px 16px;
   }
 
   .feedbackNavigation {
-    width: 100%;
+    flex-wrap: wrap;
   }
 
   .feedbackNavigation button {
@@ -966,11 +958,6 @@
   border-left-color: var(--course-accent);
 }
 
-.reviewTopics span {
-  background: var(--course-accent-soft);
-  border: 1px solid var(--course-soft-border);
-  color: var(--course-ink);
-}
 
 .scrollTopButton {
   position: fixed;
@@ -1015,4 +1002,53 @@
     width: 60px;
     height: 60px;
   }
+}
+
+.reviewTopicCard {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--course-soft-border);
+  border-radius: 10px;
+  background: var(--course-accent-soft);
+  overflow-wrap: anywhere;
+}
+
+.reviewTopicCard h5 {
+  margin: 0 0 4px;
+  color: var(--course-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.reviewTopicCard p {
+  margin: 0;
+  color: var(--course-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.feedbackWrapper {
+  max-width: 840px;
+  border-width: 1px;
+  box-shadow: 3px 3px 0 var(--course-shadow);
+}
+
+.feedbackWrapper .reviewHeader {
+  padding: 12px 20px;
+  border: 0;
+  font-size: 16px;
+}
+
+.feedbackWrapper .adaptiveFeedbackCard {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.feedbackWrapper .insightCard,
+.feedbackWrapper .reviewAndGoal > div {
+  border-width: 1px;
+  border-radius: 12px;
+  box-shadow: 2px 3px 0 var(--course-shadow);
 }

@@ -267,6 +267,61 @@
   border-radius: 12px;
   font-size: 14px;
 }
+
+.studentReport {
+  margin-top: 24px;
+  border-color: #c9d9eb;
+}
+.assessmentStatus {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: #edf4fc;
+  color: #375a7f;
+  font-size: 12px;
+}
+.reportPagination,
+.reportPaginationControls,
+.reportPaginationControls label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.reportPagination {
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid #dce4ec;
+  color: #6d8095;
+  font-size: 13px;
+}
+.reportPaginationControls button,
+.reportPaginationControls select {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid #c9d9eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #375a7f;
+  font: inherit;
+}
+.reportPaginationControls button {
+  cursor: pointer;
+}
+.reportPaginationControls button:hover:not(:disabled) {
+  background: #edf4fc;
+  border-color: #7fa8d6;
+}
+.reportPaginationControls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.reportPaginationControls button:focus-visible,
+.reportPaginationControls select:focus-visible {
+  outline: 2px solid #7fa8d6;
+  outline-offset: 2px;
+}
 @media (max-width: 1100px) {
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));

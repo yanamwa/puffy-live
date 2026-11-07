@@ -17,6 +17,7 @@ import {
 } from "./courseContent.js";
 import MainQuizResult from "./MainQuizResult.jsx";
 import { isMainQuizResult } from "../../utils/quizResultType.js";
+import { buildReviewTopics, getReviewTopic } from "./feedbackReview.js";
 
 function Sparkles(props) {
   return (
@@ -141,96 +142,10 @@ const getAdaptiveRecommendation = (
   )} to improve mastery.`;
 };
 
-const getFocusedConcept = (answer) => {
-  const explicitConcept = String(
-    answer.concept ||
-      answer.subtopic ||
-      answer.category ||
-      answer.subject ||
-      answer.topic ||
-      "",
-  ).trim();
+const getFocusedConcept = (answer) => getReviewTopic(answer).topic;
 
-  if (explicitConcept) return explicitConcept;
-
-  const question = String(answer.question || "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const questionLower = question.toLowerCase();
-
-  if (
-    questionLower.includes("national heroes") &&
-    questionLower.includes("criteria")
-  ) {
-    return "Criteria for identifying national heroes";
-  }
-
-  if (
-    questionLower.includes("aguinaldo") &&
-    (questionLower.includes("decree") || questionLower.includes("proclamation"))
-  ) {
-    return "Significance of Aguinaldo's decree";
-  }
-
-  if (
-    questionLower.includes("national symbols") &&
-    (questionLower.includes("law") ||
-      questionLower.includes("enacted") ||
-      questionLower.includes("official"))
-  ) {
-    return "Laws that officially designate national symbols";
-  }
-
-  if (
-    questionLower.includes("national heroes committee") &&
-    (questionLower.includes("role") ||
-      questionLower.includes("function") ||
-      questionLower.includes("purpose"))
-  ) {
-    return "Role of the National Heroes Committee";
-  }
-
-  if (
-    questionLower.includes("executive order") ||
-    questionLower.includes("republic act")
-  ) {
-    return "Historical context of executive orders and republic acts";
-  }
-
-  if (questionLower.includes("national symbols")) {
-    return "Official national symbols of the Philippines";
-  }
-
-  if (questionLower.includes("national heroes")) {
-    return "Historical context of national heroes";
-  }
-
-  const cleanedQuestion = question
-    .replace(/^according to (?:the )?lesson,\s*/i, "")
-    .replace(/^what (?:is|are|was|were|did|does)\s+/i, "")
-    .replace(/^which (?:of the following )?/i, "")
-    .replace(/^who\s+/i, "")
-    .replace(/\?$/, "")
-    .trim();
-
-  if (!cleanedQuestion) return "Core lesson concept";
-  return cleanedQuestion.length > 70
-    ? `${cleanedQuestion.slice(0, 67)}...`
-    : cleanedQuestion;
-};
-
-const getStrengthStatement = (answer) => {
-  const concept = getFocusedConcept(answer);
-
-  if (/significance|importance|historical context/i.test(concept)) {
-    return `Understood the ${concept.charAt(0).toLowerCase()}${concept.slice(1)}`;
-  }
-
-  return `Correctly identified the ${concept
-    .charAt(0)
-    .toLowerCase()}${concept.slice(1)}`;
-};
+const getStrengthStatement = (answer) =>
+  `Answered correctly about ${getFocusedConcept(answer)}.`;
 
 const getAdaptivePlan = (topic, confidence, attempts) => {
   const attemptContext =
@@ -842,7 +757,7 @@ export default function LessonResult() {
     })?.topic || "Concepts Requiring Review";
   const missedConcepts = results.answers
     .filter((item) => !isAnswerCorrect(item))
-    .map((item) => String(item.question || "").trim())
+    .map(getFocusedConcept)
     .filter(Boolean);
   const topicFeedback =
     results.answers.length > 0
@@ -886,38 +801,21 @@ export default function LessonResult() {
     .map(getStrengthStatement)
     .filter(Boolean)
     .slice(0, 2);
-  const fallbackImprovements = topicAnswers
-    .filter((answer) => !isAnswerCorrect(answer))
-    .map(getFocusedConcept)
-    .filter(Boolean)
-    .slice(0, 3);
+  const missedAnswers = topicAnswers.filter((answer) => !isAnswerCorrect(answer));
+  const reviewTopics = buildReviewTopics(
+    missedAnswers.length ? missedAnswers : topicAnswers,
+    activeFeedback?.topic || contentTitle,
+  );
+  const fallbackImprovements = missedAnswers.length
+    ? reviewTopics.map((review) => review.topic)
+    : [];
   const aiStrengths = activeFeedback?.strengths?.filter(Boolean).slice(0, 2);
-  const aiImprovements = activeFeedback?.areasForImprovement
-    ?.filter(Boolean)
-    .slice(0, 3);
-  const aiReviewTopics = activeFeedback?.suggestedReviewTopics
-    ?.filter(Boolean)
-    .slice(0, 3);
   const strengths =
-    activeConfidence === 100
+    fallbackStrengths.length
       ? fallbackStrengths
-      : aiStrengths?.length > 0
-        ? aiStrengths
-        : fallbackStrengths;
+      : aiStrengths || [];
   const areasForImprovement =
-    activeConfidence === 100
-      ? []
-      : aiImprovements?.length > 0
-        ? aiImprovements
-        : fallbackImprovements;
-  const suggestedReviewTopics =
-    activeConfidence === 100
-      ? [activeFeedback?.topic].filter(Boolean)
-      : aiReviewTopics?.length > 0
-        ? aiReviewTopics
-        : [activeFeedback?.topic, ...fallbackImprovements]
-            .filter(Boolean)
-            .slice(0, 3);
+    activeConfidence === 100 ? [] : fallbackImprovements;
   const adaptivePlan = getAdaptivePlan(
     activeFeedback?.topic || "this topic",
     activeConfidence,
@@ -1085,7 +983,7 @@ export default function LessonResult() {
         </div>
       </div>
 
-      <div className={styles.reviewWrapper}>
+      <div className={`${styles.reviewWrapper} ${styles.feedbackWrapper}`}>
         <div className={styles.reviewHeader}>Adaptive Feedback</div>
 
         <div className={styles.adaptiveFeedbackPanel}>
@@ -1167,20 +1065,29 @@ export default function LessonResult() {
                   )}
                 </div>
 
-                <div className={styles.insightCard}>
-                  <h4>Areas for Improvement</h4>
-                  {areasForImprovement.length > 0 ? (
-                    <ul className={styles.improvementList}>
-                      {areasForImprovement.map((area, index) => (
-                        <li key={`${area}-${index}`}>{area}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>
-                      No areas for improvement were detected for this topic.
-                    </p>
-                  )}
+                <div className={`${styles.insightCard} ${styles.nextGoal}`}>
+                  <h4>Next Goal</h4>
+                  <p>
+                    {activeConfidence === 100
+                      ? adaptivePlan.nextGoal
+                      : activeFeedback.nextGoal || adaptivePlan.nextGoal}
+                  </p>
                 </div>
+              </div>
+
+              <div
+                className={`${styles.insightCard} ${styles.improvementSection}`}
+              >
+                <h4>Areas for Improvement</h4>
+                {areasForImprovement.length > 0 ? (
+                  <ul className={styles.improvementList}>
+                    {areasForImprovement.map((area, index) => (
+                      <li key={`${area}-${index}`}>{area}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No areas for improvement were detected for this topic.</p>
+                )}
               </div>
 
               <div className={styles.adaptivePlanCard}>
@@ -1196,31 +1103,27 @@ export default function LessonResult() {
                     : activeFeedback.adaptiveRecommendation ||
                       adaptivePlan.recommendation}
                 </p>
+                <p className={styles.adaptiveRecommendation}>
+                  {activeConfidence === 100
+                    ? `You demonstrated full understanding of ${activeFeedback.topic} in this attempt. Continue with advanced practice to maintain mastery.`
+                    : activeFeedback.recommendation}
+                </p>
               </div>
-
-              <p className={styles.adaptiveRecommendation}>
-                {activeConfidence === 100
-                  ? `You demonstrated full understanding of ${activeFeedback.topic} in this attempt. Continue with advanced practice to maintain mastery.`
-                  : activeFeedback.recommendation}
-              </p>
 
               <div className={styles.reviewAndGoal}>
                 <div>
                   <h4>Suggested Review Topics</h4>
                   <div className={styles.reviewTopics}>
-                    {suggestedReviewTopics.map((topic, index) => (
-                      <span key={`${topic}-${index}`}>{topic}</span>
+                    {reviewTopics.map((review) => (
+                      <article
+                        className={styles.reviewTopicCard}
+                        key={review.topic}
+                      >
+                        <h5>{review.topic}</h5>
+                        <p>{review.explanation}</p>
+                      </article>
                     ))}
                   </div>
-                </div>
-
-                <div className={styles.nextGoal}>
-                  <h4>Next Goal</h4>
-                  <p>
-                    {activeConfidence === 100
-                      ? adaptivePlan.nextGoal
-                      : activeFeedback.nextGoal || adaptivePlan.nextGoal}
-                  </p>
                 </div>
               </div>
 

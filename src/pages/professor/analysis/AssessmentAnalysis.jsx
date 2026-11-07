@@ -13,6 +13,7 @@ import {
   FiSearch,
 } from "react-icons/fi";
 import styles from "./AssessmentDashboard.module.css";
+import ProfessorStudentPerformance from "./ProfessorStudentPerformance.jsx";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -324,6 +325,7 @@ export default function AssessmentAnalysis() {
               </p>
             )}
           </section>
+          <ProfessorStudentPerformance />
         </>
       )}
     </section>

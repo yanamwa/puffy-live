@@ -102,6 +102,12 @@
   filter: brightness(0.98);
 }
 
+.join-course-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+  transform: none;
+}
+
 .join-course-actions .join-course-cancel {
   background: #e8f1ff;
   color: #365d8b;

@@ -4,7 +4,11 @@ import { API_BASE } from "../config";
 function getToken() {
   return (
     localStorage.getItem("token") ||
-    sessionStorage.getItem("token")
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("puffy-token") ||
+    sessionStorage.getItem("token") ||
+    sessionStorage.getItem("authToken") ||
+    sessionStorage.getItem("puffy-token")
   );
 }
 
@@ -47,4 +51,8 @@ export async function fetchReportConfig({ signal } = {}) {
   const result = await request("/reports/config", signal);
 
   return result.settings;
+}
+
+export function fetchProfessorAssessmentSummary({ signal } = {}) {
+  return request("/reports/professor/assessments", signal);
 }

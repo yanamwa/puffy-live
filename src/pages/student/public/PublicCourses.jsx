@@ -9,9 +9,9 @@ import JoinCourseModal from "../courses/JoinCourseModal";
 
 import { PROFESSOR_COURSES_EVENT } from "../../professor/professorData";
 import {
-  findJoinableCourseByCodeAsync,
   loadPublicStudentCourses,
 } from "../courses/studentCourseData";
+import { requestCourseEnrollmentByCode } from "../courses/courseEnrollment.js";
 
 import "../enrolled/EnrolledCourses.css";
 import "./PublicCourses.css";
@@ -496,52 +496,13 @@ export default function PublicCourses() {
     }
   };
 
-  const joinByCourseCode = async () => {
-    try {
-      const trimmedCode = courseCode.trim();
-
-      if (!trimmedCode) {
-        await Swal.fire({
-          icon: "warning",
-          title: "Enter Course Code",
-          text: "Please enter the course code provided by your professor.",
-          confirmButtonText: "OK",
-          confirmButtonColor: "#7FA8D6",
-        });
-
-        return;
-      }
-
-      const course = await findJoinableCourseByCodeAsync(trimmedCode);
-
-      if (!course) {
-        await Swal.fire({
-          icon: "error",
-          title: "Course Not Found",
-          text: "Course code not found. Please check the code from your professor.",
-          confirmButtonText: "OK",
-          confirmButtonColor: "#7FA8D6",
-        });
-
-        return;
-      }
-
-      closeJoinModal();
-      await confirmEnrollment(course);
-    } catch (error) {
-      console.error("Join course error:", error);
-
-      await Swal.fire({
-        icon: "error",
-        title: "Unable to Join Course",
-        text:
-          error?.message ||
-          "Unable to find or request enrollment for this course.",
-        confirmButtonText: "OK",
-        confirmButtonColor: "#7FA8D6",
-      });
-    }
-  };
+  const joinByCourseCode = () =>
+    requestCourseEnrollmentByCode(courseCode, {
+      onSubmitted: ({ pending, course }) => {
+        closeJoinModal();
+        if (pending) markCourseRequested(course);
+      },
+    });
 
   return (
     <div className="public-courses-page">

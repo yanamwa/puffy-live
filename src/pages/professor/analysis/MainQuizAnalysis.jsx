@@ -12,6 +12,7 @@ import styles from "./AssessmentAnalysis.module.css";
 import {
   mainQuizKey,
   mainQuizQuestions,
+  mainQuizAnswerAt,
 } from "../../../services/mainQuizAnalysisData.js";
 
 const FALLBACK_RATIOS = [1, 0.83, 0.7, 0.5, 0.4];
@@ -944,7 +945,8 @@ function readAttemptCorrectness(answer, selectedAnswer, correctAnswer) {
 function getAttemptAnswerAt(attempt, item, index) {
   const answers = Array.isArray(attempt.answers) ? attempt.answers : [];
 
-  if (Number.isInteger(item?.attemptIndex)) return answers[item.attemptIndex];
+  if (Number.isInteger(item?.attemptIndex))
+    return mainQuizAnswerAt(attempt, item.attemptIndex);
 
   if (item?.question) {
     const text = item.question.trim().toLowerCase();

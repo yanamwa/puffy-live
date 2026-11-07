@@ -1,11 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import Swal from "sweetalert2";
-
-import {
-  enrollStudentInCourseAsync,
-  findJoinableCourseByCodeAsync,
-} from "./studentCourseData";
+import { requestCourseEnrollmentByCode } from "./courseEnrollment.js";
 
 export default function StudentJoinCourse() {
   const navigate = useNavigate();
@@ -18,31 +13,20 @@ export default function StudentJoinCourse() {
     let active = true;
 
     async function joinCourse() {
-      const course = await findJoinableCourseByCodeAsync(courseCode);
+      const result = await requestCourseEnrollmentByCode(courseCode, {
+        isActive: () => active,
+      });
 
       if (!active) return;
 
-      if (course) {
-        await enrollStudentInCourseAsync(course);
-
-        if (!active) return;
-
+      if (result?.enrolled) {
+        const course = result.course;
         navigate(`/student/enrolled-courses/${course.id || course.code}`, {
           replace: true,
         });
 
         return;
       }
-
-      await Swal.fire({
-        icon: "error",
-        title: "Invalid Course Link",
-        text: "Course link is invalid or the course is not published.",
-        confirmButtonText: "OK",
-        confirmButtonColor: "#7FA8D6",
-      });
-
-      if (!active) return;
 
       navigate("/student/public-courses", {
         replace: true,

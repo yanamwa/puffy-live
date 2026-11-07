@@ -7,6 +7,7 @@ import { playPracticeFeedbackSound } from "../../../../utils/practiceFeedbackSou
 import { lessonAuthHeaders } from "../../../../services/lessonAuth.js";
 import { saveAccountQuizResult } from "../../../../utils/quizStorage.js";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getReviewMetadata } from "../../../course/feedbackReview.js";
 import { useNavigate, useParams } from "react-router-dom";
 import { API_BASE } from "../../../../config.js";
 import { updateDeckCardMemorized } from "../../../../utils/cardMemorization.js";
@@ -168,6 +169,7 @@ export default function QandA() {
 
         return shuffleArray(
           parsed.map((item) => ({
+            ...getReviewMetadata(item),
             q: cleanQuestionText(getQuizItemQuestion(item)),
             correctAnswer: cleanAnswerText(getQuizItemAnswer(item)),
             explanation: item.explanation || getQuizItemAnswer(item) || "",
@@ -181,6 +183,7 @@ export default function QandA() {
     if (isDeckMode) {
       return shuffleArray(
         deckCards.map((card) => ({
+          ...getReviewMetadata(card),
           cardId: card.cardId || card.card_id || card.id || null,
           q: cleanQuestionText(getQuizItemQuestion(card)),
           correctAnswer: cleanAnswerText(getQuizItemAnswer(card)),
@@ -382,6 +385,7 @@ export default function QandA() {
     setNotifOpen(true);
 
     const newResult = {
+      ...getReviewMetadata(questions[current]),
       cardId: questions[current].cardId || null,
       question: questions[current].q,
       userAnswer: inputValue,
