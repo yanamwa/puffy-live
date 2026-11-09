@@ -1,4 +1,5 @@
 import { API_BASE } from "../config.js";
+import { lessonAuthHeaders } from "./lessonAuth.js";
 
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({
@@ -18,6 +19,7 @@ export async function fetchCourseMonitoring(courseId) {
     `${API_BASE}/monitoring/${encodeURIComponent(courseId)}`,
     {
       credentials: "include",
+      headers: lessonAuthHeaders(),
     },
   );
   const data = await parseResponse(response);

@@ -905,3 +905,56 @@ body .student-notification-dialog .swal2-actions .swal2-confirm { min-height: 52
 @media (max-width: 600px) {
   .professor-header .role-notification-dropdown { position: fixed; top: 68px; right: 14px; left: auto; width: min(370px, calc(100vw - 28px)); }
 }
+
+/* Professor notification popup only */
+#root .professor-layout .professor-header .role-notification-list {
+  display: block !important;
+  max-height: 350px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+#root .professor-layout .professor-header .role-notification-item {
+  display: grid !important;
+  grid-template-columns: 46px minmax(0, 1fr) 10px;
+  align-items: start;
+  gap: 10px;
+  width: 100%;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 86px;
+  margin: 0 0 8px;
+  padding: 12px 10px;
+  box-sizing: border-box;
+}
+
+#root .professor-layout .professor-header .role-notification-copy {
+  display: flex !important;
+  flex-direction: column;
+  min-width: 0;
+  height: auto !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#root .professor-layout .professor-header .role-notification-copy strong {
+  font-size: 12px !important;
+  line-height: 1.35;
+}
+
+#root .professor-layout .professor-header .role-notification-copy > span {
+  font-size: 11px !important;
+  line-height: 1.4;
+}
+
+#root .professor-layout .professor-header .role-notification-copy small {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px !important;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+#root .professor-layout .professor-header .role-notification-unread-dot {
+  align-self: center;
+}

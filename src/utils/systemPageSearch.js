@@ -8,13 +8,12 @@ export function searchSystemPages(role, query) {
     ["Academic Calendar", "academic-calendar", "events dates activities"],
     ["Announcements & Notifications", superAdmin ? "announcements" : "notification", "messages announcements notifications"],
     ["Profile", "profile", "account identity"],
-    ["Settings", "settings", "preferences"],
+    [superAdmin ? "System Settings" : "Settings", "settings", "preferences"],
     ...(superAdmin ? [
       ["Modes Management", "modes", "practice flashcards quizzes"],
       ["System Analytics", "analytics", "reports statistics"],
       ["Audit Logs", "audit-logs", "history activity logs"],
       ["Backup and Restore", "backup", "backup restore"],
-      ["Security and Permissions", "security", "roles access permissions"],
     ] : [["Reports", "reports", "analytics statistics"]]),
   ];
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);

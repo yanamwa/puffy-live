@@ -9,9 +9,13 @@ import JoinCourseModal from "../courses/JoinCourseModal";
 
 import { PROFESSOR_COURSES_EVENT } from "../../professor/professorData";
 import {
+  enrollStudentInCourse,
   loadPublicStudentCourses,
 } from "../courses/studentCourseData";
+import { useSystemStatus } from "../../../context/SystemStatusContext.jsx";
 import { requestCourseEnrollmentByCode } from "../courses/courseEnrollment.js";
+import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
+import { tutorialPublicCourses } from "../tutorial/studentTutorialExamples.js";
 
 import "../enrolled/EnrolledCourses.css";
 import "./PublicCourses.css";
@@ -186,10 +190,11 @@ function normalizeCourse(course) {
 
 export default function PublicCourses() {
   const navigate = useNavigate();
+  const tutorial = useStudentTutorial();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [courseCode, setCourseCode] = useState("");
 
-  const [publicCourses, setPublicCourses] = useState([]);
+  const [publicCourses, setPublicCourses] = useState(() => tutorial ? tutorialPublicCourses : []);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -197,7 +202,7 @@ export default function PublicCourses() {
   const [titleSort, setTitleSort] = useState("A to Z");
   const [activeSort, setActiveSort] = useState("date");
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!tutorial);
   const [errorMessage, setErrorMessage] = useState("");
 
   const enrolledCourseKeys = useMemo(
@@ -290,6 +295,7 @@ export default function PublicCourses() {
   };
 
   useEffect(() => {
+    if (tutorial) return;
     let active = true;
     let refreshing = false;
 
@@ -342,7 +348,7 @@ export default function PublicCourses() {
       window.removeEventListener("online", handleRefresh);
       document.removeEventListener("visibilitychange", handleRefresh);
     };
-  }, []);
+  }, [tutorial]);
 
   const closeJoinModal = () => {
     setJoinModalOpen(false);
@@ -365,6 +371,8 @@ export default function PublicCourses() {
     );
   };
 
+  const { enrollmentApproval } = useSystemStatus();
+
   const confirmEnrollment = async (course) => {
     const courseTitle = getCourseTitle(course);
 
@@ -375,7 +383,7 @@ export default function PublicCourses() {
       imageWidth: 270,
       imageHeight: 180,
       showCancelButton: true,
-      confirmButtonText: "Send Request",
+      confirmButtonText: enrollmentApproval ? "Send Request" : "Enroll",
       cancelButtonText: "Cancel",
       customClass: {
         popup: "enroll-popup",
@@ -457,10 +465,15 @@ export default function PublicCourses() {
         throw new Error(data.message || "Could not send enrollment request.");
       }
 
-      markCourseRequested(course);
+      if (data.enrolled) {
+        enrollStudentInCourse(course);
+        await loadEnrolledCourses();
+      } else {
+        markCourseRequested(course);
+      }
 
       await Swal.fire({
-        title: "Enrollment request sent!",
+        title: data.enrolled ? "Enrollment confirmed!" : "Enrollment request sent!",
         customClass: {
           popup: "enroll-popup",
           confirmButton: "enroll-confirm-btn",
@@ -469,7 +482,7 @@ export default function PublicCourses() {
         text:
           data.message ||
           `Your request to join ${courseTitle} is waiting for professor approval.`,
-        imageUrl: "/images/request.png",
+        imageUrl: data.enrolled ? "/images/success.png" : "/images/request.png",
         imageWidth: 255,
         imageHeight: 170,
         confirmButtonText: "OK",
@@ -518,7 +531,12 @@ export default function PublicCourses() {
 
         <main className="public-courses-content">
           <section className="public-heading">
-            <h1>Public Courses</h1>
+            <div>
+              <h1>Public Courses</h1>
+              {tutorial && (
+                <p className="student-tutorial-sample-label">Example courses for the tutorial</p>
+              )}
+            </div>
 
             <div className="filter-actions">
               <span className="sort-by-label">Sort by</span>
@@ -543,7 +561,7 @@ export default function PublicCourses() {
             </div>
           </section>
 
-          <section className="public-courses-grid" aria-label="Public courses">
+          <section className="public-courses-grid" aria-label="Public courses" data-tutorial="public">
             {loading ? (
               <div className="student-empty-state">
                 Loading public courses...

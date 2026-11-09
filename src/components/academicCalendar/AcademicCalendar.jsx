@@ -5,13 +5,14 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { academicCalendarRequest } from "../../services/academicCalendarApi.js";
 import "./academicCalendar.css";
-export function useAcademicCalendars() {
+export function useAcademicCalendars({ enabled = true } = {}) {
   const [records, setRecords] = useState([]);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const reload = useCallback(() => setRevision((value) => value + 1), []);
   useEffect(() => {
+    if (!enabled) return;
     const controller = new AbortController();
     setError("");
     setLoading(true);
@@ -26,7 +27,7 @@ export function useAcademicCalendars() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [revision]);
+  }, [enabled, revision]);
   return { records, loading, error, reload };
 }
 export function CalendarDocument({ calendar }) {

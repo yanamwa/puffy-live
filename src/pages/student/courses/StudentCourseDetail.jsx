@@ -23,6 +23,8 @@ import {
   STUDENT_READING_PROGRESS_EVENT,
 } from "./studentCourseData";
 import { requestCourseEnrollmentByCode } from "./courseEnrollment.js";
+import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
+import { tutorialEnrolledCourseDetail } from "../tutorial/studentTutorialExamples.js";
 import {
   clearStudentSession,
   getStudentAccountLabel,
@@ -568,7 +570,8 @@ function getNestedCourseModules(course) {
 export default function StudentCourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const studentProfile = useStudentProfile();
+  const tutorial = useStudentTutorial();
+  const studentProfile = useStudentProfile({ enabled: !tutorial });
 
   const [rawCourse, setRawCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -582,12 +585,13 @@ export default function StudentCourseDetail() {
   const [mainQuizSettingsVersion, setMainQuizSettingsVersion] = useState(0);
 
   useEffect(() => {
+    if (tutorial) return;
     const timer = window.setInterval(
       () => setMainQuizSettingsVersion((version) => version + 1),
       1000,
     );
     return () => window.clearInterval(timer);
-  }, []);
+  }, [tutorial]);
 
   const [enrolledCoursesOpen, setEnrolledCoursesOpen] = useState(false);
 
@@ -642,10 +646,11 @@ export default function StudentCourseDetail() {
   };
 
   useEffect(() => {
-    loadEnrolledCourses();
-  }, []);
+    if (!tutorial) loadEnrolledCourses();
+  }, [tutorial]);
 
   useEffect(() => {
+    if (tutorial) return;
     let active = true;
 
     let refreshing = false;
@@ -681,9 +686,10 @@ export default function StudentCourseDetail() {
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [courseId]);
+  }, [courseId, tutorial]);
 
   useEffect(() => {
+    if (tutorial) return;
     const refreshProgress = () => {
       setProgressVersion((version) => version + 1);
     };
@@ -713,7 +719,7 @@ export default function StudentCourseDetail() {
         refreshMainQuizSettings,
       );
     };
-  }, []);
+  }, [tutorial]);
 
   useEffect(() => {
     const closeOpenMenus = (event) => {
@@ -742,7 +748,9 @@ export default function StudentCourseDetail() {
     };
   }, []);
 
-  const course = rawCourse ? normalizeStudentCourse(rawCourse) : null;
+  const course = tutorial
+    ? tutorialEnrolledCourseDetail
+    : rawCourse && normalizeStudentCourse(rawCourse);
 
   const modules = useMemo(
     () => (course ? getNestedCourseModules(course) : []),
@@ -759,8 +767,10 @@ export default function StudentCourseDetail() {
   const allQuizItems = course ? getCourseQuizItems(course) : [];
 
 
-  const moduleProgressValues = modules.map((_, index) =>
-    getStudentModuleReadingProgress(courseRouteId, index, modules.length),
+  const moduleProgressValues = modules.map((module, index) =>
+    tutorial
+      ? module.readingProgress
+      : getStudentModuleReadingProgress(courseRouteId, index, modules.length),
   );
 
   const getModuleProgress = (index) => moduleProgressValues[index] ?? 0;
@@ -1151,7 +1161,7 @@ export default function StudentCourseDetail() {
     navigate("/login");
   };
 
-  if (loading) {
+  if (loading && !tutorial) {
     return (
       <div className="student-course-detail-page">
         <StudentSidebar />
@@ -1204,7 +1214,9 @@ export default function StudentCourseDetail() {
                 <span>{course.code}</span>
 
                 <span>
-                  {course.visibility === "private"
+                  {tutorial
+                    ? "Example course"
+                    : course.visibility === "private"
                     ? "Private course"
                     : "Public course"}
                 </span>
@@ -1286,6 +1298,7 @@ export default function StudentCourseDetail() {
             <section
               className="student-course-modules"
               aria-labelledby="course-modules-title"
+              data-tutorial="course-modules"
             >
               <div className="student-course-section-title">
                 <div>

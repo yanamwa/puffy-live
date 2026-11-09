@@ -71,11 +71,6 @@ const otherMenuItems = [
     path: "/super-admin/settings",
     icon: FiSettings,
   },
-  {
-    label: "Security and Permissions",
-    path: "/super-admin/security",
-    icon: FiShield,
-  },
 ];
 
 export default function SuperAdminSidebar({

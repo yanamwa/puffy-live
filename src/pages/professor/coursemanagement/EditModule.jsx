@@ -469,6 +469,7 @@ export default function EditModule() {
       try {
         const res = await fetch(API_URL, {
           credentials: "include",
+          headers: lessonAuthHeaders(),
         });
 
         const data = await res.json();
@@ -1445,7 +1446,7 @@ export default function EditModule() {
 
           <div className={styles.popupSection}>
             <label className={styles.popupLabel}>
-              Generate Module from Material
+              Organize Learning Module
             </label>
 
             <div className={styles.uploadRow}>

@@ -1,5 +1,6 @@
+// @refresh reset
 import { useEffect, useMemo, useState } from "react";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiX } from "react-icons/fi";
 import { fetchProfessorAssessmentSummary } from "../../../services/reportApi.js";
 import styles from "./AssessmentDashboard.module.css";
 
@@ -8,9 +9,30 @@ const percentage = (value) =>
     ? "N/A"
     : `${Number(value).toFixed(1).replace(/\.0$/, "")}%`;
 
-export function AssessmentReportTable({ columns, rows, empty, pageKey = "" }) {
+function yearAndSection({ yearLevel, section }) {
+  const year = String(yearLevel ?? "").match(/[1-4]/)?.[0];
+  const sectionName = section?.trim();
+  if (!sectionName) return yearLevel || "Unavailable";
+  return year && !/^\d/.test(sectionName)
+    ? `${year}${sectionName}`
+    : sectionName;
+}
+
+const practiceAttemptsLabel = "Scored Attempts (Practice Quiz)";
+const practiceCount = (student) =>
+  student.practiceAttempts?.length ??
+  (student.scoredAttempts === 0 ? 0 : "Unavailable");
+
+export function AssessmentReportTable({
+  columns,
+  rows,
+  empty,
+  pageKey = "",
+  fixedPageSize,
+}) {
   const [selection, setSelection] = useState({ key: pageKey, page: 1 });
-  const [pageSize, setPageSize] = useState(10);
+  const [selectedPageSize, setPageSize] = useState(10);
+  const pageSize = fixedPageSize ?? selectedPageSize;
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const page = Math.min(
     selection.key === pageKey ? selection.page : 1,
@@ -35,7 +57,11 @@ export function AssessmentReportTable({ columns, rows, empty, pageKey = "" }) {
           <tbody>
             {rows.length ? (
               rows.slice(start, start + pageSize).map((row) => (
-                <tr key={row.key}>
+                <tr
+                  key={row.key}
+                  className={row.onClick ? styles.clickableRow : undefined}
+                  onClick={row.onClick}
+                >
                   {row.cells.map((cell, index) => (
                     <td key={columns[index]} data-label={columns[index]}>
                       {cell}
@@ -58,22 +84,24 @@ export function AssessmentReportTable({ columns, rows, empty, pageKey = "" }) {
             {rows.length} records
           </span>
           <div className={styles.reportPaginationControls}>
-            <label>
-              Rows per page
-              <select
-                value={pageSize}
-                onChange={(event) => {
-                  setPageSize(Number(event.target.value));
-                  setPage(1);
-                }}
-              >
-                {[10, 25, 50].map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!fixedPageSize && (
+              <label>
+                Rows per page
+                <select
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value));
+                    setPage(1);
+                  }}
+                >
+                  {[10, 25, 50].map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <button
               type="button"
               disabled={page === 1}
@@ -116,6 +144,7 @@ export default function ProfessorStudentPerformance() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -173,8 +202,8 @@ export default function ProfessorStudentPerformance() {
           <div>
             <h2 id="student-performance-title">Student Performance</h2>
             <p>
-              All recorded scored quiz attempts and module progress for students
-              enrolled in your courses.
+              Scored practice quiz attempts and module progress for students
+              enrolled in your courses. Select a row to view student details.
             </p>
           </div>
           <label className={styles.searchBox}>
@@ -193,33 +222,122 @@ export default function ProfessorStudentPerformance() {
           columns={[
             "Student",
             "Course",
-            "Scored Attempts",
+            practiceAttemptsLabel,
             "Average Score",
             "Modules Completed",
-            "Assessment Status",
+            "Least Mastered",
           ]}
           rows={matching.map((student) => ({
             key: student.key,
+            onClick: () => setSelected(student),
             cells: [
               <strong>{student.name}</strong>,
               student.course,
-              student.scoredAttempts,
+              practiceCount(student),
               percentage(student.averageScore),
               `${student.completedModules}/${student.totalModules}`,
-              <span className={styles.assessmentStatus}>
-                {student.averageScore == null
-                  ? "Not assessed"
-                  : passing == null
-                    ? "Threshold not configured"
-                    : student.needsAttention
-                      ? "Needs attention"
-                      : "Assessed"}
-              </span>,
+              <button
+                type="button"
+                className={styles.masteryButton}
+                aria-haspopup="dialog"
+                aria-label={`View performance details for ${student.name} in ${student.course}`}
+                title="View student details"
+              >
+                {student.topics?.length
+                  ? `${student.topics[0].label} (${percentage(student.topics[0].percent)})`
+                  : student.scoredAttempts && !student.topics
+                    ? "Topic data unavailable"
+                    : "No topic results"}
+              </button>,
             ],
           }))}
           empty="No matching enrolled students found."
         />
       </section>
+      {selected && (
+        <dialog
+          className={styles.studentDetails}
+          aria-labelledby="student-details-title"
+          ref={(dialog) => {
+            if (dialog && !dialog.open) dialog.showModal();
+          }}
+          onClose={() => setSelected(null)}
+        >
+          <header className={styles.detailsHeader}>
+            <h2 id="student-details-title">Student Performance</h2>
+            <form method="dialog">
+              <button type="submit" aria-label="Close student details">
+                <FiX size={36} aria-hidden="true" />
+              </button>
+            </form>
+          </header>
+          <div className={styles.detailsBody}>
+            <dl className={styles.studentIdentity}>
+              <div>
+                <dt>Student Name</dt>
+                <dd>{selected.name}</dd>
+              </div>
+              <div>
+                <dt>Course</dt>
+                <dd>{selected.program?.trim() || "Unavailable"}</dd>
+              </div>
+              <div>
+                <dt>Year &amp; Section</dt>
+                <dd>{yearAndSection(selected)}</dd>
+              </div>
+            </dl>
+            <dl className={styles.detailsMetrics}>
+              <dt>{practiceAttemptsLabel}</dt>
+              <dd>{practiceCount(selected)}</dd>
+              <dt>Average score</dt>
+              <dd>{percentage(selected.averageScore)}</dd>
+              <dt>Modules completed</dt>
+              <dd>
+                {selected.completedModules}/{selected.totalModules}
+              </dd>
+            </dl>
+            <h3>Topic mastery</h3>
+            {selected.topics?.length ? (
+              <ul>
+                {selected.topics.map(({ label, percent }) => (
+                  <li key={label}>
+                    {label} ({percentage(percent)})
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>
+                {selected.topics
+                  ? "No topic results recorded."
+                  : "Topic data unavailable."}
+              </p>
+            )}
+            <h3>Scored practice quiz history</h3>
+            <AssessmentReportTable
+              fixedPageSize={10}
+              columns={["Date", "Score", "Percentage"]}
+              rows={(selected.practiceAttempts ?? [])
+                .slice()
+                .reverse()
+                .map((attempt) => ({
+                  key: attempt.attempts_id,
+                  cells: [
+                    attempt.created_at
+                      ? new Date(attempt.created_at).toLocaleDateString()
+                      : "Unavailable",
+                    `${attempt.score}/${attempt.total}`,
+                    percentage((attempt.score / attempt.total) * 100),
+                  ],
+                }))}
+              empty={
+                selected.practiceAttempts
+                  ? "No scored practice quiz attempts recorded."
+                  : "Quiz history unavailable."
+              }
+            />
+          </div>
+        </dialog>
+      )}
       <section
         className={`${styles.panel} ${styles.studentReport}`}
         aria-labelledby="student-attention-title"
@@ -235,14 +353,19 @@ export default function ProfessorStudentPerformance() {
           </div>
         </div>
         <AssessmentReportTable
-          columns={["Student", "Course", "Average Score", "Quiz Attempts"]}
+          columns={[
+            "Student",
+            "Course",
+            "Average Score",
+            practiceAttemptsLabel,
+          ]}
           rows={attention.map((student) => ({
             key: student.key,
             cells: [
               <strong>{student.name}</strong>,
               student.course,
               percentage(student.averageScore),
-              student.scoredAttempts,
+              practiceCount(student),
             ],
           }))}
           empty={

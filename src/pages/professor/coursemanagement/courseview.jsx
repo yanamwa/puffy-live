@@ -445,12 +445,11 @@ export default function CourseView() {
       setRejectReason("");
       setRejectError("");
 
-      // Email successfully sent
-      if (data.emailSent) {
+      if (data.emailEnabled === false || data.emailSent) {
         await Swal.fire({
           icon: "success",
           title: "Enrollment Declined",
-          text: "The enrollment request was declined and the email was sent successfully.",
+          text: data.message,
           confirmButtonText: "OK",
         });
 

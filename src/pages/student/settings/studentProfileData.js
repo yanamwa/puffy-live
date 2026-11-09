@@ -206,12 +206,13 @@ export async function fetchCurrentStudentUser() {
   return loadedUser;
 }
 
-export function useStudentProfile() {
+export function useStudentProfile({ enabled = true } = {}) {
   const [studentProfile, setStudentProfile] = useState(() =>
     buildStudentProfile(getStoredStudentUser()),
   );
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
 
     async function loadStudentProfile() {
@@ -234,7 +235,7 @@ export function useStudentProfile() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [enabled]);
 
   return studentProfile;
 }

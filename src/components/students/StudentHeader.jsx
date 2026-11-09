@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useStudentTutorial } from "../../pages/student/tutorial/StudentTutorialContext.js";
 
 import "./StudentHeader.css";
 
@@ -151,9 +152,12 @@ export default function StudentHeader({
   onJoinCourse,
   showSearch = true,
   showJoinCourse = true,
+  onLockedAction,
 }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const tutorial = useStudentTutorial();
+  const locked = Boolean(onLockedAction);
   const [localSearch, setLocalSearch] = useState("");
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
   const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
@@ -195,12 +199,13 @@ export default function StudentHeader({
     }
   };
   useEffect(() => {
+    if (tutorial || locked) return;
     loadNotifications();
     const intervalId = window.setInterval(loadNotifications, 5000);
     return () => {
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [tutorial, locked]);
   /* =====================================================
      USER PROFILE LISTENER
   ===================================================== */
@@ -464,7 +469,11 @@ export default function StudentHeader({
      JSX
   ===================================================== */
   return (
-    <header className="student-header responsive-role-header">
+    <header
+      className="student-header responsive-role-header"
+      onClickCapture={onLockedAction}
+      onSubmitCapture={onLockedAction}
+    >
       {/* SEARCH */}
       {showSearch && (
         <form

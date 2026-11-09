@@ -1,6 +1,11 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { requiresStudentPasswordChange } from "../utils/passwordPolicy.js";
+import { requiresPasswordChange, requiresStudentTutorial } from "../utils/passwordPolicy.js";
+import StudentTutorial from "../pages/student/tutorial/StudentTutorial.jsx";
+import {
+  getStudentSetupRedirect,
+  getTutorialStep,
+} from "../pages/student/tutorial/studentTutorialSteps.js";
 import {
   APP_ROLES,
   getHomePathForRole,
@@ -137,13 +142,6 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (
-    requiresStudentPasswordChange(currentUser) &&
-    pathname !== "/student/settings"
-  ) {
-    return <Navigate to="/student/settings" replace />;
-  }
-
   if (role === APP_ROLES.PROFESSOR) {
     const professorUser =
       [user, storedUser, tokenUser].find(
@@ -186,6 +184,28 @@ export default function ProtectedRoute() {
     role !== APP_ROLES.STUDENT
   ) {
     return <Navigate to={getHomePathForRole(role)} replace />;
+  }
+
+  if (
+    [APP_ROLES.PROFESSOR, APP_ROLES.ADMIN].includes(role) &&
+    requiresPasswordChange(currentUser) &&
+    pathname.replace(/\/+$/, "").toLowerCase() !== `/${role}/settings`
+  ) {
+    return <Navigate to={`/${role}/settings`} replace />;
+  }
+
+  if (role === APP_ROLES.STUDENT) {
+    const setupRedirect = getStudentSetupRedirect(currentUser, location);
+    if (setupRedirect) return <Navigate to={setupRedirect} replace />;
+
+    const tutorialStep = getTutorialStep(location);
+    if (tutorialStep) {
+      return requiresStudentTutorial(currentUser) ? (
+        <StudentTutorial step={tutorialStep}><Outlet /></StudentTutorial>
+      ) : (
+        <Navigate to={tutorialStep.fallbackPath ?? pathname} replace />
+      );
+    }
   }
 
   return <Outlet />;

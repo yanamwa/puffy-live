@@ -4,7 +4,6 @@ import Swal from "sweetalert2";
 import { API_BASE } from "../../../config.js";
 
 import {
-  FiBookOpen,
   FiCheck,
   FiMail,
   FiRefreshCw,
@@ -23,8 +22,7 @@ import "./SuperAdminSystemSettings.css";
 ===================================================== */
 
 const defaultSettings = {
-  systemName: "PuffyBrain",
-  academicYear: "2026-2027",
+  academicYear: "",
   semester: "1st Semester",
 
   maintenanceMode: false,
@@ -32,21 +30,22 @@ const defaultSettings = {
   requirePasswordChange: true,
   professorApproval: true,
 
-  practiceQuizEnabled: true,
-  mainQuizEnabled: true,
-  recordPracticeQuiz: true,
-  recordMainQuiz: true,
-  adaptiveQuizEnabled: true,
-  quizAnalysisEnabled: true,
-
   enrollmentApproval: true,
   enrollmentAcceptedEmail: true,
   enrollmentDeclinedEmail: true,
   enrollmentSystemNotification: true,
 
   professorApprovalNotification: true,
-  announcementsEnabled: true,
 };
+
+function getEditableSettings(settings) {
+  return Object.fromEntries(
+    Object.entries(defaultSettings).map(([key, fallback]) => [
+      key,
+      settings[key] ?? fallback,
+    ]),
+  );
+}
 
 /* =====================================================
    TOGGLE COMPONENT
@@ -64,6 +63,7 @@ function SettingToggle({ checked, onChange, label, description }) {
         type="button"
         className={`super-setting-toggle ${checked ? "is-active" : ""}`}
         role="switch"
+        aria-label={label}
         aria-checked={checked}
         onClick={() => onChange(!checked)}
       >
@@ -172,10 +172,7 @@ export default function SuperAdminSystemSettings() {
           return;
         }
 
-        const loadedSettings = {
-          ...defaultSettings,
-          ...data.settings,
-        };
+        const loadedSettings = getEditableSettings(data.settings);
 
         setSettings(loadedSettings);
         setSavedSettings(loadedSettings);
@@ -220,7 +217,10 @@ export default function SuperAdminSystemSettings() {
      CHECK FOR CHANGES
   ===================================================== */
 
-  const hasChanges = JSON.stringify(settings) !== JSON.stringify(savedSettings);
+  const changes = Object.fromEntries(
+    Object.entries(settings).filter(([key, value]) => value !== savedSettings[key]),
+  );
+  const hasChanges = Object.keys(changes).length > 0;
 
   /* =====================================================
      SAVE
@@ -246,7 +246,9 @@ export default function SuperAdminSystemSettings() {
     const confirmation = await Swal.fire({
       icon: "question",
       title: "Save System Settings?",
-      text: "These changes will update the PuffyBrain system configuration.",
+      text: changes.maintenanceMode === true
+        ? "Students, professors, and admins will lose access until a Super Admin turns maintenance mode off."
+        : "These changes will update the PuffyBrain system configuration.",
       showCancelButton: true,
       confirmButtonText: "Save Changes",
       cancelButtonText: "Cancel",
@@ -280,7 +282,7 @@ export default function SuperAdminSystemSettings() {
           Authorization: `Bearer ${token}`,
         },
 
-        body: JSON.stringify(settings),
+        body: JSON.stringify(changes),
       });
 
       const data = await response.json().catch(() => ({}));
@@ -289,14 +291,12 @@ export default function SuperAdminSystemSettings() {
         throw new Error(data.message || "Failed to save system settings.");
       }
 
-      const updatedSettings = {
-        ...defaultSettings,
-        ...(data.settings || settings),
-      };
+      const updatedSettings = getEditableSettings(data.settings || settings);
 
       setSettings(updatedSettings);
       setSavedSettings(updatedSettings);
 
+      window.dispatchEvent(new Event("puffy-system-settings-updated"));
       setNotice("System settings were saved successfully.");
 
       await Swal.fire({
@@ -362,8 +362,8 @@ export default function SuperAdminSystemSettings() {
           <h1>System Settings</h1>
 
           <p>
-            Configure the global behavior of PuffyBrain for accounts, quizzes,
-            enrollment, and notifications.
+            Manage academic configuration, account policies, enrollment, and
+            notifications.
           </p>
         </div>
 
@@ -410,21 +410,9 @@ export default function SuperAdminSystemSettings() {
         icon={FiSliders}
         eyebrow="General"
         title="General System Settings"
-        description="Manage the basic academic and platform configuration used across PuffyBrain."
+        description="Set the default academic period for new classes and the current academic year for calendars."
       >
         <div className="super-settings-form-grid">
-          <label className="super-settings-field">
-            <span>System Name</span>
-
-            <input
-              type="text"
-              value={settings.systemName}
-              onChange={(event) =>
-                updateSetting("systemName", event.target.value)
-              }
-            />
-          </label>
-
           <label className="super-settings-field">
             <span>Academic Year</span>
 
@@ -468,7 +456,7 @@ export default function SuperAdminSystemSettings() {
           checked={settings.requirePasswordChange}
           onChange={(value) => updateSetting("requirePasswordChange", value)}
           label="Require Password Change on First Login"
-          description="Newly created accounts must create a new password before accessing other PuffyBrain pages."
+          description="Require new accounts created with generated credentials to change their password before accessing other pages."
         />
 
         <SettingToggle
@@ -476,59 +464,6 @@ export default function SuperAdminSystemSettings() {
           onChange={(value) => updateSetting("professorApproval", value)}
           label="Require Professor Account Approval"
           description="Professor registration requests must be approved before the account receives full system access."
-        />
-      </SettingsSection>
-
-      {/* ===============================================
-          QUIZ AND LEARNING
-      =============================================== */}
-
-      <SettingsSection
-        icon={FiBookOpen}
-        eyebrow="Learning"
-        title="Quiz & Learning Configuration"
-        description="Control the quiz types and learning features available throughout PuffyBrain."
-      >
-        <SettingToggle
-          checked={settings.practiceQuizEnabled}
-          onChange={(value) => updateSetting("practiceQuizEnabled", value)}
-          label="Enable Practice Quiz"
-          description="Allow professors to provide Practice Quizzes to students."
-        />
-
-        <SettingToggle
-          checked={settings.mainQuizEnabled}
-          onChange={(value) => updateSetting("mainQuizEnabled", value)}
-          label="Enable Main Quiz"
-          description="Allow professors to provide Main Quizzes as part of course assessment."
-        />
-
-        <SettingToggle
-          checked={settings.recordPracticeQuiz}
-          onChange={(value) => updateSetting("recordPracticeQuiz", value)}
-          label="Record Practice Quiz Attempts"
-          description="Store student Practice Quiz attempts and results for monitoring and analysis."
-        />
-
-        <SettingToggle
-          checked={settings.recordMainQuiz}
-          onChange={(value) => updateSetting("recordMainQuiz", value)}
-          label="Record Main Quiz Attempts"
-          description="Store student Main Quiz attempts and results."
-        />
-
-        <SettingToggle
-          checked={settings.adaptiveQuizEnabled}
-          onChange={(value) => updateSetting("adaptiveQuizEnabled", value)}
-          label="Enable Adaptive Quiz Features"
-          description="Allow supported quizzes to adjust learning or assessment behavior using PuffyBrain's adaptive features."
-        />
-
-        <SettingToggle
-          checked={settings.quizAnalysisEnabled}
-          onChange={(value) => updateSetting("quizAnalysisEnabled", value)}
-          label="Enable Quiz Analysis"
-          description="Allow quiz results to be used for overall and question-level quiz analysis."
         />
       </SettingsSection>
 
@@ -545,7 +480,7 @@ export default function SuperAdminSystemSettings() {
         <SettingToggle
           checked={settings.enrollmentApproval}
           onChange={(value) => updateSetting("enrollmentApproval", value)}
-          label="Require Professor Approval"
+          label="Require Professor Approval for Enrollment"
           description="Student enrollment requests must be accepted by the professor before the course appears in My Courses."
         />
 
@@ -573,7 +508,7 @@ export default function SuperAdminSystemSettings() {
           checked={settings.enrollmentAcceptedEmail}
           onChange={(value) => updateSetting("enrollmentAcceptedEmail", value)}
           label="Enrollment Accepted Email"
-          description="Send an email to the student when a professor accepts an enrollment request."
+          description="Email the student when enrollment is approved by a professor or automatically confirmed."
         />
 
         <SettingToggle
@@ -591,13 +526,6 @@ export default function SuperAdminSystemSettings() {
           label="Professor Approval Notifications"
           description="Generate notifications related to pending and completed professor account approvals."
         />
-
-        <SettingToggle
-          checked={settings.announcementsEnabled}
-          onChange={(value) => updateSetting("announcementsEnabled", value)}
-          label="System Announcements"
-          description="Allow authorized administrators to publish system-wide announcements."
-        />
       </SettingsSection>
 
       {/* ===============================================
@@ -608,13 +536,13 @@ export default function SuperAdminSystemSettings() {
         icon={FiTool}
         eyebrow="Maintenance"
         title="System Maintenance"
-        description="Control system availability during maintenance or administrative operations."
+        description="Temporarily pause access to PuffyBrain during maintenance."
       >
         <SettingToggle
           checked={settings.maintenanceMode}
           onChange={(value) => updateSetting("maintenanceMode", value)}
           label="Maintenance Mode"
-          description="Temporarily restrict normal access while system maintenance is being performed."
+          description="Show a maintenance screen and restrict access to Super Admins."
         />
 
         {settings.maintenanceMode && (
@@ -622,11 +550,10 @@ export default function SuperAdminSystemSettings() {
             <FiTool aria-hidden="true" />
 
             <div>
-              <strong>Maintenance mode will be enabled.</strong>
+              <strong>Maintenance Mode selected</strong>
 
               <p>
-                This currently changes the setting in this page only. Backend
-                enforcement will be connected separately.
+                When saved, only Super Admins can access PuffyBrain.
               </p>
             </div>
           </div>

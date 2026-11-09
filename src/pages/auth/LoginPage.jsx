@@ -8,6 +8,8 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 import { API_BASE } from "../../config.js";
 import LandingNavbar from "../../components/landing/LandingNavbar";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { useSystemStatus } from "../../context/SystemStatusContext.jsx";
+import { getStudentSetupPath } from "../student/tutorial/studentTutorialSteps.js";
 import {
   APP_ROLES,
   getHomePathForRole,
@@ -20,6 +22,7 @@ function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, saveSession, logout } = useAuth();
+  const { maintenanceMode } = useSystemStatus();
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -39,7 +42,7 @@ function Login() {
   useEffect(() => {
     const role = getUserRole(user);
 
-    if (role && !isLoggingIn) {
+    if (role && !isLoggingIn && (!maintenanceMode || role === APP_ROLES.SUPER_ADMIN)) {
       if (isProfessorApprovalRestricted(user)) {
         logout();
         setLoginError(
@@ -52,7 +55,7 @@ function Login() {
         replace: true,
       });
     }
-  }, [isLoggingIn, logout, navigate, user]);
+  }, [isLoggingIn, logout, maintenanceMode, navigate, user]);
 
   useEffect(() => {
     if (location.state?.professorApprovalRequired) {
@@ -168,24 +171,9 @@ function Login() {
       normalizeRole(data.role) ||
       APP_ROLES.STUDENT;
 
-    const mustChangePassword =
-      loggedInUser?.mustChangePassword === true ||
-      loggedInUser?.must_change_password === true ||
-      Number(loggedInUser?.must_change_password) === 1;
-
-    if (role === APP_ROLES.STUDENT && mustChangePassword) {
-      await Swal.fire({
-        imageUrl: "/images/success.png",
-        imageWidth: 170,
-        imageHeight: 170,
-        title: "Password Update Required",
-        text: "Please change your temporary password.",
-      });
-
-      navigate("/student/settings", {
-        replace: true,
-      });
-
+    const studentSetupPath = getStudentSetupPath(loggedInUser);
+    if (studentSetupPath) {
+      navigate(studentSetupPath, { replace: true });
       return;
     }
 
@@ -307,6 +295,10 @@ function Login() {
       console.log("LOGIN RESPONSE:", data);
 
       if (!res.ok || !data.success) {
+        if (data.code === "MAINTENANCE_MODE") {
+          showLoginError(data.message);
+          return;
+        }
         const accountDeleted =
           data.account_deleted === true ||
           data.account_deleted === 1 ||

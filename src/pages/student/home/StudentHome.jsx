@@ -14,7 +14,10 @@ import Swal from "sweetalert2";
 import StudentSidebar from "../../../components/students/StudentSidebar";
 import StudentHeader from "../../../components/students/StudentHeader";
 import JoinCourseModal from "../courses/JoinCourseModal.jsx";
+import { useSystemStatus } from "../../../context/SystemStatusContext.jsx";
 import { requestCourseEnrollmentByCode } from "../courses/courseEnrollment.js";
+import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
+import { tutorialEnrolledCourses } from "../tutorial/studentTutorialExamples.js";
 
 import "./StudentHome.css";
 
@@ -141,10 +144,11 @@ function ProfessorAvatar({ src, alt = "Professor" }) {
 
 export default function StudentHome() {
   const navigate = useNavigate();
+  const tutorial = useStudentTutorial();
 
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
-  const [enrolledCourses, setEnrolledCourses] = useState([]);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [enrolledCourses, setEnrolledCourses] = useState(() => tutorial ? tutorialEnrolledCourses : []);
+  const [dashboardLoading, setDashboardLoading] = useState(!tutorial);
   const [dashboardError, setDashboardError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -155,12 +159,15 @@ export default function StudentHome() {
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const academicCalendars = useAcademicCalendars();
+  const academicCalendars = useAcademicCalendars({ enabled: !tutorial });
   const [academicCalendarId, setAcademicCalendarId] = useState(null);
+  const { academicYear } = useSystemStatus();
   const activeAcademicCalendar =
     academicCalendars.records.find(
       (record) => record.calendar_id === academicCalendarId,
-    ) || academicCalendars.records[0];
+    ) ||
+    academicCalendars.records.find((record) => record.academic_year === academicYear) ||
+    academicCalendars.records[0];
 
   const todoStorageKey = useMemo(() => {
     const user = getStoredUser();
@@ -170,6 +177,7 @@ export default function StudentHome() {
   }, []);
 
   const [todos, setTodos] = useState(() => {
+    if (tutorial) return [];
     try {
       const user = getStoredUser();
       const key = `student-todos-${
@@ -185,8 +193,8 @@ export default function StudentHome() {
   const [newTodo, setNewTodo] = useState("");
 
   useEffect(() => {
-    localStorage.setItem(todoStorageKey, JSON.stringify(todos));
-  }, [todos, todoStorageKey]);
+    if (!tutorial) localStorage.setItem(todoStorageKey, JSON.stringify(todos));
+  }, [todos, todoStorageKey, tutorial]);
 
   const calendarDays = useMemo(() => {
     const year = shownMonth.getFullYear();
@@ -246,6 +254,7 @@ export default function StudentHome() {
   );
 
   useEffect(() => {
+    if (tutorial) return;
     let active = true;
 
     async function loadDashboard() {
@@ -332,7 +341,7 @@ export default function StudentHome() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [tutorial]);
 
   useEffect(() => {
     const handleUserUpdated = (event) => {
@@ -428,7 +437,7 @@ export default function StudentHome() {
 
         <div className="student-home-body">
           <main className="student-home-content">
-            <section className="home-welcome-card">
+            <section className="home-welcome-card" data-tutorial="welcome">
               <div>
                 <p className="home-eyebrow">Student dashboard</p>
                 <h1>Hello, {displayName}!</h1>
@@ -445,6 +454,7 @@ export default function StudentHome() {
             <section
               className="home-section"
               aria-labelledby="continue-quizzes-title"
+              data-tutorial="quizzes"
             >
               <div className="home-section-header">
                 <h2 id="continue-quizzes-title">Continue your quizzes</h2>

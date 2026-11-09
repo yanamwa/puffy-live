@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { requiresStudentPasswordChange } from "../../../utils/passwordPolicy.js";
+import { API_BASE } from "../../../config.js";
+import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
 
 import StudentSidebar from "../../../components/students/StudentSidebar.jsx";
 import StudentHeader from "../../../components/students/StudentHeader.jsx";
@@ -11,8 +13,6 @@ import JoinCourseModal from "../courses/JoinCourseModal.jsx";
 import { requestCourseEnrollmentByCode } from "../courses/courseEnrollment.js";
 
 import "./StudentSetting.css";
-
-import { API_BASE as API_BASE_URL } from "../../../config.js";
 
 const initialPasswordForm = {
   currentPassword: "",
@@ -33,7 +33,25 @@ function getStoredToken() {
 export default function StudentSettings() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  const tutorial = useStudentTutorial();
   const passwordChangeRequired = requiresStudentPasswordChange(user);
+  const locked = passwordChangeRequired && !tutorial;
+  const secureHeading = useRef(null);
+  const [showPasswordReminder, setShowPasswordReminder] = useState(false);
+
+  useEffect(() => {
+    if (locked) secureHeading.current?.focus();
+  }, [locked]);
+
+  const keepOnSettings = (event) => {
+    if (event.type !== "submit" && !event.target.closest("a, button")) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    setShowPasswordReminder(true);
+    secureHeading.current?.focus();
+  };
+  const onLockedAction = locked ? keepOnSettings : undefined;
 
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [courseCode, setCourseCode] = useState("");
@@ -171,7 +189,7 @@ export default function StudentSettings() {
     setIsSubmittingPassword(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/users/change-password`, {
+      const response = await fetch(`${API_BASE}/users/change-password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -186,9 +204,11 @@ export default function StudentSettings() {
 
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok || data.success === false) {
+      if (!response.ok || data.success !== true) {
         throw new Error(data.message || "Unable to change your password.");
       }
+
+      if (getStoredToken() !== token) return;
 
       updateUser({
         ...user,
@@ -239,12 +259,12 @@ export default function StudentSettings() {
 
   return (
     <div className="student-settings-page">
-      <StudentSidebar />
+      <StudentSidebar onLockedAction={onLockedAction} />
 
       <div className="student-settings-main-area">
         <StudentHeader
+          onLockedAction={onLockedAction}
           searchPlaceholder="Search your course"
-          showJoinCourse={!passwordChangeRequired}
           onJoinCourse={() => setJoinModalOpen(true)}
         />
 
@@ -254,8 +274,8 @@ export default function StudentSettings() {
               <h1>Account Settings</h1>
 
               <p>
-                {passwordChangeRequired
-                  ? "Please change your temporary password to unlock the rest of your account."
+                {locked
+                  ? "Change the temporary password your admin gave you to unlock your dashboard and courses."
                   : "Manage your password and keep your student account secure."}
               </p>
             </div>
@@ -266,7 +286,7 @@ export default function StudentSettings() {
             aria-label="Change password"
           >
             <div className="password-settings-card">
-              <div className="password-card-header">
+              <div className="password-card-header" data-tutorial="password">
                 <span className="password-card-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24">
                     <rect x="5" y="10" width="14" height="10" rx="2" />
@@ -276,10 +296,14 @@ export default function StudentSettings() {
                 </span>
 
                 <div>
-                  <h2>Change Password</h2>
+                  <h2 ref={secureHeading} tabIndex={locked ? -1 : undefined}>
+                    {locked ? "Secure Your Account" : "Change Password"}
+                  </h2>
 
-                  <p>
-                    Use a strong password that you do not use on other accounts.
+                  <p role="status">
+                    {locked && showPasswordReminder
+                      ? "Change your temporary password here to unlock that feature."
+                      : "Use a strong password that you do not use on other accounts."}
                   </p>
                 </div>
               </div>
@@ -300,7 +324,7 @@ export default function StudentSettings() {
                       value={passwordForm.currentPassword}
                       onChange={updatePasswordField("currentPassword")}
                       autoComplete="current-password"
-                      placeholder="Enter your current password"
+                      placeholder={locked ? "Enter your temporary password" : "Enter your current password"}
                     />
 
                     <button
@@ -471,7 +495,7 @@ export default function StudentSettings() {
       </div>
 
       <JoinCourseModal
-        open={joinModalOpen}
+        open={joinModalOpen && !locked}
         courseCode={courseCode}
         onCourseCodeChange={setCourseCode}
         onCancel={closeJoinModal}

@@ -5,6 +5,7 @@ import Swal from "sweetalert2";
 import styles from "./Learning_Module.module.css";
 import "../../index.css";
 import { API_BASE } from "../../config.js";
+import { lessonAuthHeaders } from "../../services/lessonAuth.js";
 import QuizModesModal from "../../components/quizmodes/QuizModesModal";
 import UserHeader from "../../components/UserHeader";
 import UserSidebar from "../../components/UserSidebar";
@@ -287,6 +288,7 @@ function LearningModule() {
           `${API_BASE}/getLessonProgress.php?user_id=${user.id}&lesson_id=${lessonId}`,
           {
             credentials: "include",
+            headers: lessonAuthHeaders(),
           },
         );
 

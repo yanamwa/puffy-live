@@ -8,11 +8,27 @@ import {
 } from "../../services/catalogApi.js";
 import { CatalogModal, PdfPreview } from "./CatalogModal.jsx";
 
+function syllabusPeriod({ academic_year, semester }) {
+  const year = new Date().getFullYear();
+  const semesterText = String(semester ?? "").trim();
+  return {
+    academic_year: /\d{4}\s*[-–—]\s*\d{4}/.test(academic_year ?? "")
+      ? academic_year.trim()
+      : `${year}-${year + 1}`,
+    semester: /^(?:first|1st|1)(?:\s+semester)?$/i.test(semesterText)
+      ? "First Semester"
+      : /^(?:second|2nd|2)(?:\s+semester)?$/i.test(semesterText)
+        ? "Second Semester"
+        : "",
+  };
+}
+
 export function CatalogFields({
   value,
   onChange,
   readOnly = false,
   invalid = false,
+  showPrograms = true,
 }) {
   const field = (key, label, type = "text", required = false) => (
     <label key={key}>
@@ -47,27 +63,29 @@ export function CatalogFields({
       {field("title", "Course title", "text", true)}
       {field("description", "Course description")}
       {field("units", "Credit units", "number")}
-      <fieldset>
-        <legend>Applicable programs</legend>
-        {["BSIT", "BSCS"].map((program) => (
-          <label className="catalog-check" key={program}>
-            <input
-              type="checkbox"
-              disabled={readOnly}
-              checked={(value.programs || []).includes(program)}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  programs: e.target.checked
-                    ? [...(value.programs || []), program]
-                    : (value.programs || []).filter((p) => p !== program),
-                })
-              }
-            />
-            {program}
-          </label>
-        ))}
-      </fieldset>
+      {showPrograms && (
+        <fieldset>
+          <legend>Applicable programs</legend>
+          {["BSIT", "BSCS"].map((program) => (
+            <label className="catalog-check" key={program}>
+              <input
+                type="checkbox"
+                disabled={readOnly}
+                checked={(value.programs || []).includes(program)}
+                onChange={(e) =>
+                  onChange({
+                    ...value,
+                    programs: e.target.checked
+                      ? [...(value.programs || []), program]
+                      : (value.programs || []).filter((p) => p !== program),
+                  })
+                }
+              />
+              {program}
+            </label>
+          ))}
+        </fieldset>
+      )}
     </div>
   );
 }
@@ -166,11 +184,10 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
         ...(course
           ? {
               ...course,
-              academic_year: data.suggestions.academic_year,
-              semester: data.suggestions.semester,
               coverage_modules: data.suggestions.coverage_modules || [],
             }
           : {}),
+        ...syllabusPeriod(data.suggestions),
       });
       setMatches(data.matches || []);
     } catch (e) {
@@ -193,11 +210,10 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
         ...(attach
           ? {
               ...attach,
-              academic_year: data.suggestions.academic_year,
-              semester: data.suggestions.semester,
               coverage_modules: data.suggestions.coverage_modules,
             }
           : {}),
+        ...syllabusPeriod(data.suggestions),
       });
       setMatches(data.matches || []);
     } catch (error) {
@@ -381,13 +397,13 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
                 onChange={change}
                 readOnly={!!attach}
                 invalid={invalid}
+                showPrograms={false}
               />
               <label>
                 Syllabus academic year
                 <input
                   value={details.academic_year || ""}
                   maxLength={30}
-                  placeholder="e.g. 2026–2027"
                   onChange={(e) =>
                     change({ ...details, academic_year: e.target.value })
                   }
@@ -395,14 +411,16 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
               </label>
               <label>
                 Syllabus semester
-                <input
+                <select
                   value={details.semester || ""}
-                  maxLength={30}
-                  placeholder="e.g. First Semester"
                   onChange={(e) =>
                     change({ ...details, semester: e.target.value })
                   }
-                />
+                >
+                  <option value="">Select semester</option>
+                  <option>First Semester</option>
+                  <option>Second Semester</option>
+                </select>
               </label>
               <CoverageModules
                 value={details.coverage_modules}

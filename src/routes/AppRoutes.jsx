@@ -32,7 +32,6 @@ import SuperAdminBackupPage from "../pages/superadmin/backup/SuperAdminBackupPag
 import SuperAdminSystemAnalytics from "../pages/superadmin/analytics/SuperAdminSystemAnalytics";
 import SuperAdminAuditLogs from "../pages/superadmin/audit/SuperAdminAuditLogs";
 import SuperAdminSystemSettings from "../pages/superadmin/settings/SuperAdminSystemSettings";
-import SuperAdminSecurityPermissions from "../pages/superadmin/security/SuperAdminSecurityPermissions";
 import SuperAdminProfile from "../pages/superadmin/profile/SuperAdminProfile";
 import SuperAdminModesManagement from "../pages/superadmin/modes/SuperAdminModesManagement";
 
@@ -85,8 +84,8 @@ function LearningRedirect() {
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
       <Route element={<Layout />}>
+        <Route path="/" element={<LandingPage />} />
         {/* ==========================
             PUBLIC ROUTES (Guest)
         ========================== */}
@@ -211,11 +210,7 @@ export default function AppRoutes() {
 
           <Route
             path="/super-admin/security"
-            element={
-              <SuperAdminLayout>
-                <SuperAdminSecurityPermissions />
-              </SuperAdminLayout>
-            }
+            element={<Navigate to="/super-admin/settings" replace />}
           />
 
           <Route
@@ -591,7 +586,7 @@ export default function AppRoutes() {
         {/* ==========================
             DEFAULT ROUTE
         ========================== */}
-
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );

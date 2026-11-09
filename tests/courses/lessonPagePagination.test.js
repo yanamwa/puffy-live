@@ -154,37 +154,13 @@ const checkbox = (tree, label) =>
     (node) => node.type === "input",
   )[0];
 
-test("lesson pagination shows real page numbers, endpoints and meaningful gaps", () => {
+test("lesson pagination shows consecutive groups of up to ten pages", () => {
   const { pageNumbers } = editor(0);
   assert.deepEqual(Array.from(pageNumbers(0, 1)), []);
   assert.deepEqual(Array.from(pageNumbers(4, 1)), [1, 2, 3, 4]);
-  assert.deepEqual(Array.from(pageNumbers(10, 1)), [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    "end-gap",
-    10,
-  ]);
-  for (let total = 1; total <= 100; total += 1) {
-    for (let current = 1; current <= total; current += 1) {
-      const pages = Array.from(pageNumbers(total, current));
-      const numbers = pages.filter((page) => typeof page === "number");
-      assert.equal(numbers[0], 1);
-      assert.equal(numbers.at(-1), total);
-      assert.ok(numbers.includes(current));
-      assert.equal(new Set(numbers).size, numbers.length);
-      assert.ok(pages.length <= 10);
-      pages.forEach((page, index) => {
-        if (typeof page !== "number")
-          assert.ok(pages[index + 1] - pages[index - 1] > 1);
-        else if (typeof pages[index + 1] === "number")
-          assert.equal(pages[index + 1], page + 1);
-      });
-    }
-  }
+  assert.deepEqual(Array.from(pageNumbers(12, 10)), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.deepEqual(Array.from(pageNumbers(12, 11)), [11, 12]);
+  assert.deepEqual(Array.from(pageNumbers(23, 21)), [21, 22, 23]);
 });
 
 test("one pager opens the chosen lesson, keeps edits, and disables boundary steps", () => {
@@ -224,6 +200,12 @@ test("page selections survive navigation and deletion removes only confirmed sel
     target: { checked: true },
   });
   tree = h.render();
+  pageButton(tree, 10).props.onClick();
+  tree = h.render();
+  button(tree, "Next").props.onClick();
+  tree = h.render();
+  assert.equal(pageButton(tree, 11).props["aria-current"], "page");
+  assert.equal(pageButton(tree, 10), undefined);
   pageButton(tree, 12).props.onClick();
   tree = h.render();
   checkbox(tree, "Select This Page").props.onChange({

@@ -1,0 +1,122 @@
+.student-tutorial-sample-label {
+  margin: 6px 0 0;
+  color: #385d80;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.student-tutorial-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  pointer-events: none;
+}
+
+body .swal2-container.student-tutorial-skip-confirmation {
+  z-index: 12001;
+}
+
+.student-tutorial-dim {
+  position: absolute;
+  inset: 0;
+  background: rgb(14 28 49 / 68%);
+}
+
+.student-tutorial-spotlight {
+  position: absolute;
+  border: 3px solid #8fc7ff;
+  border-radius: 16px;
+  box-shadow: 0 0 0 150vmax rgb(14 28 49 / 68%);
+}
+
+.student-tutorial-panel {
+  position: absolute;
+  inset: auto auto 12px 12px;
+  box-sizing: border-box;
+  width: min(370px, calc(100% - 24px));
+  padding: 18px;
+  border-radius: 16px;
+  background: #fff;
+  color: #183754;
+  box-shadow: 0 10px 32px rgb(16 37 58 / 27%);
+  pointer-events: auto;
+}
+
+.student-tutorial-panel[data-arrow]::before {
+  content: "";
+  position: absolute;
+  left: var(--tutorial-arrow-x);
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.student-tutorial-panel[data-arrow="above"]::before {
+  top: -8px;
+}
+
+.student-tutorial-panel[data-arrow="below"]::before {
+  bottom: -8px;
+}
+
+.student-tutorial-panel h2 {
+  margin: 4px 0 8px;
+  font-size: 1.2rem;
+}
+
+.student-tutorial-panel p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.student-tutorial-panel .student-tutorial-progress {
+  color: #385d80;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.student-tutorial-panel .student-tutorial-error {
+  margin-top: 8px;
+  color: #9d2828;
+}
+
+.student-tutorial-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.student-tutorial-actions button {
+  min-height: 40px;
+  padding: 5px 9px;
+  border: 1px solid #c4d7eb;
+  border-radius: 8px;
+  background: #f1f6fb;
+  color: #214b74;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.student-tutorial-actions button:first-child {
+  margin-right: auto;
+  border-color: transparent;
+  background: transparent;
+}
+
+.student-tutorial-actions .student-tutorial-next {
+  border-color: #225a90;
+  background: #225a90;
+  color: #fff;
+}
+
+.student-tutorial-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

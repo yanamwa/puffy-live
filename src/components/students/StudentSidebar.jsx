@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { FiLogOut } from "react-icons/fi";
+import { useStudentTutorial } from "../../pages/student/tutorial/StudentTutorialContext.js";
 
 import { Icon } from "../../pages/student/enrolled/EnrolledCourses";
 import "./StudentSidebar.css";
@@ -43,10 +44,12 @@ function normalizeCourse(course) {
   };
 }
 
-export default function StudentSidebar({ collapsed, onCollapsedChange }) {
+export default function StudentSidebar({ collapsed, onCollapsedChange, onLockedAction }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const tutorial = useStudentTutorial();
+  const locked = Boolean(onLockedAction);
 
   const [internalCollapsed, setInternalCollapsed] = useState(() => {
     return localStorage.getItem("sidebarCollapsed") === "true";
@@ -65,6 +68,7 @@ export default function StudentSidebar({ collapsed, onCollapsedChange }) {
     typeof collapsed === "boolean" ? collapsed : internalCollapsed;
 
   useEffect(() => {
+    if (tutorial || locked) return;
     let active = true;
 
     async function loadEnrolledCourses() {
@@ -125,7 +129,7 @@ export default function StudentSidebar({ collapsed, onCollapsedChange }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [tutorial, locked]);
 
   const toggleSidebar = () => {
     const newValue = !sidebarCollapsed;
@@ -191,6 +195,8 @@ export default function StudentSidebar({ collapsed, onCollapsedChange }) {
         id="student-sidebar-navigation"
         className="side-nav"
         aria-label="Student navigation"
+        onClickCapture={onLockedAction}
+        onAuxClickCapture={onLockedAction}
       >
         <NavLink
           to="/student"

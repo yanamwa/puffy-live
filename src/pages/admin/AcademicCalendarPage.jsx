@@ -1,19 +1,21 @@
 import { FiCalendar, FiFileText, FiBookOpen } from "react-icons/fi";
 import { useEffect, useRef, useState } from "react";
+import { useSystemStatus } from "../../context/SystemStatusContext.jsx";
 import { academicCalendarRequest } from "../../services/academicCalendarApi.js";
 import {
   CalendarInlinePreview,
   useAcademicCalendars,
 } from "../../components/academicCalendar/AcademicCalendar.jsx";
-const empty = () => ({
+const empty = (academicYear = "") => ({
   title: "CvSU Academic Calendar",
-  academic_year: "",
+  academic_year: academicYear,
   published: true,
   events: [],
 });
 export default function AcademicCalendarPage() {
   const { records, loading, error, reload } = useAcademicCalendars();
-  const [value, setValue] = useState(empty);
+  const { academicYear, loaded: systemStatusLoaded } = useSystemStatus();
+  const [value, setValue] = useState(() => empty(academicYear));
   const [tab, setTab] = useState("Calendar View");
   const [month, setMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -77,10 +79,12 @@ export default function AcademicCalendarPage() {
       importEvents([], record);
   };
   useEffect(() => {
-    if (loading || error || initialized.current) return;
+    if (loading || error || !systemStatusLoaded || initialized.current) return;
     initialized.current = true;
-    if (records[0]) loadCalendar(records[0]);
-  }, [loading, error, records]);
+    const current = records.find((record) => record.academic_year === academicYear) || records[0];
+    if (current) loadCalendar(current);
+    else setValue((form) => ({ ...form, academic_year: form.academic_year || academicYear }));
+  }, [loading, error, records, academicYear, systemStatusLoaded]);
 
   const importEvents = async (sourceFiles = files, sourceCalendar = value) => {
     if (
@@ -143,7 +147,7 @@ export default function AcademicCalendarPage() {
     }
   };
   const reset = () => {
-    setValue(empty());
+    setValue(empty(academicYear));
     setFiles([]);
     setFileKey((k) => k + 1);
     setSaveError("");

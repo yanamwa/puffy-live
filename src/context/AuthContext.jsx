@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE } from "../config.js";
 import {
+  APP_ROLES,
   getUserRole,
   isProfessorApprovalRestricted,
   withNormalizedRole,
@@ -99,6 +100,10 @@ function writeUserSession(sessionUser, token = readStoredToken()) {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readStoredUser);
+  const [checkingStudentSession, setCheckingStudentSession] = useState(
+    () => Boolean(readStoredToken()) && (!user || getUserRole(user) === APP_ROLES.STUDENT),
+  );
+  const sessionRevision = useRef(0);
 
   const saveSession = (data) => {
     const sessionUser = withNormalizedRole(
@@ -141,6 +146,7 @@ export function AuthProvider({ children }) {
       ...baseUser,
       ...normalizedNextUser,
     });
+    sessionRevision.current += 1;
     setUser(updatedUser);
 
     window.dispatchEvent(
@@ -159,15 +165,19 @@ export function AuthProvider({ children }) {
         setUser(null);
       }
 
+      setCheckingStudentSession(false);
       return undefined;
     }
 
     let isMounted = true;
+    const revision = sessionRevision.current;
+    const verifyStudentSession = checkingStudentSession;
 
     async function refreshCurrentUser() {
       try {
         const response = await fetch(`${API_BASE}/users/me`, {
           credentials: "include",
+          signal: verifyStudentSession ? AbortSignal.timeout(10000) : undefined,
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -175,7 +185,7 @@ export function AuthProvider({ children }) {
 
         const data = await response.json().catch(() => ({}));
 
-        if (!isMounted || readStoredToken() !== token) {
+        if (!isMounted || readStoredToken() !== token || sessionRevision.current !== revision) {
           return;
         }
 
@@ -194,7 +204,18 @@ export function AuthProvider({ children }) {
         const normalizedUser = writeUserSession(data.user, token);
         setUser(normalizedUser);
       } catch (error) {
+        if (
+          verifyStudentSession &&
+          isMounted &&
+          readStoredToken() === token &&
+          sessionRevision.current === revision
+        ) {
+          clearStoredSession();
+          setUser(null);
+        }
         console.warn("Unable to refresh current user session.", error);
+      } finally {
+        if (isMounted && verifyStudentSession) setCheckingStudentSession(false);
       }
     }
 
@@ -211,11 +232,16 @@ export function AuthProvider({ children }) {
         setUser(withNormalizedRole(event.detail));
       }
     };
+    const handleStoredUserUpdated = (event) => {
+      if (event.key === "puffy-user") setUser(readStoredUser());
+    };
 
     window.addEventListener("puffy-user-updated", handleUserUpdated);
+    window.addEventListener("storage", handleStoredUserUpdated);
 
     return () => {
       window.removeEventListener("puffy-user-updated", handleUserUpdated);
+      window.removeEventListener("storage", handleStoredUserUpdated);
     };
   }, []);
 
@@ -233,6 +259,27 @@ export function AuthProvider({ children }) {
       throw new Error(data.message || "Invalid credentials.");
     }
 
+    return saveSession(data);
+  };
+
+  const switchRole = async (role) => {
+    const token = readStoredToken();
+    if (!token) throw new Error("Please sign in again.");
+
+    const response = await fetch(`${API_BASE}/switch-role`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ role }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success || !data.token || !data.user) {
+      throw new Error(data.message || "Could not switch roles. Please try again.");
+    }
+    if (readStoredToken() !== token) throw new Error("Your session changed. Please try again.");
     return saveSession(data);
   };
 
@@ -257,8 +304,8 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ user, login, logout, saveSession, updateUser }),
-    [user],
+    () => ({ user, checkingStudentSession, login, logout, saveSession, switchRole, updateUser }),
+    [user, checkingStudentSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

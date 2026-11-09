@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
+import { useStudentTutorial } from "../../pages/student/tutorial/StudentTutorialContext.js";
+import { tutorialQuizResults } from "../../pages/student/tutorial/studentTutorialExamples.js";
 import "./RecentMainQuizResults.css";
 export default function RecentMainQuizResults() {
+  const tutorial = useStudentTutorial();
   const [revision, setRevision] = useState(0);
-  const [data, setData] = useState({ records: [], total: 0 });
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(() => ({ records: tutorial ? tutorialQuizResults : [] }));
+  const [loading, setLoading] = useState(!tutorial);
   const [error, setError] = useState("");
   const page = 1;
   const pageSize = 5;
   useEffect(() => {
+    if (tutorial) return;
     const controller = new AbortController();
     setLoading(true);
     setError("");
@@ -30,7 +34,7 @@ export default function RecentMainQuizResults() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [page, pageSize, revision]);
+  }, [page, pageSize, revision, tutorial]);
   return (
     <section
       className="home-section home-recent-quiz-results"

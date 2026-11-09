@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import test from "node:test";
 import { transformSync } from "esbuild";
+import { summarizeAssessment } from "../../src/utils/assessmentAnalytics.js";
 
 const source = readFileSync(
   new URL(
@@ -24,6 +25,9 @@ const report = {
     {
       key: "42:1",
       name: "Diana",
+      program: "BSIT",
+      yearLevel: "4th Year",
+      section: "4A",
       course: "Understanding the Self",
       courseCode: "PB-SELF",
       scoredAttempts: 2,
@@ -31,6 +35,8 @@ const report = {
       completedModules: 1,
       totalModules: 3,
       needsAttention: true,
+      practiceAttempts: [{ attempts_id: 1, score: 1, total: 4 }],
+      topics: [{ label: "Identity", percent: 0 }],
     },
     {
       key: "43:2",
@@ -61,6 +67,7 @@ function harness({ data = report, fails = false, pending = false } = {}) {
     h: (type, props, ...children) => ({ type, props: { ...props, children } }),
     styles: new Proxy({}, { get: (_, key) => key }),
     FiSearch: "search-icon",
+    FiX: "close-icon",
     useState(initial) {
       const state = active;
       const index = state.cursor++;
@@ -149,13 +156,23 @@ test("the professor report shows both sections, real score states and searchable
   assert.equal(tables[0].props.rows.length, 2);
   assert.equal(
     text(tables[0].props.rows[0].cells),
-    "DianaUnderstanding the Self215%1/3Needs attention",
+    "DianaUnderstanding the Self115%1/3Identity (0%)",
   );
-  assert.match(text(tables[0].props.rows[1].cells), /N\/A0\/2Not assessed/);
+  assert.match(text(tables[0].props.rows[1].cells), /N\/A0\/2No topic results/);
+  const performanceTable = h.table.render(tables[0].props);
+  const firstRow = nodes(
+    performanceTable,
+    (node) => node.type === "tr" && node.props.onClick,
+  )[0];
+  firstRow.props.onClick();
+  const dialog = nodes(h.root.render(), (node) => node.type === "dialog")[0];
+  assert.match(text(dialog), /Diana.*Topic mastery.*Identity \(0%\)/);
+  assert.match(text(dialog), /CourseBSITYear & Section4A/);
+  dialog.props.onClose();
   assert.equal(tables[1].props.rows.length, 1);
   assert.equal(
     text(tables[1].props.rows[0].cells),
-    "DianaUnderstanding the Self15%2",
+    "DianaUnderstanding the Self15%1",
   );
   nodes(
     tree,
@@ -180,7 +197,7 @@ test("missing thresholds, failed requests and canceled loads do not show mislead
   await settle();
   const tree = missing.root.render();
   const tables = nodes(tree, (node) => node.type === missing.tableType);
-  assert.match(text(tables[0].props.rows[0].cells), /Threshold not configured/);
+  assert.match(text(tables[0].props.rows[0].cells), /Identity \(0%\)/);
   assert.equal(tables[1].props.rows.length, 0);
   assert.match(tables[1].props.empty, /not configured/);
 
@@ -239,19 +256,47 @@ test("report tables paginate, resize and reset searches without losing or duplic
     text(h.table.render({ ...props, rows: [] })),
     /No matching students/,
   );
+  tree = h.table.render({ ...props, pageKey: "history", fixedPageSize: 10 });
+  assert.match(text(tree), /Showing 1–10 of 25 records/);
+  assert.equal(nodes(tree, (node) => node.type === "select").length, 0);
+  button(tree, "Next").props.onClick();
+  assert.match(
+    text(h.table.render({ ...props, pageKey: "history", fixedPageSize: 10 })),
+    /Showing 11–20 of 25 records/,
+  );
 });
 
 test("professor report requests include the stored session token, cancellation and fresh data", async () => {
   const requests = [];
   const context = vm.createContext({
     API_BASE: "/api",
+    summarizeAssessment,
     localStorage: {
       getItem: (key) => (key === "puffy-token" ? "test-token" : null),
     },
     sessionStorage: { getItem: () => null },
     fetch: async (url, options) => {
       requests.push({ url, ...options });
-      return { ok: true, json: async () => ({ success: true, ...report }) };
+      const attempts = [
+        {
+          user_id: 1,
+          assessment_type: "practice",
+          score: 0,
+          total: 1,
+          answers: [{ question: "Q1", topic: "Identity", isCorrect: false }],
+        },
+        {
+          user_id: 1,
+          assessment_type: "main",
+          score: 1,
+          total: 1,
+          answers: [{ question: "Q2", topic: "Culture", isCorrect: true }],
+        },
+        { user_id: 1, assessment_type: "main", score: null, total: 1 },
+        { user_id: 2, assessment_type: "recap", score: 1, total: 1 },
+      ];
+      const payload = url.endsWith("/42") ? { attempts } : report;
+      return { ok: true, json: async () => ({ success: true, ...payload }) };
     },
   });
   const api = readFileSync(
@@ -265,9 +310,18 @@ test("professor report requests include the stored session token, cancellation a
     context,
   );
   const controller = new AbortController();
-  await context.fetchSummary({ signal: controller.signal });
+  const result = await context.fetchSummary({ signal: controller.signal });
   assert.equal(requests[0].url, "/api/reports/professor/assessments");
   assert.equal(requests[0].headers.Authorization, "Bearer test-token");
   assert.equal(requests[0].cache, "no-store");
   assert.equal(requests[0].signal, controller.signal);
+  assert.equal(requests[1].url, "/api/assessment-attempts/42");
+  assert.equal(requests[1].signal, controller.signal);
+  assert.equal(requests.length, 2);
+  assert.equal(result.students[0].practiceAttempts.length, 1);
+  assert.equal(
+    result.students[0].practiceAttempts[0].assessment_type,
+    "practice",
+  );
+  assert.equal(result.students[0].topics[0].label, "Identity");
 });

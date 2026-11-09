@@ -1,4 +1,5 @@
 import { API_BASE } from "../../config.js";
+import { lessonAuthHeaders } from "../../services/lessonAuth.js";
 import { fetchCourse, fetchCourses } from "../../services/courseApi.js";
 
 function parseJson(value) {
@@ -347,6 +348,7 @@ async function fetchModuleContent(contentId) {
     `${API_BASE}/modules/${encodeURIComponent(contentId)}`,
     {
       credentials: "include",
+      headers: lessonAuthHeaders(),
     },
   );
 

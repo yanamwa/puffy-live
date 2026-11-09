@@ -402,7 +402,7 @@
 .super-settings-form-grid {
   display: grid;
 
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
   gap: 16px;
 
@@ -505,9 +505,6 @@
     flex-direction: column;
   }
 
-  .super-settings-form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 600px) {

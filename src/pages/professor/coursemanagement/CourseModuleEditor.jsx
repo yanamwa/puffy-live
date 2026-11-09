@@ -358,27 +358,12 @@ function writeMainQuizSettingsMap(settingsMap) {
 }
 
 function getLessonPageNumbers(totalPages, currentPage) {
-  if (totalPages <= 8) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  const start = Math.max(1, Math.min(currentPage - 2, totalPages - 5));
-  const end = Math.min(totalPages, start + 5);
-  const pages = [];
-
-  if (start > 1) {
-    pages.push(1);
-    if (start > 2) pages.push("start-gap");
-  }
-  for (let page = start; page <= end; page += 1) {
-    pages.push(page);
-  }
-  if (end < totalPages) {
-    if (end < totalPages - 1) pages.push("end-gap");
-    pages.push(totalPages);
-  }
-
-  return pages;
+  const pageGroupSize = 10;
+  const start = Math.floor((currentPage - 1) / pageGroupSize) * pageGroupSize;
+  return Array.from(
+    { length: Math.min(pageGroupSize, totalPages - start) },
+    (_, index) => start + index + 1,
+  );
 }
 
 function getCourseSettingKeys(course = {}, routeId = "") {
@@ -1764,7 +1749,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           ×
                         </button>
                         <h2 id="generate-module-title">
-                          Generate Module from Material
+                          Organize Learning Module
                         </h2>
                         <p>
                           Upload your learning material and PuffyBrain will
@@ -2057,25 +2042,19 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                       </button>
 
                       <div className={styles.lessonPageNumbers}>
-                        {lessonPageNumbers.map((page) =>
-                          typeof page === "number" ? (
-                            <button
-                              key={page}
-                              type="button"
-                              aria-label={`Page ${page}`}
-                              aria-current={
-                                page === activePageIndex + 1 ? "page" : undefined
-                              }
-                              onClick={() => setActivePageIndex(page - 1)}
-                            >
-                              {page}
-                            </button>
-                          ) : (
-                            <span key={page} aria-hidden="true">
-                              …
-                            </span>
-                          ),
-                        )}
+                        {lessonPageNumbers.map((page) => (
+                          <button
+                            key={page}
+                            type="button"
+                            aria-label={`Page ${page}`}
+                            aria-current={
+                              page === activePageIndex + 1 ? "page" : undefined
+                            }
+                            onClick={() => setActivePageIndex(page - 1)}
+                          >
+                            {page}
+                          </button>
+                        ))}
                       </div>
 
                       <button

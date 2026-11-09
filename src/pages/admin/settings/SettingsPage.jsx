@@ -37,7 +37,7 @@ function getAdminAccount(user) {
 }
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
 
   const adminAccount = useMemo(() => getAdminAccount(user), [user]);
 
@@ -198,6 +198,7 @@ export default function SettingsPage() {
         );
       }
 
+      updateUser({ ...user, mustChangePassword: false, must_change_password: 0 });
       setPasswordForm(initialPasswordForm);
 
       setVisiblePasswords({

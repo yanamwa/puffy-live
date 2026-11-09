@@ -211,7 +211,7 @@ function getDisplayName(user) {
 \===================================================== */
 
 export default function AdminLayout({ children }) {
-  const { user: authUser, logout } = useAuth();
+  const { user: authUser, logout, switchRole } = useAuth();
 
   const navigate = useNavigate();
 
@@ -270,7 +270,7 @@ export default function AdminLayout({ children }) {
 
         const loggedInUser = data.user || data.data?.user || data.data || data;
 
-        if (!loggedInUser) {
+        if (!loggedInUser || getStoredToken() !== token) {
           return;
         }
 
@@ -600,6 +600,8 @@ export default function AdminLayout({ children }) {
               ]}
 
               onLogout={handleLogout}
+              switchToRole={headerUser?.hasAdminAccess ? "professor" : undefined}
+              onSwitchRole={switchRole}
             />
           </div>
         </header>

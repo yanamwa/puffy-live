@@ -10,6 +10,8 @@ import {
   loadStudentArchivedCourses,
 } from "../courses/studentCourseData";
 import { requestCourseEnrollmentByCode } from "../courses/courseEnrollment.js";
+import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
+import { tutorialArchivedCourses } from "../tutorial/studentTutorialExamples.js";
 
 import "../enrolled/EnrolledCourses.css";
 import "./ArchivedCourses.css";
@@ -101,11 +103,12 @@ function getCourseTimestamp(course) {
 }
 
 export default function ArchivedCourses() {
+  const tutorial = useStudentTutorial();
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [courseCode, setCourseCode] = useState("");
 
-  const [archivedCourses, setArchivedCourses] = useState([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [archivedCourses, setArchivedCourses] = useState(() => tutorial ? tutorialArchivedCourses : []);
+  const [loadingCourses, setLoadingCourses] = useState(!tutorial);
   const [coursesErrorMessage, setCoursesErrorMessage] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -157,6 +160,7 @@ export default function ArchivedCourses() {
   }, [activeSort, archivedCourses, dateSort, searchQuery, titleSort]);
 
   useEffect(() => {
+    if (tutorial) return;
     let active = true;
 
     async function loadArchivedCourses() {
@@ -194,7 +198,7 @@ export default function ArchivedCourses() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [tutorial]);
 
   const closeJoinModal = () => {
     setJoinModalOpen(false);
@@ -218,7 +222,12 @@ export default function ArchivedCourses() {
 
         <main className="archived-courses-content">
           <section className="public-heading archived-heading">
-            <h1>Archived Classes</h1>
+            <div>
+              <h1>Archived Classes</h1>
+              {tutorial && (
+                <p className="student-tutorial-sample-label">Example courses for the tutorial</p>
+              )}
+            </div>
 
             <div className="filter-actions">
               <span className="sort-by-label">Sort by</span>
@@ -251,6 +260,7 @@ export default function ArchivedCourses() {
           <section
             className="public-courses-grid archived-courses-grid"
             aria-label="Archived courses"
+            data-tutorial="archived"
           >
             {loadingCourses ? (
               <div className="student-empty-state">

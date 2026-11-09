@@ -27,8 +27,8 @@
   }
 }
 
-/* Shared page headings across Super Admin. */
-.superadmin-layout .admin-content .super-page-heading {
+/* Shared headings for Super Admin and both User Management pages. */
+.admin-content :is(.superadmin-layout .super-page-heading, .admin-layout .users-page-header) {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -43,21 +43,21 @@
   border-radius: 12px;
   box-shadow: 6px 6px 0 var(--admin-shadow, #c5cbd4);
 }
-.superadmin-layout .admin-content .super-page-heading h1 {
+.admin-content :is(.superadmin-layout .super-page-heading, .admin-layout .users-page-header) h1 {
   margin: 0 0 8px;
   color: var(--admin-ink, #191b2a);
   font-size: 28px;
   font-weight: 950;
   line-height: 1.1;
 }
-.superadmin-layout .admin-content .super-page-heading p {
+.admin-content :is(.superadmin-layout .super-page-heading, .admin-layout .users-page-header) p {
   margin: 0;
   color: var(--admin-muted, #7d8798);
   font-size: 14px;
   font-weight: 800;
   line-height: 1.5;
 }
-.superadmin-layout .admin-content .super-page-heading > div:first-child {
+.admin-content :is(.superadmin-layout .super-page-heading, .admin-layout .users-page-header) > div:first-child {
   min-width: 0;
   flex: 1 1 320px;
 }
@@ -70,7 +70,7 @@
   min-width: 0;
 }
 @media (max-width: 640px) {
-  .superadmin-layout .admin-content .super-page-heading { padding: 18px; gap: 16px; }
-  .superadmin-layout .admin-content .super-page-heading h1 { font-size: 24px; }
-  .superadmin-layout .admin-content .super-page-heading > div:first-child { flex-basis: 100%; }
+  .admin-content :is(.superadmin-layout .super-page-heading, .admin-layout .users-page-header) { padding: 18px; gap: 16px; }
+  .admin-content :is(.superadmin-layout .super-page-heading, .admin-layout .users-page-header) h1 { font-size: 24px; }
+  .admin-content :is(.superadmin-layout .super-page-heading, .admin-layout .users-page-header) > div:first-child { flex-basis: 100%; }
 }

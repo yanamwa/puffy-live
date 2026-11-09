@@ -521,7 +521,7 @@ function Signup() {
                 {isSigningUp ? "Registering..." : "Register Professor Account"}
               </button>
 
-              <p>Professor accounts require Super Admin approval.</p>
+              <p>Verify your email to continue after registration.</p>
 
               <p>
                 Already have an account? <Link to="/login">Sign in</Link>

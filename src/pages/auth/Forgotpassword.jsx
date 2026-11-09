@@ -25,9 +25,7 @@ function ForgotPassword() {
       Swal.fire({
         title: "Invalid Email",
         text: "Please enter a valid email address.",
-        imageUrl: "/images/error.png",
-        imageWidth: 200,
-        imageHeight: 200,
+        icon: "error",
       });
 
       return;
@@ -54,9 +52,7 @@ function ForgotPassword() {
           text:
             data.message ||
             "We could not send a password reset email right now.",
-          imageUrl: "/images/error.png",
-          imageWidth: 200,
-          imageHeight: 200,
+          icon: "error",
         });
 
         return;
@@ -83,9 +79,7 @@ function ForgotPassword() {
       Swal.fire({
         title: "Server Error",
         text: "Please try again later.",
-        imageUrl: "/images/error.png",
-        imageWidth: 200,
-        imageHeight: 200,
+        icon: "error",
       });
     } finally {
       setIsSubmitting(false);

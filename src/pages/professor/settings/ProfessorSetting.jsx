@@ -34,7 +34,7 @@ function getProfessorAccount(user) {
 }
 
 export default function ProfessorSetting() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
 
   const professorAccount = useMemo(() => getProfessorAccount(user), [user]);
 
@@ -204,6 +204,7 @@ export default function ProfessorSetting() {
         throw new Error(data.message || "Unable to change your password.");
       }
 
+      updateUser({ ...user, mustChangePassword: false, must_change_password: 0 });
       setPasswordForm(initialPasswordForm);
 
       setVisiblePasswords({

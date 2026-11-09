@@ -14,6 +14,7 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import Swal from "sweetalert2";
 import { API_BASE } from "../../config.js";
+import { lessonAuthHeaders } from "../../services/lessonAuth.js";
 import LoadingState from "../../components/LoadingState.jsx";
 import QuizModesModal from "../../components/quizmodes/QuizModesModal.jsx";
 import {
@@ -303,6 +304,7 @@ function Lesson() {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...lessonAuthHeaders(),
         },
         body: JSON.stringify({
           user_id: getStoredUserId(),

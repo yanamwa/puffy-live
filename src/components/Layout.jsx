@@ -1,17 +1,18 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { requiresStudentPasswordChange } from "../utils/passwordPolicy.js";
+import { getStudentSetupRedirect } from "../pages/student/tutorial/studentTutorialSteps.js";
+import LoadingState from "./LoadingState.jsx";
 
 export default function Layout() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, checkingStudentSession } = useAuth();
 
-  if (
-    requiresStudentPasswordChange(user) &&
-    location.pathname !== "/student/settings"
-  ) {
-    return <Navigate to="/student/settings" replace />;
+  if (checkingStudentSession) {
+    return <LoadingState message="Checking your session…" />;
   }
+
+  const setupRedirect = getStudentSetupRedirect(user, location);
+  if (setupRedirect) return <Navigate to={setupRedirect} replace />;
 
   const isAuthPage = [
     "/",

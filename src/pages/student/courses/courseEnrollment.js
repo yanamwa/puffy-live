@@ -45,17 +45,15 @@ export async function requestCourseEnrollmentByCode(
 
     await Swal.fire({
       ...alertOptions,
-      icon: result.enrolled || result.alreadyRequested ? "info" : "success",
-      title: result.enrolled
+      icon: result.alreadyEnrolled || result.alreadyRequested ? "info" : "success",
+      title: result.alreadyEnrolled
         ? "Already Enrolled"
-        : result.alreadyRequested
-          ? "Request Already Sent"
-          : "Enrollment Request Sent",
-      text:
-        result.message ||
-        (result.enrolled
-          ? "You are already enrolled in this course."
-          : "Your request is waiting for your professor's approval."),
+        : result.enrolled
+          ? "Enrollment Confirmed"
+          : result.alreadyRequested
+            ? "Request Already Sent"
+            : "Enrollment Request Sent",
+      text: result.message,
     });
 
     return result;

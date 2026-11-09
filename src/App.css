@@ -93,3 +93,25 @@
   padding: 0.4rem 0.75rem;
   border-radius: 999px;
 }
+
+.puffy-maintenance {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem;
+  background: #edf4fb;
+  color: #203752;
+  text-align: center;
+}
+
+.puffy-maintenance section {
+  padding: 2rem;
+  border-radius: 1rem;
+  background: white;
+}
+
+.puffy-maintenance a {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #255985;
+}

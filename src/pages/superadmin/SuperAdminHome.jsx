@@ -696,8 +696,8 @@ export default function ManagementDashboard() {
         </section>
       </div>
 
-      <div className={`dashboard-main-grid ${!isSuperAdmin ? "dashboard-single-column" : ""}`}>
-        {isSuperAdmin && <section className="dashboard-panel dashboard-wide-panel">
+      {isSuperAdmin && (
+        <section className="dashboard-panel">
           <div className="dashboard-panel-header">
             <div>
               <h2>Pending Professor Approvals</h2>
@@ -759,8 +759,16 @@ export default function ManagementDashboard() {
               </tbody>
             </table>
           </div>
-        </section>}
+        </section>
+      )}
 
+      <div
+        className={
+          isSuperAdmin
+            ? "dashboard-user-security-grid"
+            : "dashboard-main-grid dashboard-single-column"
+        }
+      >
         <section className="dashboard-panel">
           <div className="dashboard-panel-header">
             <div>
@@ -797,9 +805,40 @@ export default function ManagementDashboard() {
             })}
           </div>
         </section>
+
+        {isSuperAdmin && (
+          <section className="dashboard-panel">
+            <div className="dashboard-panel-header">
+              <div>
+                <h2>Security Overview</h2>
+                <p>Login risk, account restrictions, and active sessions.</p>
+              </div>
+              <Link
+                className="dashboard-icon-link"
+                to="/super-admin/audit-logs"
+                aria-label="View audit logs"
+              >
+                <FiLock />
+                View Audit Logs
+              </Link>
+            </div>
+
+            <div className="security-grid">
+              {securityItems.map((item) => (
+                <article
+                  className={`security-card is-${item.tone}`}
+                  key={item.label}
+                >
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
-      {isSuperAdmin && <div className="dashboard-main-grid">
+      {isSuperAdmin && (
         <section className="dashboard-panel">
           <div className="dashboard-panel-header">
             <div>
@@ -824,37 +863,7 @@ export default function ManagementDashboard() {
             })}
           </div>
         </section>
-
-        <section className="dashboard-panel">
-          <div className="dashboard-panel-header">
-            <div>
-              <h2>Security Overview</h2>
-              <p>Login risk, account restrictions, and active sessions.</p>
-            </div>
-            <Link
-              className="dashboard-icon-link"
-              to="/super-admin/security"
-              aria-label="View security logs"
-            >
-              <FiLock />
-              View Security Logs
-            </Link>
-          </div>
-
-          <div className="security-grid">
-            {securityItems.map((item) => (
-              <article
-                className={`security-card is-${item.tone}`}
-                key={item.label}
-              >
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </article>
-            ))}
-          </div>
-        </section>
-      </div>}
-
+      )}
     </div>
   );
 }

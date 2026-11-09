@@ -7,6 +7,8 @@ import StudentHeader from "../../../components/students/StudentHeader";
 import JoinCourseModal from "../courses/JoinCourseModal";
 
 import { requestCourseEnrollmentByCode } from "../courses/courseEnrollment.js";
+import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
+import { tutorialEnrolledCourses } from "../tutorial/studentTutorialExamples.js";
 
 import "./EnrolledCoursespage.css";
 
@@ -223,12 +225,15 @@ export function Avatar({
 
 export default function EnrolledCourses() {
   const navigate = useNavigate();
+  const tutorial = useStudentTutorial();
 
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [courses, setCourses] = useState(() => tutorial ? tutorialEnrolledCourses : []);
+  const [loading, setLoading] = useState(!tutorial);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get("search") || "");
+  const [searchQuery, setSearchQuery] = useState(() =>
+    tutorial ? "" : new URLSearchParams(window.location.search).get("search") || "",
+  );
   const [dateSort, setDateSort] = useState("Recent");
   const [alphabeticalSort, setAlphabeticalSort] = useState("A to Z");
 
@@ -285,8 +290,8 @@ export default function EnrolledCourses() {
   };
 
   useEffect(() => {
-    loadEnrolledCourses();
-  }, []);
+    if (!tutorial) loadEnrolledCourses();
+  }, [tutorial]);
 
   useEffect(() => {
     const closeCourseMenu = (event) => {
@@ -447,7 +452,12 @@ export default function EnrolledCourses() {
 
         <main className="enrolled-courses-content">
           <section className="public-heading">
-            <h1>Enrolled Courses</h1>
+            <div>
+              <h1>Enrolled Courses</h1>
+              {tutorial && (
+                <p className="student-tutorial-sample-label">Example courses for the tutorial</p>
+              )}
+            </div>
 
             <div className="filter-actions">
               <span className="sort-by-label">Sort by</span>
@@ -466,7 +476,7 @@ export default function EnrolledCourses() {
             </div>
           </section>
 
-          <section className="courses-grid" aria-label="Enrolled courses">
+          <section className="courses-grid" aria-label="Enrolled courses" data-tutorial="enrolled">
             {loading ? (
               <div className="student-empty-state">
                 Loading enrolled courses...

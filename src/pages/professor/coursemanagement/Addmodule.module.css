@@ -4961,13 +4961,13 @@
   border: 0;
   border-radius: 50%;
   background: #e8eff7;
-  color: #4f6174;
+  color: white;
   font-size: 24px;
   cursor: pointer;
 }
 .assessmentSettingsButton:focus-visible,
 .settingsDialogClose:focus-visible {
-  outline: 3px solid #4f6174;
+  outline: 3px solid white;
   outline-offset: 3px;
 }
 @media (max-width: 900px) {
@@ -5483,8 +5483,30 @@
 }
 
 .courseModuleEditorPage .lessonSelectionControls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   min-height: 36px;
-  padding: 0;
+  padding: 0 12px;
+  border: 1px solid #cbd9e8;
+  border-radius: 8px;
+  background: #fff;
+  color: #294765;
+  cursor: pointer;
+}
+
+.courseModuleEditorPage .lessonSelectionControls label:hover,
+.courseModuleEditorPage .lessonSelectionControls label:focus-within {
+  border-color: #7fa8d6;
+  background: #edf4fc;
+}
+
+.courseModuleEditorPage .lessonSelectionControls input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #426f9d;
+  cursor: pointer;
 }
 
 .courseModuleEditorPage .lessonSelectionControls .popupAddBtn {

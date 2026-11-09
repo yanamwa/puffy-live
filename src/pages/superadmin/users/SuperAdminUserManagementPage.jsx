@@ -38,20 +38,6 @@ const USER_TABS = [
 
 const VALID_USER_TAB_IDS = USER_TABS.map((tab) => tab.id);
 
-const ACCOUNT_TYPE_OPTIONS = [
-  { value: "temporary", label: "Temporary account" },
-  { value: "permanent", label: "Permanent account" },
-];
-
-const TEMPORARY_DURATION_OPTIONS = [
-  { value: "7", label: "7 days" },
-  { value: "14", label: "14 days" },
-  { value: "30", label: "30 days" },
-  { value: "90", label: "90 days" },
-  { value: "180", label: "180 days" },
-  { value: "365", label: "1 year" },
-];
-
 const initialStudentForm = {
   name: "",
   email: "",
@@ -59,13 +45,6 @@ const initialStudentForm = {
   gender: "",
   yearLevel: "",
   sectionName: "",
-};
-
-const initialAdminForm = {
-  name: "",
-  email: "",
-  accountType: "temporary",
-  temporaryDurationDays: "30",
 };
 
 const initialProfessorForm = {
@@ -172,10 +151,15 @@ function normalizeUser(user) {
     email: user.email || "No email found",
     profileImage: user.profileImage || user.profile_image || user.avatar || "",
     role,
+    hasAdminAccess: user.hasAdminAccess === true,
     status: getStatusFromUser(user),
     verificationStatus,
     joined,
     studentId: user.studentId || user.student_id || "",
+    gender: user.gender || "",
+    course: user.course || user.program || "",
+    yearLevel: user.yearLevel || user.year_level || "",
+    sectionName: user.sectionName || user.section_name || "",
     professorId: user.professorId || user.professor_id || "",
     professorFacultyId:
       user.professorFacultyId || user.professor_faculty_id || "",
@@ -420,7 +404,8 @@ export default function SuperAdminUserManagementPage() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
-  const [adminForm, setAdminForm] = useState(initialAdminForm);
+  const [adminProfessorId, setAdminProfessorId] = useState("");
+  const [grantingAdminAccess, setGrantingAdminAccess] = useState(false);
   const [professorModalOpen, setProfessorModalOpen] = useState(false);
   const [professorForm, setProfessorForm] = useState(initialProfessorForm);
   const [professorProofPreview, setProfessorProofPreview] = useState("");
@@ -558,7 +543,7 @@ export default function SuperAdminUserManagementPage() {
     );
 
     const admins = users.filter(
-      (user) => user.role === "admin" && !user.isArchived,
+      (user) => (user.role === "admin" || user.hasAdminAccess) && !user.isArchived,
     );
 
     const archived = users.filter((user) => user.isArchived);
@@ -572,6 +557,13 @@ export default function SuperAdminUserManagementPage() {
       archived,
     };
   }, [users]);
+
+  const eligibleAdminProfessors = userGroups.professors.filter(
+    (user) => user.verified && !user.temporaryExpired && !user.hasAdminAccess,
+  );
+  const selectedAdminProfessor = eligibleAdminProfessors.find(
+    (user) => String(user.id) === adminProfessorId,
+  );
 
   const filteredUsers = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -692,51 +684,6 @@ export default function SuperAdminUserManagementPage() {
     }));
     setProfessorProofPreview("");
   };
-
-  const renderAccountTypeFields = (form, setForm) => (
-    <>
-      <label>
-        Account Type
-        <select
-          value={form.accountType}
-          onChange={(event) =>
-            setForm((currentForm) => ({
-              ...currentForm,
-              accountType: event.target.value,
-            }))
-          }
-          required
-        >
-          {ACCOUNT_TYPE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {form.accountType === "temporary" && (
-        <label>
-          Expires After
-          <select
-            value={form.temporaryDurationDays}
-            onChange={(event) =>
-              setForm((currentForm) => ({
-                ...currentForm,
-                temporaryDurationDays: event.target.value,
-              }))
-            }
-          >
-            {TEMPORARY_DURATION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-    </>
-  );
 
   const handleProfessorDecision = async (user, status) => {
     const declining = status === "declined";
@@ -951,35 +898,38 @@ export default function SuperAdminUserManagementPage() {
     }
   };
 
-  const handleCreateAdmin = async (event) => {
-    event.preventDefault();
+  const closeAdminModal = () => {
+    if (grantingAdminAccess) return;
+    setAdminProfessorId("");
+    setAdminModalOpen(false);
+  };
 
+  const handleGrantAdminAccess = async (event) => {
+    event.preventDefault();
+    if (grantingAdminAccess || !selectedAdminProfessor) return;
+
+    setGrantingAdminAccess(true);
     try {
       const response = await fetch(`${API_BASE}/users/admin`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(withTemporaryAccountFields(adminForm)),
+        body: JSON.stringify({ professorId: selectedAdminProfessor.id }),
       });
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not create admin account.");
+        throw new Error(data.message || "Could not grant admin access.");
       }
 
-      setUsers((currentUsers) => [normalizeUser(data.user), ...currentUsers]);
-      setCredentialResults([
-        {
-          name: data.user.name,
-          email: data.user.email,
-          temporaryPassword: data.temporaryPassword,
-          temporaryExpiresAt: data.user.temporaryExpiresAt,
-        },
-      ]);
-      setAdminForm(initialAdminForm);
+      updateUserInList(data.user);
+      setAdminProfessorId("");
       setAdminModalOpen(false);
-      showSuccess(data.message);
+      if (data.emailSent) showSuccess(data.message);
+      else showWarning(data.message, "Admin Access Granted");
     } catch (error) {
-      showError(error.message || "Could not create admin account.");
+      showError(error.message || "Could not grant admin access.");
+    } finally {
+      setGrantingAdminAccess(false);
     }
   };
 
@@ -2129,7 +2079,9 @@ export default function SuperAdminUserManagementPage() {
           </td>
           <td>{user.email}</td>
           <td>
-            <span className="users-role" data-role={user.role}>{titleCase(user.role)}</span>
+            <span className="users-role" data-role={user.role}>
+              {user.hasAdminAccess ? "Professor + Admin" : titleCase(user.role)}
+            </span>
           </td>
           <td>
             <span className={`users-status is-${status}`}>
@@ -2574,17 +2526,21 @@ export default function SuperAdminUserManagementPage() {
       {adminModalOpen && (
         <div
           className="users-modal-backdrop"
-          onClick={() => setAdminModalOpen(false)}
+          onClick={closeAdminModal}
         >
           <section
             className="users-modal users-create-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="users-admin-title"
             onClick={(event) => event.stopPropagation()}
           >
             <button
               className="users-modal-close"
               type="button"
-              onClick={() => setAdminModalOpen(false)}
+              onClick={closeAdminModal}
               aria-label="Close admin form"
+              disabled={grantingAdminAccess}
             >
               x
             </button>
@@ -2593,45 +2549,48 @@ export default function SuperAdminUserManagementPage() {
                 <FiShield />
               </span>
               <div>
-                <h2>Add Administrator</h2>
+                <h2 id="users-admin-title">Add Administrator</h2>
                 <p>
-                  Create an admin account with generated credentials and
-                  optional expiry.
+                  Grant admin access to an existing professor account.
                 </p>
               </div>
             </div>
-            <form className="users-student-form" onSubmit={handleCreateAdmin}>
+            <form className="users-student-form" onSubmit={handleGrantAdminAccess}>
+              <label>
+                Admin Email
+                <select
+                  value={adminProfessorId}
+                  onChange={(event) => setAdminProfessorId(event.target.value)}
+                  disabled={grantingAdminAccess || eligibleAdminProfessors.length === 0}
+                  required
+                >
+                  <option value="">
+                    {eligibleAdminProfessors.length > 0
+                      ? "Select a professor email"
+                      : "No eligible professors"}
+                  </option>
+                  {eligibleAdminProfessors.map((professor) => (
+                    <option key={professor.id} value={professor.id}>
+                      {professor.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label>
                 Admin Name
                 <input
                   type="text"
-                  value={adminForm.name}
-                  onChange={(event) =>
-                    setAdminForm((form) => ({
-                      ...form,
-                      name: event.target.value,
-                    }))
-                  }
-                  required
+                  value={selectedAdminProfessor?.name ?? ""}
+                  placeholder="Fills in after you select a professor"
+                  readOnly
                 />
               </label>
-              <label>
-                Admin Email
-                <input
-                  type="email"
-                  value={adminForm.email}
-                  onChange={(event) =>
-                    setAdminForm((form) => ({
-                      ...form,
-                      email: event.target.value,
-                    }))
-                  }
-                  required
-                />
-              </label>
-              {renderAccountTypeFields(adminForm, setAdminForm)}
-              <button className="users-submit-btn" type="submit">
-                Create Admin Account
+              <button
+                className="users-submit-btn"
+                type="submit"
+                disabled={!selectedAdminProfessor || grantingAdminAccess}
+              >
+                {grantingAdminAccess ? "Granting access…" : "Grant Admin Access"}
               </button>
             </form>
           </section>
@@ -2949,84 +2908,145 @@ export default function SuperAdminUserManagementPage() {
       )}
 
       {selectedUser && (
-        <div
-          className="users-modal-backdrop"
+  <div
+    className="users-modal-backdrop"
+    onClick={() => setSelectedUser(null)}
+  >
+    <section
+      className="users-modal users-id-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="users-id-name"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="users-id-topbar">
+        <span>PuffyBrain · User Details</span>
+
+        <button
+          className="users-modal-close"
+          type="button"
           onClick={() => setSelectedUser(null)}
+          aria-label="Close user details"
         >
-          <section
-            className="users-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              className="users-modal-close"
-              type="button"
-              onClick={() => setSelectedUser(null)}
-              aria-label="Close user details"
-            >
-              x
-            </button>
-            <div className="users-modal-profile">
-              <UserAvatar user={selectedUser} large />
-              <div>
-                <h2>{selectedUser.name}</h2>
-                <p>{selectedUser.email}</p>
+          <FiX />
+        </button>
+      </div>
+
+      <div className="users-id-body">
+        <aside className="users-id-photo-column">
+          <div className="users-id-photo-frame">
+            <UserAvatar user={selectedUser} large />
+          </div>
+
+          <strong>{formatUserDisplayId(selectedUser)}</strong>
+
+          <span className="users-id-role">
+            {selectedUser.hasAdminAccess ? "Professor + Admin" : titleCase(selectedUser.role)}
+          </span>
+
+          <span className="users-id-status">
+            {titleCase(selectedUser.status)}
+          </span>
+        </aside>
+
+        <div className="users-id-info">
+          <div className="users-id-kicker">
+            <FiShield aria-hidden="true" />
+            Account Information
+          </div>
+
+          <h2 id="users-id-name">{selectedUser.name}</h2>
+
+          <p className="users-id-email">
+            <FiMail aria-hidden="true" />
+            <span>{selectedUser.email}</span>
+          </p>
+
+          <dl className="users-id-details">
+            {[
+              ["User ID", formatUserDisplayId(selectedUser)],
+              ["Role", titleCase(selectedUser.role)],
+              ["Status", titleCase(selectedUser.status)],
+              ["Gender", selectedUser.gender],
+              ["Registered", formatDate(selectedUser.joined)],
+              [
+                "Verification Status",
+                titleCase(selectedUser.verificationStatus),
+              ],
+              [
+                "Verified Account",
+                selectedUser.verified ? "Yes" : "No",
+              ],
+              [
+                "Archived Account",
+                selectedUser.isArchived ? "Yes" : "No",
+              ],
+              [
+                "Account Type",
+                selectedUser.isTemporary ? "Temporary" : "Permanent",
+              ],
+              [
+                "Expires",
+                selectedUser.isTemporary
+                  ? formatDate(selectedUser.temporaryExpiresAt)
+                  : "Never",
+              ],
+              [
+                "Password Status",
+                selectedUser.mustChangePassword
+                  ? "Password change required"
+                  : "User managed",
+              ],
+
+              ...(selectedUser.role === "student"
+                ? [
+                    ["Student ID", selectedUser.studentId],
+                    ["Course / Program", selectedUser.course],
+                    ["Year Level", selectedUser.yearLevel],
+                    ["Section", selectedUser.sectionName],
+                  ]
+                : []),
+
+              ...(selectedUser.role === "professor"
+                ? [
+                    ["Professor ID", selectedUser.professorId],
+                    ["Faculty ID", selectedUser.professorFacultyId],
+                    ["Department", selectedUser.professorDepartment],
+                    ["Position", selectedUser.professorPosition],
+                    [
+                      "Specialization",
+                      selectedUser.professorSpecialization,
+                    ],
+                  ]
+                : []),
+            ].map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value || "Not provided"}</dd>
               </div>
+            ))}
+
+            <div className="users-id-proof">
+              <dt>Supporting Document / Proof</dt>
+              <dd>{renderProof(selectedUser)}</dd>
             </div>
-            <dl className="users-detail-grid">
-              <div>
-                <dt>User ID</dt>
-                <dd>{formatUserDisplayId(selectedUser)}</dd>
-              </div>
-              <div>
-                <dt>Role</dt>
-                <dd>{titleCase(selectedUser.role)}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{titleCase(selectedUser.status)}</dd>
-              </div>
-              <div>
-                <dt>Registered</dt>
-                <dd>{formatDate(selectedUser.joined)}</dd>
-              </div>
-              <div className="users-detail-wide">
-                <dt>Department</dt>
-                <dd>{selectedUser.professorDepartment || "None"}</dd>
-              </div>
-              <div className="users-proof-detail">
-                <dt>Proof</dt>
-                <dd>{renderProof(selectedUser)}</dd>
-              </div>
-              <div>
-                <dt>Account Type</dt>
-                <dd>{selectedUser.isTemporary ? "Temporary" : "Permanent"}</dd>
-              </div>
-              <div>
-                <dt>Expires</dt>
-                <dd>
-                  {selectedUser.isTemporary
-                    ? formatDate(selectedUser.temporaryExpiresAt)
-                    : "Never"}
-                </dd>
-              </div>
-              <div>
-                <dt>Password</dt>
-                <dd>
-                  {selectedUser.mustChangePassword
-                    ? "Temporary"
-                    : "User managed"}
-                </dd>
-              </div>
-            </dl>
-            {selectedUser.role === "professor" && !selectedUser.isArchived &&
-              String(selectedUser.verificationStatus).toLowerCase() === "pending" && (
-                <div className="users-action-group users-approval-dialog-actions">
-                  {renderProfessorDecisionButtons(selectedUser)}
+                  </dl>
                 </div>
-              )}
-          </section>
-        </div>
-      )}
+              </div>
+
+              {selectedUser.role === "professor" &&
+                !selectedUser.isArchived &&
+                String(selectedUser.verificationStatus).toLowerCase() ===
+                  "pending" && (
+                  <div className="users-id-footer">
+                    <div className="users-action-group users-approval-dialog-actions">
+                      {renderProfessorDecisionButtons(selectedUser)}
+                    </div>
+                  </div>
+                )}
+            </section>
+          </div>
+        )}
     </div>
   );
 }

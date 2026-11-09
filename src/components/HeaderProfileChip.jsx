@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FiRepeat } from "react-icons/fi";
+import Swal from "sweetalert2";
+import { getHomePathForRole } from "../utils/roles.js";
 import "./HeaderProfileChip.css";
 
 function MenuIcon({ name }) {
@@ -37,15 +40,37 @@ export default function HeaderProfileChip({
   profilePath,
   menuItems = [],
   onLogout,
+  onMenuOpen,
+  switchToRole,
+  onSwitchRole,
 }) {
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
   const [open, setOpen] = useState(false);
+  const [switchingRole, setSwitchingRole] = useState(false);
   const handle = username?.replace(/^@+/, "") || "Professor";
 
   const goTo = (path) => {
     setOpen(false);
     navigate(path);
+  };
+
+  const handleRoleSwitch = async () => {
+    setSwitchingRole(true);
+    try {
+      const user = await onSwitchRole(switchToRole);
+      setOpen(false);
+      navigate(getHomePathForRole(user.role), { replace: true });
+    } catch (error) {
+      setOpen(false);
+      void Swal.fire({
+        icon: "error",
+        title: "Could not switch roles",
+        text: error.message,
+      });
+    } finally {
+      setSwitchingRole(false);
+    }
   };
 
   useEffect(() => {
@@ -98,6 +123,7 @@ export default function HeaderProfileChip({
           aria-haspopup="menu"
           onClick={(event) => {
             event.stopPropagation();
+            if (!open) onMenuOpen?.();
             setOpen((current) => !current);
           }}
         >
@@ -140,7 +166,25 @@ export default function HeaderProfileChip({
             </button>
           ))}
 
-          {menuItems.length > 0 && (
+          {switchToRole && onSwitchRole && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleRoleSwitch}
+              disabled={switchingRole}
+            >
+              <FiRepeat aria-hidden="true" />
+              <span>
+                {switchingRole
+                  ? "Switching…"
+                  : switchToRole === "admin"
+                    ? "Switch to Admin"
+                    : "Switch to Professor"}
+              </span>
+            </button>
+          )}
+
+          {(menuItems.length > 0 || (switchToRole && onSwitchRole)) && (
             <div className="header-profile-dropdown-divider" />
           )}
 

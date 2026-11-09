@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import { API_BASE } from "../../../config.js";
+import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
 import styles from "./modulemanage.module.css";
 import AdminLayout from "./AdminLayout.js";
 
@@ -32,7 +33,7 @@ export default function ModuleForm({ mode }) {
   useEffect(() => {
     if (mode !== "edit" || !id) return;
 
-    fetch(API_URL)
+    fetch(API_URL, { headers: lessonAuthHeaders() })
       .then((res) => res.json())
       .then((data) => {
         if (data?.success && Array.isArray(data.modules)) {

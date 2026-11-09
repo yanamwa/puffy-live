@@ -157,7 +157,11 @@ export default function Otp() {
           setInlineError("");
           showSuccessAlert(
             "Verified!",
-            "Your email is verified. The Super Admin will review your professor registration.",
+            data.requiresApproval
+              ? "Your email is verified. The Super Admin will review your professor registration."
+              : data.verificationStatus === "declined"
+                ? "Your email is verified. Your registration was declined."
+                : "Your email is verified. You can now sign in.",
           ).then(() => {
             sessionStorage.removeItem("otp_email");
             sessionStorage.removeItem("otp_expires_at");
