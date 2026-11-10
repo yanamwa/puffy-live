@@ -892,7 +892,11 @@ export default function SuperAdminUserManagementPage() {
       ]);
       setStudentForm(initialStudentForm);
       setStudentModalOpen(false);
-      showSuccess(data.message);
+      if (data.temporaryPasswordEmailSent === false) {
+        showError("Student account created, but the temporary password email failed to send.");
+      } else {
+        showSuccess(data.message);
+      }
     } catch (error) {
       showError(error.message || "Could not create student account.");
     }
@@ -1710,6 +1714,7 @@ export default function SuperAdminUserManagementPage() {
       const createdUsers = [];
       const credentials = [];
       const failures = [];
+      const emailFailures = [];
 
       /*
         Used to catch duplicates inside
@@ -1791,6 +1796,9 @@ export default function SuperAdminUserManagementPage() {
           const data = await createStudent(normalizedStudent);
 
           createdUsers.push(normalizeUser(data.user));
+          if (data.temporaryPasswordEmailSent === false) {
+            emailFailures.push(`Row ${student.sourceRow}: ${data.user.email}`);
+          }
 
           credentials.push({
             name: data.user.name,
@@ -1846,18 +1854,18 @@ export default function SuperAdminUserManagementPage() {
             } imported successfully.`;
 
       setStudentImportStatus({
-        state: failures.length > 0 ? "partial" : "success",
+        state: failures.length > 0 || emailFailures.length > 0 ? "partial" : "success",
 
         fileName: file.name,
         fileSize: file.size,
-        message: importMessage,
+        message: emailFailures.length
+          ? `${importMessage} Password emails failed to send for ${emailFailures.length}.`
+          : importMessage,
 
-        detail:
-          failures.length > 0
-            ? failures.slice(0, 5).join("\n")
-            : `${createdUsers.length} student account${
-                createdUsers.length === 1 ? "" : "s"
-              } created.`,
+        detail: [
+          ...emailFailures.slice(0, 5).map((row) => `Email failed for ${row}`),
+          ...failures.slice(0, 5),
+        ].join("\n"),
       });
 
       /* -------------------------
@@ -1893,7 +1901,7 @@ export default function SuperAdminUserManagementPage() {
          PAGE NOTICE
       ------------------------- */
 
-      if (failures.length === 0) {
+      if (failures.length === 0 && emailFailures.length === 0) {
         showSuccess(
           `${createdUsers.length} student account${
             createdUsers.length === 1 ? "" : "s"
