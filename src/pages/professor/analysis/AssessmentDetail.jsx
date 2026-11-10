@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { fetchCourses } from "../../../services/courseApi.js";
 import QuizAssessmentDashboard from "./QuizAssessmentDashboard.jsx";
 import { downloadAssessmentPdf } from "../../../services/pdfDownload.js";
+import { tutorialCourseDraft } from "../tutorial/professorTutorialExamples.js";
 function readItems(course) {
   const value =
     course?.quizItems ||
@@ -21,9 +22,11 @@ export default function AssessmentDetail() {
   const { courseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { tutorialStep } = useOutletContext() ?? {};
+  const tutorialAnalysis = tutorialStep?.id?.startsWith("analysis-");
   const initial = location.state?.course?.raw || location.state?.course || null;
-  const [course, setCourse] = useState(initial);
-  const [loading, setLoading] = useState(true);
+  const [course, setCourse] = useState(tutorialAnalysis ? tutorialCourseDraft : initial);
+  const [loading, setLoading] = useState(!tutorialAnalysis);
   const [error, setError] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
@@ -39,6 +42,12 @@ export default function AssessmentDetail() {
     }
   };
   useEffect(() => {
+    if (tutorialAnalysis) {
+      setCourse(tutorialCourseDraft);
+      setLoading(false);
+      setError("");
+      return;
+    }
     let active = true;
     setLoading(true);
     setError("");
@@ -64,7 +73,7 @@ export default function AssessmentDetail() {
     return () => {
       active = false;
     };
-  }, [courseId]);
+  }, [courseId, tutorialAnalysis]);
   const title = course?.title || course?.course_name || "Assessment Analysis";
   return (
     <section className="qa-assessment-page qa-compact-assessment">
@@ -80,7 +89,15 @@ export default function AssessmentDetail() {
       </header>
       {downloadError && <p role="alert">{downloadError}</p>}
       {loading ? <p>Loading assessment details…</p> : error ? <p role="alert">{error}</p> : (
-        <QuizAssessmentDashboard courseId={courseId} courseTitle={title} items={readItems(course)} course={course} />
+        <QuizAssessmentDashboard
+          key={tutorialStep?.id || courseId}
+          courseId={courseId}
+          courseTitle={title}
+          items={readItems(course)}
+          course={course}
+          tutorialMode={tutorialAnalysis}
+          tutorialStep={tutorialStep}
+        />
       )}
     </section>
   );

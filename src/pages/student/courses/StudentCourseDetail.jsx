@@ -23,6 +23,7 @@ import {
   STUDENT_READING_PROGRESS_EVENT,
 } from "./studentCourseData";
 import { requestCourseEnrollmentByCode } from "./courseEnrollment.js";
+import { modulePracticePath } from "../../../services/adaptivePractice.js";
 import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
 import { tutorialEnrolledCourseDetail } from "../tutorial/studentTutorialExamples.js";
 import {
@@ -974,6 +975,25 @@ export default function StudentCourseDetail() {
       return;
     }
 
+    if (!tutorial) {
+      const practicePath = modulePracticePath(
+        course.course_id || course.id,
+        module,
+      );
+      if (!practicePath) {
+        await Swal.fire({
+          icon: "info",
+          title: "Practice Unavailable",
+          text: "This module could not be identified. Reload the course and try again.",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
+      setPracticeSession({ source: "module", adaptiveModule: module });
+      return;
+    }
+
     const quizzes = getModulePracticeItems(module, index);
 
     openPracticeModes({
@@ -1461,6 +1481,10 @@ export default function StudentCourseDetail() {
           lessonId={practiceSession.lessonId}
           quizzes={practiceSession.quizzes}
           onClose={() => setPracticeSession(null)}
+          onSelectMode={practiceSession.adaptiveModule && ((mode) => {
+            navigate(modulePracticePath(course.course_id || course.id, practiceSession.adaptiveModule, mode));
+            setPracticeSession(null);
+          })}
         />
       )}
       <JoinCourseModal

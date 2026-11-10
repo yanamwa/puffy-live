@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   fetchCourses,
   fetchCourseEnrollmentCount,
@@ -14,6 +14,7 @@ import {
 } from "react-icons/fi";
 import styles from "./AssessmentDashboard.module.css";
 import ProfessorStudentPerformance from "./ProfessorStudentPerformance.jsx";
+import { tutorialCourseExamples } from "../tutorial/professorTutorialExamples.js";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -83,13 +84,16 @@ function normalizeCourse(course, index) {
 
 export default function AssessmentAnalysis() {
   const navigate = useNavigate();
+  const { previewOnly, tutorialStep } = useOutletContext() ?? {};
+  const tutorialOverview = tutorialStep?.id === "analysis";
 
   const [courses, setCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!previewOnly && !tutorialOverview);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    if (previewOnly || tutorialOverview) return;
     let active = true;
 
     async function loadCourses() {
@@ -128,20 +132,28 @@ export default function AssessmentAnalysis() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [previewOnly, tutorialOverview]);
+
+  const visibleCourses = useMemo(
+    () =>
+      tutorialOverview
+        ? tutorialCourseExamples.map((course, index) => normalizeCourse(course, index))
+        : courses,
+    [courses, tutorialOverview],
+  );
 
   const filteredCourses = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    if (!query) return courses;
+    if (!query) return visibleCourses;
 
-    return courses.filter((course) =>
+    return visibleCourses.filter((course) =>
       [course.code, course.title, course.description]
         .join(" ")
         .toLowerCase()
         .includes(query),
     );
-  }, [courses, searchQuery]);
+  }, [visibleCourses, searchQuery]);
 
   const openAssessment = (course) => {
     navigate(`/professor/assessment/${course.id}`, {
@@ -152,13 +164,13 @@ export default function AssessmentAnalysis() {
   const metrics = [
     {
       label: "Courses",
-      value: courses.length,
+      value: visibleCourses.length,
       icon: FiBookOpen,
       hint: "Available for analysis",
     },
     {
       label: "Student enrollments",
-      value: courses.reduce(
+      value: visibleCourses.reduce(
         (sum, course) => sum + Number(course.students || 0),
         0,
       ),
@@ -167,18 +179,18 @@ export default function AssessmentAnalysis() {
     },
     {
       label: "Learning modules",
-      value: courses.reduce((sum, course) => sum + course.modules, 0),
+      value: visibleCourses.reduce((sum, course) => sum + course.modules, 0),
       icon: FiLayers,
       hint: "Across all courses",
     },
     {
       label: "Quiz questions",
-      value: courses.reduce((sum, course) => sum + course.quizzes, 0),
+      value: visibleCourses.reduce((sum, course) => sum + course.quizzes, 0),
       icon: FiFileText,
       hint: "Across all courses",
     },
   ];
-  const enrollmentCourses = [...courses]
+  const enrollmentCourses = [...visibleCourses]
     .sort((a, b) => b.students - a.students)
     .slice(0, 5);
   const maxStudents = Math.max(
@@ -256,7 +268,7 @@ export default function AssessmentAnalysis() {
               <div>
                 <h2>Course overview</h2>
                 <p>
-                  {filteredCourses.length} of {courses.length} courses
+                  {filteredCourses.length} of {visibleCourses.length} courses
                 </p>
               </div>
               <label className={styles.searchBox}>
@@ -319,13 +331,13 @@ export default function AssessmentAnalysis() {
               </div>
             ) : (
               <p className={styles.empty}>
-                {courses.length
+                {visibleCourses.length
                   ? "No courses match your search."
                   : "Your courses will appear here once you create a course."}
               </p>
             )}
           </section>
-          <ProfessorStudentPerformance />
+          {!tutorialOverview && <ProfessorStudentPerformance />}
         </>
       )}
     </section>

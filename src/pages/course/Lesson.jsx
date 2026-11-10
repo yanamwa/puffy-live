@@ -15,6 +15,10 @@ import { useState, useEffect, useMemo } from "react";
 import Swal from "sweetalert2";
 import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
+import {
+  modulePracticePath,
+  practiceModuleId,
+} from "../../services/adaptivePractice.js";
 import LoadingState from "../../components/LoadingState.jsx";
 import QuizModesModal from "../../components/quizmodes/QuizModesModal.jsx";
 import {
@@ -87,17 +91,18 @@ function Lesson() {
 
   const modules = useMemo(() => getCourseContentModules(lesson), [lesson]);
   const requestedModuleIndex = Number(searchParams.get("module") || 0);
+  const resumeRecap = searchParams.get("recap") === "1";
   const navigation = studentModuleNavigation(modules, requestedModuleIndex);
   const moduleIndex = navigation.moduleIndex;
   const activeModule = modules[moduleIndex] || null;
+  const activeModuleId = practiceModuleId(activeModule);
   const moduleNumber = navigation.moduleNumber;
   const moduleCount = Math.max(navigation.moduleCount, 1);
   const modulePosition = Math.max(moduleNumber - 1, 0);
   const nextModuleIndex = navigation.nextModuleIndex;
   const nextModule = nextModuleIndex === null ? null : modules[nextModuleIndex];
-  const modulePracticeId = `${lessonId}-${
-    activeModule?.id || `module-${moduleNumber}`
-  }`;
+  const courseId = lesson?.course_id || lessonId;
+  const practicePath = modulePracticePath(courseId, activeModule);
   const moduleTitle = activeModule?.title || lesson?.title || "Untitled module";
   const moduleQuery = `?module=${moduleIndex}`;
 
@@ -127,13 +132,13 @@ function Lesson() {
   }, [activeModule, lesson]);
 
   const moduleQuizItems = useMemo(() => {
-    return activeModule?.quizItems?.length
-      ? activeModule.quizItems
-      : getCourseQuizItems(lesson);
+    return activeModule?.quizItems ?? getCourseQuizItems(lesson);
   }, [activeModule, lesson]);
 
   const quizSlides = useMemo(() => {
-    return moduleQuizItems.slice(0, LESSON_QUIZ_LIMIT);
+    return moduleQuizItems
+      .slice(0, LESSON_QUIZ_LIMIT)
+      .filter((item) => item.type === "identification" || item.options?.length);
   }, [moduleQuizItems]);
 
   const allSlides = useMemo(() => {
@@ -158,6 +163,13 @@ function Lesson() {
 
   useEffect(() => {
     if (!allSlides.length) return;
+    if (resumeRecap) {
+      const firstRecap = allSlides.findIndex((slide) => slide.type === "quiz");
+      if (firstRecap !== -1) {
+        setCurrentSlide(firstRecap);
+        return;
+      }
+    }
     const key = getStudentProgressStorageKey(`lessonProgress_${lessonId}_module_${moduleIndex}`);
     try {
       const saved = key ? JSON.parse(localStorage.getItem(key) || "null") : null;
@@ -166,7 +178,7 @@ function Lesson() {
         setCurrentSlide(Math.min(allSlides.length - 1, Math.max(0, viewed - 1)));
       }
     } catch { /* Ignore an invalid saved record. */ }
-  }, [allSlides, lessonId, moduleIndex]);
+  }, [allSlides, lessonId, moduleIndex, resumeRecap]);
 
   useEffect(() => {
     if (allSlides.length === 0) return;
@@ -191,7 +203,8 @@ function Lesson() {
 
       if (
         Number(parsed.lessonId) !== Number(lessonId) ||
-        savedModuleIndex !== moduleIndex
+        savedModuleIndex !== moduleIndex ||
+        (parsed.moduleId && String(parsed.moduleId) !== activeModuleId)
       ) {
         setHasTakenQuiz(false);
         setQuizResults([]);
@@ -203,12 +216,19 @@ function Lesson() {
       const visibleQuizSlides = allSlides.filter(
         (slide) => slide.type === "quiz",
       );
-      const visibleQuizQuestions = new Set(
-        visibleQuizSlides.map((slide) => slide.content.question),
+      const visibleQuizQuestions = new Map(
+        visibleQuizSlides.map((slide) => [slide.content.question, slide.content]),
       );
-      const visibleSavedAnswers = savedAnswers.filter((item) =>
-        visibleQuizQuestions.has(item.question),
-      );
+      const visibleSavedAnswers = savedAnswers.filter((item) => {
+        const quiz = visibleQuizQuestions.get(item?.question);
+        const answer = normalizeRecapAnswer(item?.userAnswer);
+        return Boolean(
+          quiz && answer && (
+            quiz.type === "identification" ||
+            quiz.options?.some((option) => normalizeRecapAnswer(option) === answer)
+          ),
+        );
+      });
       const hasCompletedVisibleQuiz = visibleQuizSlides.every((slide) =>
         visibleSavedAnswers.some(
           (item) => item.question === slide.content.question,
@@ -238,7 +258,7 @@ function Lesson() {
       setQuizResults([]);
       setSelectedAnswers({});
     }
-  }, [quizResultKey, allSlides, lessonId, moduleIndex]);
+  }, [quizResultKey, allSlides, lessonId, moduleIndex, activeModuleId]);
 
   const totalSlides = allSlides.length;
 
@@ -333,6 +353,7 @@ function Lesson() {
       answers: latestResults,
       courseId: lessonId,
       moduleIndex,
+      moduleId: activeModuleId,
       moduleTitle,
       scopeType: "module",
       scopeTitle: moduleTitle,
@@ -340,6 +361,12 @@ function Lesson() {
     };
 
     saveAccountQuizResult(quizResultKey, JSON.stringify(finalResult));
+    if (String(courseId) !== lessonId) {
+      saveAccountQuizResult(
+        `lessonQuizResults_${courseId}_module_${moduleIndex}`,
+        JSON.stringify(finalResult),
+      );
+    }
     saveAccountQuizResult("lessonQuizResults", JSON.stringify(finalResult));
 
     const completedCourseProgress = Math.min(
@@ -373,37 +400,6 @@ function Lesson() {
     await saveProgress(totalSlides - 1);
   };
 
-  const openModulePracticeModes = () => {
-    if (!moduleQuizItems.length) {
-      Swal.fire({
-        icon: "info",
-        title: "No Module Quiz Yet",
-        text: "This module does not have quiz questions to practice yet.",
-        confirmButtonText: "OK",
-      });
-      return;
-    }
-
-    localStorage.setItem(
-      "practiceScope",
-      JSON.stringify({
-        courseId: lessonId,
-        courseCode: lesson?.code,
-        scopeId: activeModule?.id || `module-${moduleNumber}`,
-        scopeType: "module",
-        moduleIndex,
-        moduleNumber,
-        moduleCount,
-        nextModuleIndex: nextModuleIndex,
-        nextModuleTitle: nextModule?.title || "",
-        scopeTitle: moduleTitle,
-        scopeDetail: `${lessonSlides.length} lesson page(s)`,
-      }),
-    );
-
-    setQuizModesOpen(true);
-  };
-
   const continueToNextModule = () => {
     if (nextModule) {
       navigate(`/introduction/${lessonId}?module=${nextModuleIndex}`);
@@ -416,31 +412,12 @@ function Lesson() {
   const completeModuleAndPrompt = async (latestResults = quizResults) => {
     await saveLessonResults(latestResults);
 
-    if (!quizSlides.length) {
-      const result = await Swal.fire({
-        imageUrl: "/images/complete.png",
-        imageWidth: 300,
-        imageAlt: "Module complete",
-        customClass: {
-          popup: "quiz-popup module-complete-popup",
-          title: "quiz-popup-title",
-          confirmButton: "quiz-popup-button",
-        },
-        title: `Module ${moduleNumber} Complete`,
-        text: nextModule
-          ? `Ready to continue to Module ${moduleNumber + 1}?`
-          : "You completed the final module.",
-        confirmButtonText: nextModule
-          ? `Continue to Module ${moduleNumber + 1}`
-          : "Back to Course",
-        allowOutsideClick: false,
-      });
-
-      if (result.isConfirmed) {
-        continueToNextModule();
-      }
-      return;
-    }
+    const continueLabel = nextModule
+      ? `Continue to Module ${moduleNumber + 1}`
+      : "Back to Course";
+    const practicePrompt = nextModule
+      ? `Do you want to practice Module ${moduleNumber} or continue to Module ${moduleNumber + 1}?`
+      : `Do you want to practice Module ${moduleNumber} or return to the course?`;
 
     const result = await Swal.fire({
       imageUrl: "/images/complete.png",
@@ -452,24 +429,24 @@ function Lesson() {
           confirmButton: "quiz-popup-button",
         },
       title: `Module ${moduleNumber} Complete`,
-      text: nextModule
-        ? `Do you want to practice Module ${moduleNumber}, or continue to Module ${moduleNumber + 1}?`
-        : "You completed the final module. You can practice it now or return to the course.",
-      showCancelButton: true,
-      confirmButtonText: `Practice Module ${moduleNumber}`,
-      cancelButtonText: nextModule
-        ? `Continue to Module ${moduleNumber + 1}`
-        : "Back to Course",
+      text: practicePath ? practicePrompt : "You completed this module.",
+      showCancelButton: Boolean(practicePath),
+      confirmButtonText: practicePath
+        ? `Practice Module ${moduleNumber}`
+        : continueLabel,
+      cancelButtonText: continueLabel,
       allowOutsideClick: false,
       reverseButtons: false,
     });
 
-    if (result.isConfirmed) {
-      openModulePracticeModes();
+    if (result.isConfirmed && practicePath) {
+      setQuizModesOpen(true);
       return;
     }
 
-    continueToNextModule();
+    if (result.isConfirmed || result.dismiss === Swal.DismissReason.cancel) {
+      continueToNextModule();
+    }
   };
 
   const handleOptionSelect = async (slideIndex, option) => {
@@ -506,7 +483,7 @@ function Lesson() {
     setQuizResults(updatedResults);
     // Keep partial recap answers as well as completed results across refreshes.
     saveAccountQuizResult(quizResultKey, JSON.stringify({
-      lessonId: Number(lessonId), moduleIndex, answers: updatedResults,
+      lessonId: Number(lessonId), moduleIndex, moduleId: activeModuleId, answers: updatedResults,
     }));
 
     await Swal.fire({
@@ -777,13 +754,14 @@ function Lesson() {
           </div>
         </div>
       </div>
-
       {quizModesOpen && (
         <QuizModesModal
           source="module"
-          lessonId={modulePracticeId}
-          quizzes={moduleQuizItems}
           onClose={() => setQuizModesOpen(false)}
+          onSelectMode={(mode) => {
+            setQuizModesOpen(false);
+            navigate(modulePracticePath(courseId, activeModule, mode));
+          }}
         />
       )}
     </div>

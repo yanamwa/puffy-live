@@ -3,7 +3,13 @@ import QuizManagement from "../pages/professor/quizmanagement/QuizManagement.jsx
 import AboutUs from "../pages/unauth/about/Aboutus.jsx";
 import FAQ from "../pages/unauth/faq/faq.jsx";
 import ContactUs from "../pages/unauth/ContactUs/ContactUs.jsx";
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import Layout from "../components/Layout";
 import ProtectedRoute from "../components/ProtectedRoute";
 import LandingPage from "../LandingPage";
@@ -55,6 +61,7 @@ import ArchivedCourses from "../pages/student/archived/ArchivedCourses.jsx";
 import StudentSettings from "../pages/student/settings/StudentSettings.jsx";
 import StudentCourseDetail from "../pages/student/courses/StudentCourseDetail.jsx";
 import StudentModuleQuizPage from "../pages/student/courses/StudentModuleQuizPage.jsx";
+import ModulePractice from "../pages/student/courses/ModulePractice.jsx";
 import StudentJoinCourse from "../pages/student/courses/StudentJoinCourse.jsx";
 import StudentProfile from "../pages/student/settings/StudentProfile.jsx";
 import StudentNotifications from "../pages/student/home/StudentNotifications.jsx";
@@ -79,6 +86,18 @@ import TimedQuiz from "../pages/quizzes/inQuiz/inQuiz/timedinquiz";
 function LearningRedirect() {
   const { lessonId } = useParams();
   return <Navigate to={`/introduction/${lessonId}`} replace />;
+}
+
+function QuizModuleEditorRedirect() {
+  const { id, moduleId } = useParams();
+  const location = useLocation();
+  return (
+    <Navigate
+      to={`/professor/quizzes/${encodeURIComponent(id)}/modules/${encodeURIComponent(moduleId)}/main-quiz/edit${location.search}`}
+      replace
+      state={location.state}
+    />
+  );
 }
 
 export default function AppRoutes() {
@@ -344,7 +363,7 @@ export default function AppRoutes() {
             <Route path="quizzes" element={<QuizManagement />} />
             <Route
               path="quizzes/:id/modules/:moduleId"
-              element={<CourseModuleEditor quizManagement />}
+              element={<QuizModuleEditorRedirect />}
             />
             <Route
               path="quizzes/:id/modules/:moduleId/:assessmentType/edit"
@@ -400,6 +419,10 @@ export default function AppRoutes() {
           <Route
             path="/student/enrolled-courses/:courseId/quiz/:quizType/:moduleId"
             element={<StudentModuleQuizPage />}
+          />
+          <Route
+            path="/student/enrolled-courses/:courseId/practice/:moduleId"
+            element={<ModulePractice />}
           />
 
           <Route path="/student/join" element={<StudentJoinCourse />} />

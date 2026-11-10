@@ -6,31 +6,63 @@ import "./catalog.css";
 import { useEffect, useState, useRef } from "react";
 import { catalogRequest } from "../../services/catalogApi.js";
 
+const tutorialCatalogCourses = [
+  {
+    catalog_id: "tutorial-catalog-course",
+    code: "IT 101",
+    title: "Introduction to Computing",
+    versions: [],
+  },
+  {
+    catalog_id: "tutorial-catalog-it111",
+    code: "ITEC 111",
+    title:
+      "IT Elective 3 (Integrated Programming and Technologies 2)",
+    versions: [],
+  },
+];
+
 export default function ProfessorCatalogSelection({
   form,
   onChange,
   isEditing,
+  tutorialPreview = false,
+  tutorialOpen = false,
 }) {
   const navigate = useNavigate();
   const selecting = useRef(false);
-  const [courses, setCourses] = useState([]),
-    [loading, setLoading] = useState(true),
+  const [courses, setCourses] = useState(() =>
+      tutorialPreview ? tutorialCatalogCourses : [],
+    ),
+    [loading, setLoading] = useState(!tutorialPreview),
     [error, setError] = useState(""),
     [query, setQuery] = useState(""),
-    [open, setOpen] = useState(false),
+    [open, setOpen] = useState(tutorialOpen),
     [revision, setRevision] = useState(0);
   const root = useRef(null),
     input = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const locked = isEditing || Number(form.id) > 0;
   useEffect(() => {
+    setOpen(tutorialOpen);
+    if (tutorialOpen) {
+      setQuery("");
+      setActiveIndex(0);
+    }
+  }, [tutorialOpen]);
+  useEffect(() => {
     const outside = (event) => {
-      if (!root.current?.contains(event.target)) setOpen(false);
+      if (!tutorialOpen && !root.current?.contains(event.target)) setOpen(false);
     };
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
-  }, []);
+  }, [tutorialOpen]);
   useEffect(() => {
+    if (tutorialPreview) {
+      setCourses(tutorialCatalogCourses);
+      setLoading(false);
+      return;
+    }
     let active = true;
     const load = () =>
       catalogRequest("/active")
@@ -54,7 +86,7 @@ export default function ProfessorCatalogSelection({
       clearInterval(timer);
       window.removeEventListener("puffy-catalog-updated", load);
     };
-  }, [revision]);
+  }, [revision, tutorialPreview]);
   const selected = courses.find(
     (c) => String(c.catalog_id) === String(form.catalogId),
   );
@@ -110,8 +142,15 @@ export default function ProfessorCatalogSelection({
     <section
       ref={root}
       className="catalog-selection"
+      data-tutorial="course-catalog"
+      data-tutorial-open={tutorialOpen && open ? "true" : undefined}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+        if (
+          !tutorialOpen &&
+          !event.currentTarget.contains(event.relatedTarget)
+        ) {
+          setOpen(false);
+        }
       }}
       aria-label="Official course and class details"
     >
@@ -151,8 +190,10 @@ export default function ProfessorCatalogSelection({
                 onKeyDown={(event) => {
                   if (event.key === "Escape") {
                     event.preventDefault();
-                    setOpen(false);
-                    setQuery("");
+                    if (!tutorialOpen) {
+                      setOpen(false);
+                      setQuery("");
+                    }
                   }
                   if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                     event.preventDefault();
@@ -181,7 +222,7 @@ export default function ProfessorCatalogSelection({
                 aria-expanded={open}
                 disabled={loading}
                 onClick={() => {
-                  setOpen(!open);
+                  setOpen(tutorialOpen || !open);
                   setQuery("");
                   setActiveIndex(0);
                   input.current?.focus();

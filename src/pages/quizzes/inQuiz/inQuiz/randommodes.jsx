@@ -1,5 +1,6 @@
 import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
 import TutorialBackButton from "../TutorialBackButton.jsx";
+import { buildPracticeChoiceOptions, practiceAnswersMatch } from "../../../../services/adaptivePractice.js";
 import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
 import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
 import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
@@ -300,6 +301,29 @@ function buildMixedQuestions(items) {
   return shuffleArray([...recallRounds, ...matchingRounds]);
 }
 
+function buildAdaptiveMixedQuestions(questions) {
+  const items = questions.map((item) => ({
+    ...item,
+    answer: item.correct_answer,
+    answerKey: cleanChoiceText(item.correct_answer),
+    options: buildPracticeChoiceOptions(item, questions),
+  }));
+  const choices = items.filter((item) => item.type === "multiple_choice");
+  const matching = [];
+  for (const item of choices) {
+    if (!matching.some((pair) => practiceAnswersMatch(pair.answer, item.answer, true)))
+      matching.push(item);
+    if (matching.length === 4) break;
+  }
+  const pairs = matching.length >= 2 ? matching : [];
+  const rounds = items
+    .filter((item) => !pairs.includes(item))
+    .map((item) => item.type === "identification"
+      ? buildQandARound(item)
+      : buildMultipleChoiceRound(item, items));
+  return shuffleArray([...rounds, ...buildMatchingRounds(pairs)]);
+}
+
 function getQuestionTypeLabel(type) {
   const labels = {
     multiple: "Multiple Choice",
@@ -333,15 +357,16 @@ function getReviewAnswer(question, userAnswer, isCorrect) {
   };
 }
 
-export default function MixedMode() {
+export default function MixedMode({ adaptivePractice } = {}) {
   const routeNavigate = useNavigate();
   const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
-  const { lessonId, deckId } = useParams();
+  const { lessonId: routeLessonId, deckId } = useParams();
+  const lessonId = adaptivePractice?.session.lessonId || routeLessonId;
   const isLessonMode = Boolean(lessonId);
   const isDeckMode = Boolean(deckId);
   const practiceSession = useMemo(
-    () => getStoredPracticeSession({ lessonId, deckId }),
-    [lessonId, deckId],
+    () => adaptivePractice?.session || getStoredPracticeSession({ lessonId, deckId }),
+    [adaptivePractice?.session, lessonId, deckId],
   );
 
   const isMainQuiz = practiceSession?.scope?.scopeType === "main_quiz";
@@ -418,7 +443,9 @@ export default function MixedMode() {
               })),
             );
           } else {
-            setQuestions(buildMixedQuestions(practiceSession.items));
+            setQuestions(adaptivePractice
+              ? buildAdaptiveMixedQuestions(practiceSession.items)
+              : buildMixedQuestions(practiceSession.items));
           }
           return;
         }
@@ -557,6 +584,7 @@ export default function MixedMode() {
   }
 
   async function finishQuiz(finalScore, finalAnswers, leaveCourse = false) {
+    if (adaptivePractice) return adaptivePractice.onFinish(finalAnswers);
     if (isMainQuiz && submitPending.current) return;
     if (isMainQuiz) { submitPending.current = true; setMainSubmitting(true); }
     let mainResult = null;
@@ -689,7 +717,9 @@ export default function MixedMode() {
 
     const selected = question.options[index];
     setSelectedAnswer(selected);
-    recordSingleAnswer(selected, index === question.correct);
+    recordSingleAnswer(selected, adaptivePractice
+      ? practiceAnswersMatch(selected, question.answer, true)
+      : index === question.correct);
     if (isMainQuiz && !mainSubmitting && current < questions.length - 1) {
       setCurrent(value => value + 1);
     }
@@ -700,7 +730,9 @@ export default function MixedMode() {
 
     recordSingleAnswer(
       typingAnswer,
-      isCloseEnough(typingAnswer, question.answer),
+      adaptivePractice
+        ? practiceAnswersMatch(typingAnswer, question.answer, true)
+        : isCloseEnough(typingAnswer, question.answer),
     );
   }
 
@@ -978,7 +1010,7 @@ export default function MixedMode() {
 
   return (
     <div className={styles.wrapper}>
-      <div className="practice-course-back"><TutorialBackButton onBack={isMainQuiz ? leaveMainQuiz : undefined} /></div>
+      <div className="practice-course-back"><TutorialBackButton onBack={isMainQuiz ? leaveMainQuiz : adaptivePractice?.onBack} /></div>
       {!isMainQuiz && <PracticeSoundControl />}
       <PracticeAnswerFeedback />
       

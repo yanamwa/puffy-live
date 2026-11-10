@@ -1,5 +1,6 @@
 import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
 import TutorialBackButton from "../TutorialBackButton.jsx";
+import { buildPracticeChoiceOptions, practiceAnswersMatch } from "../../../../services/adaptivePractice.js";
 import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
 import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
 import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
@@ -27,16 +28,17 @@ import {
 } from "../practiceSession.js";
 import styles from "./multiplechoice.module.css";
 
-export default function Quiz() {
+export default function Quiz({ adaptivePractice } = {}) {
   const routeNavigate = useNavigate();
   const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
-  const { lessonId, deckId } = useParams();
+  const { lessonId: routeLessonId, deckId } = useParams();
+  const lessonId = adaptivePractice?.session.lessonId || routeLessonId;
 
   const isLessonMode = Boolean(lessonId);
   const isDeckMode = Boolean(deckId);
   const practiceSession = useMemo(
-    () => getStoredPracticeSession({ lessonId, deckId }),
-    [lessonId, deckId],
+    () => adaptivePractice?.session || getStoredPracticeSession({ lessonId, deckId }),
+    [adaptivePractice?.session, lessonId, deckId],
   );
 
   const [title, setTitle] = useState("Multiple Choice");
@@ -53,6 +55,14 @@ export default function Quiz() {
   const [checkpointOpen, setCheckpointOpen] = usePracticeState("checkpointOpen", false);
   const [checkpointStartIndex, setCheckpointStartIndex] = usePracticeState("checkpointStartIndex", 0);
   const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = usePracticeState("checkpointReviewEndIndex", 0);
+
+  useEffect(() => {
+    // Resume at the next question if an older module attempt was saved on the review screen.
+    if (adaptivePractice && checkpointOpen) {
+      setCurrent(checkpointReviewEndIndex);
+      setCheckpointOpen(false);
+    }
+  }, [adaptivePractice, checkpointOpen, checkpointReviewEndIndex]);
 
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -243,6 +253,17 @@ export default function Quiz() {
       try {
         if (practiceSession) {
           setTitle(getPracticeTitle(practiceSession, "Practice Quiz"));
+
+          if (adaptivePractice) {
+            setQuestions(shuffleArray(practiceSession.items.map((item) => ({
+              cardId: item.id,
+              q: item.question,
+              options: shuffleArray(buildPracticeChoiceOptions(item, practiceSession.items)),
+              correctAnswer: item.correct_answer,
+              explanation: item.explanation,
+            }))));
+            return;
+          }
 
           let answerItems = practiceSession.items;
           if (practiceSession.scope?.courseId) {
@@ -589,6 +610,10 @@ export default function Quiz() {
   }
 
   async function finishQuiz(finalScore, finalAnswers, returnToDeck = false) {
+    if (adaptivePractice) {
+      window.speechSynthesis?.cancel();
+      return adaptivePractice.onFinish(finalAnswers);
+    }
     const resultPayload = {
       ...getPracticeResultMetadata(
         practiceSession,
@@ -650,11 +675,14 @@ export default function Quiz() {
     setLocked(true);
 
     const chosenAnswer =
-      question.type === "identification"
+      adaptivePractice
+        ? cleanOptions[index]
+        : question.type === "identification"
         ? String(identificationValue || "").trim()
         : visibleOptions[index] || question.options[index] || "";
-    const isCorrect =
-      question.type === "identification"
+    const isCorrect = adaptivePractice
+      ? practiceAnswersMatch(chosenAnswer, question.correctAnswer)
+      : question.type === "identification"
         ? chosenAnswer.replace(/\s+/g, " ").toLowerCase() ===
           String(question.correctAnswer)
             .trim()
@@ -689,7 +717,9 @@ export default function Quiz() {
     setTimeout(async () => {
       const completedCount = current + 1;
       const shouldShowCheckpoint =
-        completedCount % 10 === 0 && completedCount < questions.length;
+        !adaptivePractice &&
+        completedCount % 10 === 0 &&
+        completedCount < questions.length;
 
       if (shouldShowCheckpoint) {
         setCheckpointReviewEndIndex(completedCount);
@@ -754,7 +784,7 @@ export default function Quiz() {
 
   return (
     <div className={styles.wrapper}>
-      <div className="practice-course-back"><TutorialBackButton /></div>
+      <div className="practice-course-back"><TutorialBackButton onBack={adaptivePractice?.onBack} /></div>
       <PracticeSoundControl />
       <PracticeAnswerFeedback />
       <button
@@ -766,7 +796,7 @@ export default function Quiz() {
         <span>settings</span>
       </button>
 
-      {checkpointOpen ? (
+      {checkpointOpen && !adaptivePractice ? (
         <div className={styles.checkpointWrapper}>
           <div className={styles.checkpointHeader}>
             <span className={styles.checkpointEyebrow}>The previous cards</span>

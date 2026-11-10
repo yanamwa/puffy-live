@@ -10,6 +10,17 @@ import {
 } from "react-router-dom";
 
 import { useAuth } from "../../../context/AuthContext";
+import { API_BASE } from "../../../config.js";
+import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
+import {
+  requiresPasswordChange,
+  requiresProfessorTutorial,
+} from "../../../utils/passwordPolicy.js";
+import ProfessorTutorial from "../tutorial/ProfessorTutorial.jsx";
+import {
+  getProfessorTutorialStep,
+  PROFESSOR_SETTINGS_PATH,
+} from "../tutorial/professorTutorialSteps.js";
 
 import {
   FiBookOpen,
@@ -169,11 +180,37 @@ function getDisplayName(user) {
 ===================================================== */
 
 export default function ProfessorLayout() {
-  const { user: authUser, logout, switchRole } = useAuth();
+  const { user: authUser, logout, switchRole, updateUser } = useAuth();
 
   const navigate = useNavigate();
   const [headerSearch, setHeaderSearch] = useState("");
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
+  const tutorialStep = requiresProfessorTutorial(authUser)
+    ? getProfessorTutorialStep(location)
+    : null;
+  const previewOnly = Boolean(tutorialStep) && requiresPasswordChange(authUser);
+
+  async function completeTutorial() {
+    const headers = lessonAuthHeaders();
+    const response = await fetch(`${API_BASE}/users/me/complete-tutorial`, {
+      method: "POST",
+      credentials: "include",
+      headers,
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (
+      !response.ok ||
+      data.success !== true ||
+      data.user?.professorTutorialPending !== false ||
+      lessonAuthHeaders().Authorization !== headers.Authorization
+    ) {
+      throw new Error("Could not save your tutorial progress. Please try again.");
+    }
+    updateUser(data.user);
+    navigate(PROFESSOR_SETTINGS_PATH, { replace: true });
+  }
 
   /* ===================================================
      HEADER USER
@@ -201,6 +238,7 @@ export default function ProfessorLayout() {
     const fetchCurrentProfessor = async () => {
       try {
         const token = getStoredToken();
+        const storedUser = localStorage.getItem("puffy-user");
 
         if (!token) {
           return;
@@ -227,7 +265,12 @@ export default function ProfessorLayout() {
 
         const loggedInUser = data.user || data.data?.user || data.data || data;
 
-        if (!loggedInUser || controller.signal.aborted || getStoredToken() !== token) {
+        if (
+          !loggedInUser ||
+          controller.signal.aborted ||
+          getStoredToken() !== token ||
+          localStorage.getItem("puffy-user") !== storedUser
+        ) {
           return;
         }
 
@@ -506,7 +549,7 @@ export default function ProfessorLayout() {
           </form>
 
           <div className="professor-header-actions">
-            <RoleNotificationMenu role="professor" />
+            {!previewOnly && <RoleNotificationMenu role="professor" />}
 
             <Link
               className="professor-create-course"
@@ -547,9 +590,19 @@ export default function ProfessorLayout() {
         =============================================== */}
 
         <div className="professor-content">
-          <Outlet />
+          <Outlet
+            key={previewOnly ? "tutorial-preview" : "professor-page"}
+            context={{ previewOnly, tutorialStep }}
+          />
         </div>
       </main>
+      {tutorialStep && (
+        <ProfessorTutorial
+          key={authUser.userId}
+          step={tutorialStep}
+          onFinish={completeTutorial}
+        />
+      )}
     </div>
   );
 }

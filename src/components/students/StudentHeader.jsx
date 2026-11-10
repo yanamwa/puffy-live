@@ -457,6 +457,12 @@ export default function StudentHeader({
   /* =====================================================
      LOGOUT
   ===================================================== */
+  const toggleProfileMenu = (event) => {
+    event.stopPropagation();
+    setNotificationMenuOpen(false);
+    setProfileMenuOpen((current) => !current);
+  };
+
   const handleLogout = () => {
     setProfileMenuOpen(false);
     setNotificationMenuOpen(false);
@@ -469,16 +475,14 @@ export default function StudentHeader({
      JSX
   ===================================================== */
   return (
-    <header
-      className="student-header responsive-role-header"
-      onClickCapture={onLockedAction}
-      onSubmitCapture={onLockedAction}
-    >
+    <header className="student-header responsive-role-header">
       {/* SEARCH */}
       {showSearch && (
         <form
           className="student-header-search"
           role="search"
+          onClickCapture={onLockedAction}
+          onSubmitCapture={onLockedAction}
           onSubmit={(event) => {
             event.preventDefault();
             if (!onSearchChange)
@@ -515,7 +519,10 @@ export default function StudentHeader({
       {/* RIGHT SIDE */}
       <div className="student-header-actions">
         {/* NOTIFICATION */}
-        <div className="notification-menu-wrapper">
+        <div
+          className="notification-menu-wrapper"
+          onClickCapture={onLockedAction}
+        >
           <button
             type="button"
             className={`notification-button ${
@@ -665,6 +672,7 @@ export default function StudentHeader({
           <button
             type="button"
             className="student-join-course-button"
+            onClickCapture={onLockedAction}
             onClick={() => {
               if (onJoinCourse) {
                 onJoinCourse();
@@ -680,7 +688,10 @@ export default function StudentHeader({
             <button
               type="button"
               className="profile-main-button"
-              onClick={() => navigate("/student/profile")}
+              aria-expanded={locked ? profileMenuOpen : undefined}
+              onClick={
+                locked ? toggleProfileMenu : () => navigate("/student/profile")
+              }
             >
               <span className="profile-avatar">
                 <img
@@ -706,11 +717,7 @@ export default function StudentHeader({
               }`}
               aria-label="Profile menu"
               aria-expanded={profileMenuOpen}
-              onClick={(event) => {
-                event.stopPropagation();
-                setNotificationMenuOpen(false);
-                setProfileMenuOpen((current) => !current);
-              }}
+              onClick={toggleProfileMenu}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="5" r="1.6" />
@@ -741,35 +748,39 @@ export default function StudentHeader({
                 </div>
               </div>
               <div className="profile-dropdown-divider" />
-              {/* VIEW PROFILE */}
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileMenuOpen(false);
-                  navigate("/student/profile");
-                }}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M5 20c.8-4 3.2-6 7-6s6.2 2 7 6" />
-                </svg>
-                <span>View profile</span>
-              </button>
-              {/* SETTINGS */}
-              <button
-                type="button"
-                onClick={() => {
-                  setProfileMenuOpen(false);
-                  navigate("/student/settings");
-                }}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19 13.5v-3l-2-.6a7 7 0 0 0-.7-1.6l1-1.8-2.1-2.1-1.8 1a7 7 0 0 0-1.6-.7L11.5 3h-3l-.6 2a7 7 0 0 0-1.6.7l-1.8-1-2.1 2.1 1 1.8a7 7 0 0 0-.7 1.6L1 10.5v3l2 .6a7 7 0 0 0 .7 1.6l-1 1.8 2.1 2.1 1.8-1a7 7 0 0 0 1.6.7l.6 2h3l.6-2a7 7 0 0 0 1.6-.7l1.8 1 2.1-2.1-1-1.8a7 7 0 0 0 .7-1.6Z" />
-                </svg>
-                <span>Settings</span>
-              </button>
-              <div className="profile-dropdown-divider" />
+              {!locked && (
+                <>
+                  {/* VIEW PROFILE */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      navigate("/student/profile");
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M5 20c.8-4 3.2-6 7-6s6.2 2 7 6" />
+                    </svg>
+                    <span>View profile</span>
+                  </button>
+                  {/* SETTINGS */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      navigate("/student/settings");
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M19 13.5v-3l-2-.6a7 7 0 0 0-.7-1.6l1-1.8-2.1-2.1-1.8 1a7 7 0 0 0-1.6-.7L11.5 3h-3l-.6 2a7 7 0 0 0-1.6.7l-1.8-1-2.1 2.1 1 1.8a7 7 0 0 0-.7 1.6L1 10.5v3l2 .6a7 7 0 0 0 .7 1.6l-1 1.8 2.1 2.1 1.8-1a7 7 0 0 0 1.6.7l.6 2h3l.6-2a7 7 0 0 0 1.6-.7l1.8 1 2.1-2.1-1-1.8a7 7 0 0 0 .7-1.6Z" />
+                    </svg>
+                    <span>Settings</span>
+                  </button>
+                  <div className="profile-dropdown-divider" />
+                </>
+              )}
               {/* LOGOUT */}
               <button
                 type="button"

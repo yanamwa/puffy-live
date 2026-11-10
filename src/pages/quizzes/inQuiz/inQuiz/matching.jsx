@@ -1,5 +1,6 @@
 import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
 import TutorialBackButton from "../TutorialBackButton.jsx";
+import { practiceAnswersMatch } from "../../../../services/adaptivePractice.js";
 import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
 import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
 import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
@@ -22,23 +23,25 @@ import {
 } from "../practiceSession.js";
 import styles from "./matching.module.css";
 
-export default function MatchingType() {
+const PAIRS_PER_SET = 5;
+
+export default function MatchingType({ adaptivePractice } = {}) {
   const routeNavigate = useNavigate();
   const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
-  const { lessonId, deckId } = useParams();
+  const { lessonId: routeLessonId, deckId } = useParams();
+  const lessonId = adaptivePractice?.session.lessonId || routeLessonId;
 
   const isLessonMode = Boolean(lessonId);
   const isDeckMode = Boolean(deckId);
   const practiceSession = useMemo(
-    () => getStoredPracticeSession({ lessonId, deckId }),
-    [lessonId, deckId],
+    () => adaptivePractice?.session || getStoredPracticeSession({ lessonId, deckId }),
+    [adaptivePractice?.session, lessonId, deckId],
   );
 
   const [lesson, setLesson] = usePracticeState("lesson", null, true);
   const [firstCard, setFirstCard] = useState(null);
   const [matchedIds, setMatchedIds] = usePracticeState("matchedIds", []);
   const [wrongPair, setWrongPair] = useState([]);
-  const [checkpointOpen, setCheckpointOpen] = usePracticeState("checkpointOpen", false);
   const [checkpointStartIndex, setCheckpointStartIndex] = usePracticeState("checkpointStartIndex", 0);
   const [firstAttempts, setFirstAttempts] = usePracticeState("firstAttempts", {});
   const clickPending = useRef(false);
@@ -214,8 +217,8 @@ export default function MatchingType() {
           return {
             id: `pair-${index}`,
             cardId: item.cardId || item.card_id || item.id || index + 1,
-            question: cleanQuestionText(question),
-            answer: cleanAnswerText(answer),
+            question: adaptivePractice ? question : cleanQuestionText(question),
+            answer: adaptivePractice ? answer : cleanAnswerText(answer),
           };
         })
         .filter((item) => item.question && item.answer);
@@ -226,10 +229,12 @@ export default function MatchingType() {
   }, [lesson]);
 
   const roundPairs = useMemo(
-    () => matchingPairs.slice(checkpointStartIndex, checkpointStartIndex + 10),
+    () => matchingPairs.slice(checkpointStartIndex, checkpointStartIndex + PAIRS_PER_SET),
     [matchingPairs, checkpointStartIndex],
   );
   const roundEndIndex = checkpointStartIndex + roundPairs.length;
+  const roundAnswered = roundPairs.filter((item) => matchedIds.includes(item.id)).length;
+  const checkpointOpen = roundPairs.length > 0 && roundAnswered === roundPairs.length;
   const roundScore = roundPairs.filter(
     (item) => firstAttempts[item.id]?.isCorrect,
   ).length;
@@ -261,17 +266,14 @@ export default function MatchingType() {
   const getAttempt = (card, side) =>
     side === "left"
       ? firstAttempts[card.id]
-      : Object.values(firstAttempts).find((attempt) => attempt.rightId === card.id);
+      : roundPairs
+          .map((pair) => firstAttempts[pair.id])
+          .find((attempt) => attempt?.rightId === card.id);
   const isWrongCard = (card, side) => getAttempt(card, side)?.isCorrect === false;
 
-  const saveMatchingResult = (finalScore, completedIds = null) => {
+  const getMatchingAnswers = (completedIds) => {
     const completedSet = completedIds ? new Set(completedIds) : null;
-    const metadata = getPracticeResultMetadata(
-      practiceSession,
-      isDeckMode ? "deck" : "lesson",
-    );
-
-    const answers = matchingPairs
+    return matchingPairs
       .filter((item) => !completedSet || completedSet.has(item.id))
       .map((item) => ({
         cardId: item.cardId,
@@ -281,15 +283,17 @@ export default function MatchingType() {
         explanation: item.answer,
         isCorrect: Boolean(firstAttempts[item.id]?.isCorrect),
       }));
+  };
 
+  const saveMatchingResult = (finalScore, completedIds = null) => {
     const resultPayload = {
-      ...metadata,
+      ...getPracticeResultMetadata(practiceSession, isDeckMode ? "deck" : "lesson"),
       quizMode: "matching",
       lessonId: lessonId || null,
       deckId: toNumericId(deckId),
       score: finalScore,
       total: matchingPairs.length,
-      answers,
+      answers: getMatchingAnswers(completedIds),
     };
 
     saveAccountQuizResult("lessonQuizResults", JSON.stringify(resultPayload));
@@ -306,6 +310,7 @@ export default function MatchingType() {
     finalMatchedIds = matchedIds,
     returnToDeck = false,
   ) => {
+    if (adaptivePractice) return adaptivePractice.onFinish(getMatchingAnswers(finalMatchedIds));
     const finalScore = matchingPairs.filter(
       (item) =>
         finalMatchedIds.includes(item.id) && firstAttempts[item.id]?.isCorrect,
@@ -333,14 +338,12 @@ export default function MatchingType() {
     );
     setFirstCard(null);
     setWrongPair([]);
-    setCheckpointOpen(false);
   };
 
   const continueAfterCheckpoint = () => {
     setCheckpointStartIndex(roundEndIndex);
     setFirstCard(null);
     setWrongPair([]);
-    setCheckpointOpen(false);
   };
 
   const handleCardClick = async (card, side) => {
@@ -358,7 +361,9 @@ export default function MatchingType() {
     const questionCard = side === "left" ? card : firstCard;
     const answerCard = side === "right" ? card : firstCard;
     const expected = roundPairs.find((item) => item.id === questionCard.id);
-    const isCorrect = questionCard.id === answerCard.id;
+    const isCorrect = adaptivePractice
+      ? practiceAnswersMatch(expected.answer, answerCard.text, true)
+      : questionCard.id === answerCard.id;
     playPracticeFeedbackSound(isCorrect);
     setFirstAttempts((prev) =>
       prev[questionCard.id]
@@ -378,8 +383,6 @@ export default function MatchingType() {
         const updated = [...matchedIds, questionCard.id];
         setMatchedIds(updated);
         setFirstCard(null);
-        if (roundPairs.every((item) => updated.includes(item.id)))
-          setCheckpointOpen(true);
       } finally {
         clickPending.current = false;
       }
@@ -387,8 +390,6 @@ export default function MatchingType() {
       const updated = [...matchedIds, questionCard.id];
       setMatchedIds(updated);
       setFirstCard(null);
-      if (roundPairs.every((item) => updated.includes(item.id)))
-        setCheckpointOpen(true);
     }
   };
 
@@ -432,7 +433,7 @@ export default function MatchingType() {
 
   return (
     <div className={styles.wrapper}>
-      <div className="practice-course-back"><TutorialBackButton /></div>
+      <div className="practice-course-back"><TutorialBackButton onBack={adaptivePractice?.onBack} /></div>
       <PracticeSoundControl />
       <PracticeAnswerFeedback />
       <button
@@ -552,22 +553,15 @@ export default function MatchingType() {
                 Repeat Cards
               </button>
               <button
+                autoFocus
                 type="button"
-                className={styles.doneCardsBtn}
-                onClick={() => finishMatching(matchedIds)}
+                className={styles.nextCardsBtn}
+                onClick={
+                  isLastRound ? () => finishMatching(matchedIds) : continueAfterCheckpoint
+                }
               >
-                Done
+                {isLastRound ? "Done" : "Continue"}
               </button>
-              {!isLastRound && (
-                <button
-                  autoFocus
-                  type="button"
-                  className={styles.nextCardsBtn}
-                  onClick={continueAfterCheckpoint}
-                >
-                  Continue
-                </button>
-              )}
             </div>
           </section>
         </div>
@@ -578,14 +572,9 @@ export default function MatchingType() {
             {lesson.title || "Matching Quiz"}
           </h1>
           <p>
-            Set {Math.floor(checkpointStartIndex / 10) + 1} ·{" "}
+            Set {Math.floor(checkpointStartIndex / PAIRS_PER_SET) + 1} ·{" "}
             {roundPairs.length} questions ·{" "}
-            {
-              matchedIds.filter((id) =>
-                roundPairs.some((item) => item.id === id),
-              ).length
-            }
-            /{roundPairs.length} answered
+            {roundAnswered}/{roundPairs.length} answered
           </p>
         </header>
 

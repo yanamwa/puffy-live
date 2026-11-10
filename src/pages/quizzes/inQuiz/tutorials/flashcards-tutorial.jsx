@@ -9,10 +9,21 @@ const flashFrames = [
   "/images/flash3.png",
 ];
 
-export default function FlashcardsTutorial() {
+export const flashcardIntro = {
+  frames: flashFrames,
+  screen: styles.introScreen,
+  artwork: styles.flashIntroImage,
+};
+
+export default function FlashcardsTutorial({
+  onStart,
+  onBack,
+  startDisabled,
+  skipIntro = false,
+} = {}) {
   const [flipped, setFlipped] = useState(false);
   const [tabLabel, setTabLabel] = useState("Question");
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(!skipIntro);
   const [frameIndex, setFrameIndex] = useState(0);
   const [showCircle, setShowCircle] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
@@ -21,6 +32,7 @@ export default function FlashcardsTutorial() {
   const { lessonId, deckId } = useParams();
 
   useEffect(() => {
+    if (skipIntro) return;
     const animationSequence = [0, 1, 2, 0, 1, 2, 0, 1, 2];
     let current = 0;
 
@@ -40,7 +52,7 @@ export default function FlashcardsTutorial() {
     }, 220);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [skipIntro]);
 
   const handleFlip = () => {
     setFlipped(!flipped);
@@ -61,7 +73,7 @@ export default function FlashcardsTutorial() {
 
   return (
     <div className={styles.flashcardsApp}>
-      <TutorialBackButton />
+      <TutorialBackButton onBack={onBack} />
 
       {(showIntro || startLoading) && (
         <div className={styles.introScreen}>
@@ -93,7 +105,11 @@ export default function FlashcardsTutorial() {
                 — perfect for learning on the go!
               </p>
 
-              <button className={styles.startBtn} onClick={handleStart}>
+              <button
+                className={styles.startBtn}
+                onClick={onStart || handleStart}
+                disabled={startDisabled}
+              >
                 Start
               </button>
             </div>

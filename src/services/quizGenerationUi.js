@@ -3,12 +3,15 @@ import { buildPracticeQuizPrompt } from "./practiceQuizPrompt.js";
 import Swal from "sweetalert2";
 import "./quizGenerationUi.css";
 
-export function requestQuizSettings({ assessment = "practice" } = {}) {
+export function requestQuizSettings({
+  assessment = "practice",
+  tutorialPreview = false,
+} = {}) {
   if (assessment !== "main") return requestPracticeQuizSettings();
-  return requestMainQuizSettings();
+  return requestMainQuizSettings({ tutorialPreview });
 }
 
-function requestMainQuizSettings() {
+function requestMainQuizSettings({ tutorialPreview = false } = {}) {
   return Swal.fire({
     title: "Generate Main Quiz",
     customClass: {
@@ -16,20 +19,24 @@ function requestMainQuizSettings() {
       confirmButton: "quizGeneratorConfirm",
       cancelButton: "quizGeneratorCancel",
     },
-    html: `<p class="quizGeneratorIntro">Configure your adaptive main assessment.</p><div class="practiceGeneratorFields">
+    html: `<p class="quizGeneratorIntro">Configure your adaptive main assessment.</p>${tutorialPreview ? '<div id="main-quiz-generation-tutorial"></div>' : ""}<div class="practiceGeneratorFields">
       <label for="main-total">Total Questions</label><input id="main-total" type="number" min="1" max="100" step="1" value="20" aria-describedby="main-total-hint" required /><small id="main-total-hint" class="quizQuestionLimit">Maximum: 100 questions</small>
-      <section><h3>Question Distribution</h3><p class="quizAutoDistributionHint">Enter the number of each question type. The counts must add up to Total Questions.</p><div class="practiceTypeGrid">
+      <div id="main-quiz-question-distribution"><section><h3>Question Distribution</h3><p class="quizAutoDistributionHint">Enter the number of each question type. The counts must add up to Total Questions.</p><div class="practiceTypeGrid">
       <div><label for="main-mc">Multiple Choice</label><input id="main-mc" type="number" min="0" max="100" step="1" value="10" required /></div>
       <div><label for="main-id">Identification</label><input id="main-id" type="number" min="0" max="100" step="1" value="5" required /></div>
       <div><label for="main-tf">True/False</label><input id="main-tf" type="number" min="0" max="100" step="1" value="5" required /></div></div>
-      <div class="practiceDistributionSummary" aria-live="polite"><strong id="main-assigned"></strong></div></section>
-      <section><h3>Passing Grade</h3><div class="mainRequiredScore"><span>70% passing grade</span><strong id="main-required" aria-live="polite">14/20</strong><small>Required correct answers to pass, automatically calculated from the total questions.</small></div></section>
-      <section><h3>Adaptive Assessment</h3><ul class="mainAdaptiveList"><li>Practice results personalize questions when available</li><li>Students can start without completing Practice Quiz</li><li>Questions grounded in saved lesson sources</li></ul></section></div>`,
-    showCloseButton: true,
+      <div class="practiceDistributionSummary" aria-live="polite"><strong id="main-assigned">20 of 20 questions assigned</strong></div></section></div>
+      <section id="main-quiz-passing-grade"><h3>Passing Grade</h3><div class="mainRequiredScore"><span>70% passing grade</span><strong id="main-required" aria-live="polite">14/20</strong><small>Required correct answers to pass, automatically calculated from the total questions.</small></div></section>
+      <section><h3>Adaptive Assessment</h3><ul class="mainAdaptiveList"><li>Practice results personalize questions when available</li><li>Students can start without completing Practice Quiz</li><li>Questions grounded in saved lesson sources</li></ul></section>
+      </div>`,
+    showCloseButton: !tutorialPreview,
     closeButtonAriaLabel: "Close Main Quiz generation",
-    showCancelButton: true,
+    showCancelButton: !tutorialPreview,
     confirmButtonText: "Generate",
     cancelButtonText: "Cancel",
+    showConfirmButton: !tutorialPreview,
+    allowOutsideClick: !tutorialPreview,
+    allowEscapeKey: !tutorialPreview,
     buttonsStyling: false,
     focusConfirm: false,
     didOpen: (popup) => {
@@ -65,6 +72,11 @@ function requestMainQuizSettings() {
         get(id).addEventListener("input", update),
       );
       update();
+      if (tutorialPreview) {
+        popup.querySelectorAll("input").forEach((input) => {
+          input.disabled = true;
+        });
+      }
     },
     preConfirm: () => {
       const get = (id) => Swal.getPopup().querySelector("#main-" + id);

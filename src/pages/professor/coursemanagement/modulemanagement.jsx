@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useOutletContext } from "react-router-dom";
 import {
   archiveCourseById,
   fetchCourses,
   fetchCourseEnrollmentCount,
 } from "../../../services/courseApi.js";
+import { tutorialCourseExamples } from "../tutorial/professorTutorialExamples.js";
 import styles from "./modulemanage.module.css";
 import Swal from "sweetalert2";
 
@@ -15,6 +16,8 @@ function formatCourseId(course) {
 export default function ModuleManagement() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { previewOnly, tutorialStep } = useOutletContext() ?? {};
+  const showExamples = tutorialStep?.id === "courses";
 
   const [courses, setCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get("search") || "");
@@ -22,7 +25,7 @@ export default function ModuleManagement() {
   const [courseView, setCourseView] = useState("active");
   const [rowsToShow, setRowsToShow] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!previewOnly && !showExamples);
   const [errorMessage, setErrorMessage] = useState("");
 
   /* =========================================
@@ -30,6 +33,7 @@ export default function ModuleManagement() {
   ========================================= */
 
   useEffect(() => {
+    if (previewOnly || showExamples) return;
     let active = true;
 
     let loadingCourses = false;
@@ -80,7 +84,7 @@ export default function ModuleManagement() {
       window.removeEventListener("puffy-catalog-updated", refresh);
       window.clearInterval(timer);
     };
-  }, []);
+  }, [previewOnly, showExamples]);
 
   /* =========================================
      RESET PAGE WHEN SEARCH / ROWS CHANGES
@@ -95,6 +99,7 @@ export default function ModuleManagement() {
   ========================================= */
 
   const filteredCourses = useMemo(() => {
+    if (showExamples) return tutorialCourseExamples;
     const query = searchQuery.trim().toLowerCase();
 
     return courses
@@ -122,7 +127,7 @@ export default function ModuleManagement() {
           .toLowerCase()
           .includes(query);
       });
-  }, [courses, searchQuery, courseView]);
+  }, [courses, searchQuery, courseView, showExamples]);
 
   /* =========================================
      PAGINATION
@@ -253,7 +258,10 @@ export default function ModuleManagement() {
   ========================================= */
 
   return (
-    <section className={styles.modulePage}>
+    <section
+      className={styles.modulePage}
+      data-tutorial="professor-course-management"
+    >
       {/* =====================================
           PAGE HEADER
       ====================================== */}
@@ -311,9 +319,14 @@ export default function ModuleManagement() {
       ====================================== */}
 
       <div className={styles.tableCard}>
-        {loading ? (
+        {showExamples && (
+          <p className="student-tutorial-sample-label">
+            Example courses for the tutorial
+          </p>
+        )}
+        {!showExamples && loading ? (
           <div className={styles.emptyState}>Loading courses...</div>
-        ) : errorMessage ? (
+        ) : !showExamples && errorMessage ? (
           <div className={styles.emptyState}>{errorMessage}</div>
         ) : shownCourses.length === 0 ? (
           <div className={styles.emptyState}>No courses found.</div>
@@ -323,11 +336,13 @@ export default function ModuleManagement() {
               <article
                 key={course.id}
                 className={styles.moduleBox}
-                role="button"
-                tabIndex={0}
-                onClick={() => openCourse(course.id)}
+                role={showExamples ? undefined : "button"}
+                tabIndex={showExamples ? undefined : 0}
+                onClick={showExamples ? undefined : () => openCourse(course.id)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
+                  if (
+                    !showExamples && (event.key === "Enter" || event.key === " ")
+                  ) {
                     event.preventDefault();
 
                     openCourse(course.id);
@@ -414,6 +429,7 @@ export default function ModuleManagement() {
                     <button
                       type="button"
                       className={styles.actionEdit}
+                      disabled={showExamples}
                       onClick={(event) => {
                         event.stopPropagation();
 
@@ -426,6 +442,7 @@ export default function ModuleManagement() {
                     <button
                       type="button"
                       className={styles.actionDelete}
+                      disabled={showExamples}
                       onClick={(event) => {
                         event.stopPropagation();
                         archiveCourse(course);
@@ -438,6 +455,7 @@ export default function ModuleManagement() {
                   <button
                     type="button"
                     className={styles.actionRestore}
+                    disabled={showExamples}
                     onClick={(event) => {
                       event.stopPropagation();
                       restoreCourse(course);

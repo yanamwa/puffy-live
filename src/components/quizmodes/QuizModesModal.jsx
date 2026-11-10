@@ -75,6 +75,7 @@ export default function QuizModesModal({
   cards = [],
   quizzes = [],
   onClose,
+  onSelectMode,
 }) {
   const navigate = useNavigate();
   const [modes, setModes] = useState([]);
@@ -131,6 +132,11 @@ export default function QuizModesModal({
   };
 
   const handleStartPractice = (mode) => {
+    const modeKind = getModeKind(mode);
+    if (onSelectMode) {
+      onSelectMode(modeKind);
+      return;
+    }
     // This picker launches practice only. Never inherit a previous Main Quiz flag.
     let savedScope = {};
     try { savedScope = JSON.parse(localStorage.getItem("practiceScope") || "{}"); } catch { /* Start with a clean practice scope. */ }
@@ -141,7 +147,6 @@ export default function QuizModesModal({
       ...(sameScope ? savedScope : {}),
       scopeType: source === "deck" ? "deck" : source === "course" ? "course" : source === "module" ? "module" : "lesson",
     }));
-    const modeKind = getModeKind(mode);
     const route = getModeRoute(mode, modeKind);
     const selectedMode = {
       ...mode,

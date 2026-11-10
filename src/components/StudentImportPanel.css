@@ -1,0 +1,135 @@
+#root .student-import-panel,
+#root .student-import-panel * {
+  font-family: system-ui, sans-serif !important;
+}
+
+.student-import-panel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid #cbdced;
+  border-radius: 8px;
+  color: #263e5b;
+}
+
+/* Keep the import guide compact inside the larger Add Student modal. */
+.users-page .users-modal .student-import-panel h3 {
+  margin: 0;
+  font-size: 1rem !important;
+  line-height: 1.3;
+}
+
+.users-page .users-modal .student-import-panel :is(p, button) {
+  font-size: 0.875rem !important;
+  line-height: 1.45;
+}
+
+.student-import-notes p {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.student-import-notes p:last-child {
+  margin-bottom: 0;
+}
+
+.student-import-button {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 7px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #285985;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.student-import-button:hover:not(:disabled) {
+  background: #204a70;
+}
+
+.student-import-button:focus-visible {
+  outline: 2px solid #285985;
+  outline-offset: 3px;
+}
+
+.student-import-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.student-import-mapping {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #cbdced;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.student-import-mapping legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+
+.student-import-mapping p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.student-import-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 8px 12px;
+}
+
+.users-page .users-modal .student-import-fields :is(label, select, input) {
+  font-size: 0.875rem !important;
+}
+
+.student-import-fields label {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.student-import-fields :is(select, input[type="text"]) {
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 6px;
+  border: 1px solid #aebfd2;
+  border-radius: 4px;
+  background: #fff;
+  color: inherit;
+}
+
+.student-import-fields .student-import-checkbox,
+.student-import-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.student-import-cancel {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #aebfd2;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+}
+
+.student-import-examples a {
+  color: #285985;
+  font-weight: 600;
+  text-decoration: underline;
+}

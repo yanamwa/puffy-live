@@ -324,9 +324,7 @@
 
   image-rendering: pixelated;
 
-  animation:
-    timedRotate 0.8s linear infinite,
-    timedPulse 0.5s ease-in-out infinite alternate;
+  animation: timedRotate 6s steps(4, end) infinite;
 }
 
 .circleLoader {
@@ -372,17 +370,7 @@
   }
 
   to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes timedPulse {
-  from {
-    scale: 1;
-  }
-
-  to {
-    scale: 1.08;
+    transform: rotate(-360deg);
   }
 }
 

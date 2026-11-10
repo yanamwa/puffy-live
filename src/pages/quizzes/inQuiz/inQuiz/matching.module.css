@@ -703,12 +703,6 @@ td {
   box-shadow: 0 4px 0 #3f9f62;
 }
 
-.checkpointActions .doneCardsBtn {
-  border-color: #7f7f86;
-  background: #a9a9b1;
-  box-shadow: 0 4px 0 #7f7f86;
-}
-
 @media (max-width: 700px) {
   .checkpointWrapper {
     width: min(94%, 980px);
@@ -873,9 +867,6 @@ td {
 }
 .roundModal .checkpointActions button:hover {
   background: #709bc9;
-}
-.roundModal .checkpointActions .nextCardsBtn {
-  grid-column: 1 / -1;
 }
 .roundModal .checkpointActions button:focus-visible {
   outline: 3px solid #275987;

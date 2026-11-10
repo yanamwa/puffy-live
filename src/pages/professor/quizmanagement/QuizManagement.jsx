@@ -1,21 +1,30 @@
 import ManagementBackBar from "../../../components/ManagementBackBar.jsx";
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useOutletContext, useSearchParams } from "react-router-dom";
 import { fetchCourses, fetchCourse } from "../../../services/courseApi.js";
 import styles from "../analysis/AssessmentAnalysis.module.css";
 import "./QuizManagement.css";
 import assessmentStyles from "../coursemanagement/Addmodule.module.css";
+import {
+  tutorialCourseDraft,
+  tutorialCourseExamples,
+} from "../tutorial/professorTutorialExamples.js";
 
 export default function QuizManagement() {
+  const { previewOnly, tutorialStep } = useOutletContext() ?? {};
+  const tutorialCourseList = tutorialStep?.id === "quiz-management";
+  const tutorialModuleList = tutorialStep?.id === "quiz-module";
+  const tutorialPreview = tutorialCourseList || tutorialModuleList;
   const [params, setParams] = useSearchParams();
   const courseId = params.get("course") || "";
   const [searchQuery, setSearchQuery] = useState("");
   const [courseLoading, setCourseLoading] = useState(false);
   const [courses, setCourses] = useState([]);
   const [course, setCourse] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!previewOnly && !tutorialPreview);
   const [error, setError] = useState("");
   useEffect(() => {
+    if (previewOnly || tutorialPreview) return;
     let active = true;
     fetchCourses({}, { fallback: false })
       .then((items) => {
@@ -30,11 +39,11 @@ export default function QuizManagement() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [previewOnly, tutorialPreview]);
   useEffect(() => {
     let active = true;
     setCourse(null);
-    if (!courseId) {
+    if (previewOnly || tutorialPreview || !courseId) {
       setCourseLoading(false);
       return;
     }
@@ -53,12 +62,14 @@ export default function QuizManagement() {
     return () => {
       active = false;
     };
-  }, [courseId]);
+  }, [courseId, previewOnly, tutorialPreview]);
+  const visibleCourses = tutorialCourseList ? tutorialCourseExamples.slice(0, 1) : courses;
+  const selectedCourse = tutorialModuleList ? tutorialCourseDraft : course;
   const modules =
-    course?.contentModules ||
-    course?.content_modules ||
-    course?.learningModules ||
-    course?.learning_modules ||
+    selectedCourse?.contentModules ||
+    selectedCourse?.content_modules ||
+    selectedCourse?.learningModules ||
+    selectedCourse?.learning_modules ||
     [];
   return (
     <div className={`${styles.page} quiz-management`}>
@@ -69,14 +80,17 @@ export default function QuizManagement() {
       )}
       <header className={`${styles.header} quiz-management-heading professor-section-heading`}>
         <h1>Quiz Management</h1>
-        <p>Manage practice and main quizzes by course and module.</p>
+        <p>Manage Main Quizzes by course and module. The system creates adaptive practice for each student.</p>
       </header>
       {courseId && (
         <section className="quiz-course-heading" aria-label="Selected course">
-          <h2 className="quiz-selected-course">{course?.title || course?.course_name || "Course quizzes"}</h2>
+          <h2 className="quiz-selected-course">{selectedCourse?.title || selectedCourse?.course_name || "Course quizzes"}</h2>
         </section>
       )}
-      <section className={`${styles.courseArea} quiz-management-content`}>
+      <section
+        className={`${styles.courseArea} quiz-management-content`}
+        data-tutorial="quiz-management-courses"
+      >
         {error && <p role="alert">{error}</p>}
         {(courseId ? courseLoading : loading) ? (
           <p className={styles.message} role="status">
@@ -84,7 +98,7 @@ export default function QuizManagement() {
           </p>
         ) : !courseId ? (
           <div className={`${styles.courseGrid} quiz-management-course-grid`}>
-            {courses
+            {visibleCourses
               .filter((item) =>
                 [
                   item.title,
@@ -154,7 +168,7 @@ export default function QuizManagement() {
                   </button>
                 );
               })}
-            {!courses.some((item) =>
+            {!visibleCourses.some((item) =>
               [
                 item.title,
                 item.course_name,
@@ -175,9 +189,12 @@ export default function QuizManagement() {
             )}
           </div>
         ) : (
-          course &&
+          selectedCourse &&
           (modules.length ? (
-            <div className="quiz-module-list">
+            <div
+              className="quiz-module-list"
+              data-tutorial="quiz-management-modules"
+            >
               {modules.map((module, index) => {
                 const moduleId =
                   module.id ||
@@ -185,6 +202,7 @@ export default function QuizManagement() {
                   module.module_id ||
                   `module-${index + 1}`;
                 const path = `/professor/quizzes/${encodeURIComponent(courseId)}/modules/${encodeURIComponent(moduleId)}`;
+                const mainQuizPath = `${path}/main-quiz/edit${tutorialModuleList && index === 0 ? "?tutorial=quiz-settings" : ""}`;
                 return (
                   <section
                     className={`quiz-module-section ${assessmentStyles.quizManagementAssessments}`}
@@ -201,39 +219,13 @@ export default function QuizManagement() {
                     >
                       <Link
                         className={`${assessmentStyles.moduleAssessmentCard} quiz-management-folder`}
-                        state={{ courseDraft: course }}
-                        to={`${path}/practice-quiz/edit`}
-                        aria-label={`Edit Practice Quiz for ${module.title || `Module ${index + 1}`}`}
-                      >
-                        <span
-                          className={`${assessmentStyles.assessmentFolderAccent} quiz-management-folder-accent`}
-                          aria-hidden="true"
-                        >
-                          +
-                        </span>
-                        <div>
-                          <h3>Practice Quiz</h3>
-                          <p>
-                            {Array.isArray(module.quizItems)
-                              ? `${module.quizItems.length} Questions`
-                              : "Practice questions"}
-                          </p>
-                          <p>Unlimited Attempts</p>
-                        </div>
-                        <div
-                          className={`${assessmentStyles.assessmentCardFooter} quiz-management-folder-footer`}
-                        >
-                          <span
-                            className={`${assessmentStyles.assessmentEditButton} quiz-management-edit-button`}
-                          >
-                            Edit Practice Quiz
-                          </span>
-                        </div>
-                      </Link>
-                      <Link
-                        className={`${assessmentStyles.moduleAssessmentCard} quiz-management-folder`}
-                        state={{ courseDraft: course }}
-                        to={`${path}/main-quiz/edit`}
+                        data-tutorial={
+                          tutorialModuleList && index === 0
+                            ? "quiz-management-main-quiz"
+                            : undefined
+                        }
+                        state={{ courseDraft: selectedCourse }}
+                        to={mainQuizPath}
                         aria-label={`Edit Main Quiz for ${module.title || `Module ${index + 1}`}`}
                       >
                         <span

@@ -23,18 +23,30 @@ const slidesData = [
 
 const qnaFrames = ["/images/qna.png", "/images/qna2.png", "/images/qna3.png"];
 
-export default function QandATutorial() {
+export const qnaIntro = {
+  frames: qnaFrames,
+  screen: styles.introScreen,
+  artwork: styles.qnaIntroImage,
+};
+
+export default function QandATutorial({
+  onStart,
+  onBack,
+  startDisabled,
+  skipIntro = false,
+} = {}) {
   const navigate = useNavigate();
   const { lessonId, deckId } = useParams();
 
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(!skipIntro);
   const [frameIndex, setFrameIndex] = useState(0);
   const [showCircle, setShowCircle] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
 
   useEffect(() => {
+    if (skipIntro) return;
     const animationSequence = [0, 1, 2, 0, 1, 2, 0, 1, 2];
     let current = 0;
 
@@ -54,7 +66,7 @@ export default function QandATutorial() {
     }, 220);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [skipIntro]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -81,7 +93,7 @@ export default function QandATutorial() {
 
   return (
     <div className={styles.container}>
-      <TutorialBackButton />
+      <TutorialBackButton onBack={onBack} />
 
       {(showIntro || startLoading) && (
         <div className={styles.introScreen}>
@@ -115,7 +127,11 @@ export default function QandATutorial() {
               </p>
             </div>
 
-            <button className={styles.startBtn} onClick={handleStart}>
+            <button
+              className={styles.startBtn}
+              onClick={onStart || handleStart}
+              disabled={startDisabled}
+            >
               Start
             </button>
           </div>

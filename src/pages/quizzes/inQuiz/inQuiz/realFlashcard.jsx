@@ -22,16 +22,17 @@ import {
 } from "../practiceSession.js";
 import styles from "./realFlashcards.module.css";
 
-export default function Flashcards() {
+export default function Flashcards({ adaptivePractice } = {}) {
   const routeNavigate = useNavigate();
   const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
-  const { lessonId, deckId } = useParams();
+  const { lessonId: routeLessonId, deckId } = useParams();
+  const lessonId = adaptivePractice?.session.lessonId || routeLessonId;
 
   const isLessonMode = Boolean(lessonId);
   const isDeckMode = Boolean(deckId);
   const practiceSession = useMemo(
-    () => getStoredPracticeSession({ lessonId, deckId }),
-    [lessonId, deckId],
+    () => adaptivePractice?.session || getStoredPracticeSession({ lessonId, deckId }),
+    [adaptivePractice?.session, lessonId, deckId],
   );
 
   const [deck, setDeck] = usePracticeState("deck", null, true);
@@ -171,7 +172,7 @@ export default function Flashcards() {
 
         return shuffleArray(
           parsed.map((item) => ({
-            cardId: null,
+            cardId: adaptivePractice ? item.id : null,
             question: getQuizItemQuestion(item),
             answer: getQuizItemAnswer(item, "No answer available."),
             explanation: item.explanation || "",
@@ -211,6 +212,18 @@ export default function Flashcards() {
     : 0;
 
   useEffect(() => {
+    if (adaptivePractice) {
+      // Move older adaptive drafts past the review screen without changing their ratings.
+      if (checkpointOpen) {
+        setCurrentIndex((previous) =>
+          Math.max(previous, checkpointReviewEndIndex),
+        );
+        setFlipped(false);
+        setCheckpointOpen(false);
+      }
+      return;
+    }
+
     const nextCheckpointEnd = checkpointStartIndex + 10;
 
     if (
@@ -222,7 +235,14 @@ export default function Flashcards() {
       setFlipped(false);
       setCheckpointOpen(true);
     }
-  }, [checkpointOpen, checkpointStartIndex, currentIndex, flashcards.length]);
+  }, [
+    adaptivePractice,
+    checkpointOpen,
+    checkpointReviewEndIndex,
+    checkpointStartIndex,
+    currentIndex,
+    flashcards.length,
+  ]);
 
   const speakText = (text) => {
     if (!ttsEnabled) return;
@@ -280,6 +300,7 @@ export default function Flashcards() {
     finalResults,
     returnToDeck = false,
   ) => {
+    if (adaptivePractice) return adaptivePractice.onFinish(finalResults);
     const resultPayload = {
       ...getPracticeResultMetadata(
         practiceSession,
@@ -393,7 +414,9 @@ export default function Flashcards() {
 
       const completedCount = currentIndex + 1;
       const shouldShowCheckpoint =
-        completedCount % 10 === 0 && completedCount < flashcards.length;
+        !adaptivePractice &&
+        completedCount % 10 === 0 &&
+        completedCount < flashcards.length;
 
       if (shouldShowCheckpoint) {
         setCheckpointReviewEndIndex(completedCount);
@@ -452,7 +475,7 @@ export default function Flashcards() {
 
   return (
     <div className={styles.container}>
-      <div className="practice-course-back"><TutorialBackButton /></div>
+      <div className="practice-course-back"><TutorialBackButton onBack={adaptivePractice?.onBack} /></div>
       <PracticeSoundControl />
       <PracticeAnswerFeedback />
       
@@ -534,7 +557,7 @@ export default function Flashcards() {
         </div>
       )}
 
-      {checkpointOpen ? (
+      {checkpointOpen && !adaptivePractice ? (
         <div className={styles.checkpointWrapper}>
           <div className={styles.checkpointHeader}>
             <span className={styles.checkpointEyebrow}>The previous cards</span>

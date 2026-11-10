@@ -5,16 +5,27 @@ import { useNavigate, useParams } from "react-router-dom";
 
 const timedImage = "/images/timed.png";
 
-export default function TimedQuiz() {
+export const timedIntro = {
+  frames: [timedImage],
+  screen: styles.introScreen,
+  artwork: styles.timedIntroImage,
+};
+
+export default function TimedQuiz({
+  onStart,
+  onBack,
+  startDisabled,
+  skipIntro = false,
+} = {}) {
   const [previewIndex, setPreviewIndex] = useState(0);
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(!skipIntro);
   const [showCircle, setShowCircle] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const { lessonId, deckId } = useParams();
   const navigate = useNavigate();
   const isLessonMode = Boolean(lessonId);
   const isDeckMode = Boolean(deckId);
-  const hasSource = isLessonMode || isDeckMode;
+  const hasSource = isLessonMode || isDeckMode || Boolean(onStart);
   const [timeLeft, setTimeLeft] = useState(120);
 
   const previewSlides = [
@@ -48,6 +59,7 @@ export default function TimedQuiz() {
   ];
 
   useEffect(() => {
+    if (skipIntro) return;
     const timer = setTimeout(() => {
       setShowCircle(true);
 
@@ -58,7 +70,7 @@ export default function TimedQuiz() {
     }, 1800);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [skipIntro]);
 
   useEffect(() => {
     const countdown = setInterval(() => {
@@ -99,7 +111,7 @@ export default function TimedQuiz() {
 
   return (
     <div className={styles.page}>
-      <TutorialBackButton />
+      <TutorialBackButton onBack={onBack} />
 
       {(showIntro || startLoading) && (
         <div className={styles.introScreen}>
@@ -133,7 +145,11 @@ export default function TimedQuiz() {
             </div>
 
             {hasSource && (
-              <button className={styles.startBtn} onClick={handleStart}>
+              <button
+                className={styles.startBtn}
+                onClick={onStart || handleStart}
+                disabled={startDisabled}
+              >
                 Start
               </button>
             )}

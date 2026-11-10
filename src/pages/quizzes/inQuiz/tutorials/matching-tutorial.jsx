@@ -9,18 +9,30 @@ const matchFrames = [
   "/images/match3.png",
 ];
 
-export default function MatchingType() {
+export const matchingIntro = {
+  frames: matchFrames,
+  screen: styles.introScreen,
+  artwork: styles.matchIntroImage,
+};
+
+export default function MatchingType({
+  onStart,
+  onBack,
+  startDisabled,
+  skipIntro = false,
+} = {}) {
   const navigate = useNavigate();
   const { lessonId, deckId } = useParams();
 
   const [slideIndex, setSlideIndex] = useState(0);
 
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(!skipIntro);
   const [frameIndex, setFrameIndex] = useState(0);
   const [showCircle, setShowCircle] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
 
   useEffect(() => {
+    if (skipIntro) return;
     const animationSequence = [0, 1, 2, 0, 1, 2, 0, 1, 2];
     let current = 0;
 
@@ -40,7 +52,7 @@ export default function MatchingType() {
     }, 220);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [skipIntro]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -80,7 +92,7 @@ export default function MatchingType() {
 
   return (
     <div className={styles.pageWrapper}>
-      <TutorialBackButton />
+      <TutorialBackButton onBack={onBack} />
 
       {(showIntro || startLoading) && (
         <div className={styles.introScreen}>
@@ -112,7 +124,11 @@ export default function MatchingType() {
                   correctly, it's a fun way to test your memory and logic!
                 </p>
 
-                <button className={styles.startButton} onClick={handleStart}>
+                <button
+                  className={styles.startButton}
+                  onClick={onStart || handleStart}
+                  disabled={startDisabled}
+                >
                   Start
                 </button>
               </div>

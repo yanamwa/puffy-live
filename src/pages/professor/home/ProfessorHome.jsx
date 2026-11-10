@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 import {
   FiArrowRight,
   FiBookOpen,
@@ -19,6 +19,103 @@ import "../layout/ProfessorLayout.css";
 
 const coursePerformanceSeed = {};
 const fallbackSections = ["BSIT 1A", "BSIT 2B", "BSCS 3A", "BSIT 4A"];
+const tutorialDashboardCourses = [
+  {
+    id: "tutorial-dashboard-it101",
+    code: "IT 101",
+    title: "Introduction to Computing",
+    summary: "Computing Basics and Operating Systems",
+    section: "BSIT 1A",
+    students: 32,
+    modules: 5,
+    publishedQuizzes: 4,
+    averageQuizScore: 82,
+    completionRate: 76,
+    averageMastery: 79,
+    status: "published",
+    updatedAt: "2026-11-10",
+  },
+  {
+    id: "tutorial-dashboard-cs203",
+    code: "CS 203",
+    title: "Data Structures and Algorithms",
+    summary: "Organizing data and solving problems efficiently",
+    section: "BSCS 2A",
+    students: 24,
+    modules: 6,
+    publishedQuizzes: 5,
+    averageQuizScore: 88,
+    completionRate: 84,
+    averageMastery: 86,
+    status: "published",
+    updatedAt: "2026-11-09",
+  },
+  {
+    id: "tutorial-dashboard-it204",
+    code: "IT 204",
+    title: "Web Development",
+    summary: "Building responsive websites with HTML, CSS, and JavaScript",
+    section: "BSIT 3A",
+    students: 18,
+    modules: 4,
+    publishedQuizzes: 3,
+    averageQuizScore: 71,
+    completionRate: 63,
+    averageMastery: 68,
+    status: "published",
+    updatedAt: "2026-11-08",
+  },
+  {
+    id: "tutorial-dashboard-it205",
+    code: "IT 205",
+    title: "Database Management Systems",
+    summary: "Designing relational databases and writing SQL queries",
+    section: "BSIT 3B",
+    students: 12,
+    modules: 3,
+    publishedQuizzes: 3,
+    averageQuizScore: 76,
+    completionRate: 72,
+    averageMastery: 73,
+    status: "published",
+    updatedAt: "2026-11-07",
+  },
+];
+const tutorialDashboardAttention = [
+  {
+    id: "tutorial-attention-avery",
+    courseId: "tutorial-dashboard-it101",
+    courseTitle: "Introduction to Computing",
+    name: "Avery Chen",
+    concern: "Review Module 2 practice",
+    latestScore: 58,
+  },
+  {
+    id: "tutorial-attention-jordan",
+    courseId: "tutorial-dashboard-it204",
+    courseTitle: "Web Development",
+    name: "Jordan Lee",
+    concern: "Incomplete modules",
+    latestScore: 72,
+  },
+];
+const tutorialDashboardActivity = [
+  {
+    icon: FiCheckCircle,
+    time: "Today",
+    text: "Avery Chen completed the Computing Basics practice quiz.",
+  },
+  {
+    icon: FiFileText,
+    time: "Yesterday",
+    text: "A lesson page was added to Web Development.",
+  },
+  {
+    icon: FiUsers,
+    time: "2 days ago",
+    text: "Three students joined Introduction to Computing.",
+  },
+];
 
 function getProfessorName(user) {
   const rawName =
@@ -423,12 +520,17 @@ function buildActivityItems(courses, monitoringByCourse) {
 }
 export default function ProfessorHome() {
   const { user } = useAuth();
+  const { previewOnly, tutorialStep } = useOutletContext() ?? {};
+  const dashboardTutorial = tutorialStep?.id === "dashboard";
   const [storedCourses, setStoredCourses] = useState(() =>
-    readProfessorCourses().filter((course) => !course.archived),
+    previewOnly || dashboardTutorial
+      ? []
+      : readProfessorCourses().filter((course) => !course.archived),
   );
   const [monitoringByCourse, setMonitoringByCourse] = useState({});
 
   useEffect(() => {
+    if (previewOnly || dashboardTutorial) return;
     let active = true;
 
     const loadCourses = async () => {
@@ -458,14 +560,16 @@ export default function ProfessorHome() {
       active = false;
       window.removeEventListener(PROFESSOR_COURSES_EVENT, handleCoursesUpdated);
     };
-  }, []);
+  }, [dashboardTutorial, previewOnly]);
 
   const normalizedCourses = useMemo(() => {
-    return storedCourses.map(normalizeDashboardCourse);
-  }, [storedCourses]);
+    return dashboardTutorial
+      ? tutorialDashboardCourses.map(normalizeDashboardCourse)
+      : storedCourses.map(normalizeDashboardCourse);
+  }, [dashboardTutorial, storedCourses]);
 
   useEffect(() => {
-    if (normalizedCourses.length === 0) {
+    if (dashboardTutorial || normalizedCourses.length === 0) {
       setMonitoringByCourse({});
       return undefined;
     }
@@ -513,25 +617,32 @@ export default function ProfessorHome() {
     return () => {
       active = false;
     };
-  }, [normalizedCourses]);
+  }, [dashboardTutorial, normalizedCourses]);
 
   const dashboardCourses = useMemo(() => {
+    if (dashboardTutorial) return normalizedCourses;
     return normalizedCourses.map((course) =>
       applyMonitoringToCourse(
         course,
         monitoringByCourse[getCourseMonitoringKey(course)],
       ),
     );
-  }, [normalizedCourses, monitoringByCourse]);
+  }, [dashboardTutorial, normalizedCourses, monitoringByCourse]);
 
   const overviewCourses = dashboardCourses.slice(0, 4);
   const studentsNeedingAttention = useMemo(
-    () => buildStudentsNeedingAttention(dashboardCourses, monitoringByCourse),
-    [dashboardCourses, monitoringByCourse],
+    () =>
+      dashboardTutorial
+        ? tutorialDashboardAttention
+        : buildStudentsNeedingAttention(dashboardCourses, monitoringByCourse),
+    [dashboardCourses, dashboardTutorial, monitoringByCourse],
   );
   const activityItems = useMemo(
-    () => buildActivityItems(dashboardCourses, monitoringByCourse),
-    [dashboardCourses, monitoringByCourse],
+    () =>
+      dashboardTutorial
+        ? tutorialDashboardActivity
+        : buildActivityItems(dashboardCourses, monitoringByCourse),
+    [dashboardCourses, dashboardTutorial, monitoringByCourse],
   );
   const professorName = getProfessorName(user);
   const professorGreeting =

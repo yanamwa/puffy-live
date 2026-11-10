@@ -1,5 +1,6 @@
 import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
 import TutorialBackButton from "../TutorialBackButton.jsx";
+import { buildPracticeChoiceOptions, practiceAnswersMatch } from "../../../../services/adaptivePractice.js";
 import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
 import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
 import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
@@ -37,16 +38,17 @@ function getLessonQuizData(lessonData) {
   );
 }
 
-export default function TimedQuiz() {
+export default function TimedQuiz({ adaptivePractice } = {}) {
   const routeNavigate = useNavigate();
   const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
-  const { lessonId, deckId } = useParams();
+  const { lessonId: routeLessonId, deckId } = useParams();
+  const lessonId = adaptivePractice?.session.lessonId || routeLessonId;
 
   const isLessonMode = Boolean(lessonId);
   const isDeckMode = Boolean(deckId);
   const practiceSession = useMemo(
-    () => getStoredPracticeSession({ lessonId, deckId }),
-    [lessonId, deckId],
+    () => adaptivePractice?.session || getStoredPracticeSession({ lessonId, deckId }),
+    [adaptivePractice?.session, lessonId, deckId],
   );
 
   const [loading, setLoading] = useState(true);
@@ -66,8 +68,17 @@ export default function TimedQuiz() {
   const [checkpointOpen, setCheckpointOpen] = usePracticeState("checkpointOpen", false);
   const [checkpointStartIndex, setCheckpointStartIndex] = usePracticeState("checkpointStartIndex", 0);
   const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = usePracticeState("checkpointReviewEndIndex", 0);
+  const showCheckpoint = !adaptivePractice && checkpointOpen;
 
   const finishedRef = useRef(false);
+
+  useEffect(() => {
+    // Continue older module attempts that were saved on the halfway screen.
+    if (adaptivePractice && checkpointOpen) {
+      setQuestionIndex((previous) => Math.max(previous, checkpointReviewEndIndex));
+      setCheckpointOpen(false);
+    }
+  }, [adaptivePractice, checkpointOpen, checkpointReviewEndIndex]);
 
   function shuffleArray(array) {
     const shuffled = [...array];
@@ -204,6 +215,18 @@ export default function TimedQuiz() {
       try {
         if (practiceSession) {
           setTitle(getPracticeTitle(practiceSession, "Timed Quiz"));
+
+          if (adaptivePractice) {
+            setQuestions(shuffleArray(practiceSession.items.map((item) => ({
+              cardId: item.id,
+              question: item.question,
+              options: shuffleArray(buildPracticeChoiceOptions(item, practiceSession.items)),
+              answer: item.correct_answer,
+              explanation: item.explanation,
+            }))));
+            setTime(practiceSession.items.length * 90);
+            return;
+          }
 
           const practiceQuestions = practiceSession.items
             .map((item) => {
@@ -429,7 +452,7 @@ export default function TimedQuiz() {
       loading ||
       questions.length === 0 ||
       finishedRef.current ||
-      checkpointOpen
+      showCheckpoint
     ) {
       return;
     }
@@ -447,7 +470,7 @@ export default function TimedQuiz() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [loading, questions.length, score, userResults, checkpointOpen]);
+  }, [loading, questions.length, score, userResults, showCheckpoint]);
 
   const speakText = (text) => {
     if (!ttsEnabled) return;
@@ -476,8 +499,9 @@ export default function TimedQuiz() {
 
     setSelectedAnswer(selectedAnswerValue);
 
-    const isCorrect =
-      cleanAnswer(selectedAnswerValue) === cleanAnswer(currentQuestion.answer);
+    const isCorrect = adaptivePractice
+      ? practiceAnswersMatch(selectedAnswerValue, currentQuestion.answer)
+      : cleanAnswer(selectedAnswerValue) === cleanAnswer(currentQuestion.answer);
 
     playPracticeFeedbackSound(isCorrect);
     const newResult = {
@@ -510,7 +534,9 @@ export default function TimedQuiz() {
 
       const completedCount = questionIndex + 1;
       const shouldShowCheckpoint =
-        completedCount % 10 === 0 && completedCount < questions.length;
+        !adaptivePractice &&
+        completedCount % 10 === 0 &&
+        completedCount < questions.length;
 
       if (shouldShowCheckpoint) {
         setCheckpointReviewEndIndex(completedCount);
@@ -566,6 +592,8 @@ export default function TimedQuiz() {
 
     finishedRef.current = true;
     window.speechSynthesis?.cancel();
+
+    if (adaptivePractice) return adaptivePractice.onFinish(finalResults, finishReason);
 
     const resultPayload = {
       ...getPracticeResultMetadata(
@@ -663,7 +691,7 @@ export default function TimedQuiz() {
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
   const progress = ((questionIndex + 1) / questions.length) * 100;
-  const checkpointEndIndex = checkpointOpen
+  const checkpointEndIndex = showCheckpoint
     ? checkpointReviewEndIndex
     : Math.min(questionIndex + 1, questions.length);
   const checkpointQuestions = questions.slice(
@@ -683,7 +711,7 @@ export default function TimedQuiz() {
 
   return (
     <div className={styles.page}>
-      <div className="practice-course-back"><TutorialBackButton /></div>
+      <div className="practice-course-back"><TutorialBackButton onBack={adaptivePractice?.onBack} /></div>
       <PracticeSoundControl />
       <PracticeAnswerFeedback />
       <button
@@ -760,7 +788,7 @@ export default function TimedQuiz() {
         </div>
       )}
 
-      {checkpointOpen ? (
+      {showCheckpoint ? (
         <div className={styles.checkpointWrapper}>
           <div className={styles.checkpointHeader}>
             <span className={styles.checkpointEyebrow}>The previous cards</span>

@@ -4,14 +4,8 @@ import {
   FiActivity,
   FiBookOpen,
   FiClock,
-  FiDatabase,
-  FiHardDrive,
   FiLock,
-  FiMail,
-  FiMonitor,
-  FiRefreshCw,
   FiShield,
-  FiSmartphone,
   FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
@@ -467,40 +461,6 @@ export default function ManagementDashboard() {
       .slice(0, 5),
     [activeUsers],
   );
-  const statusItems = [
-    {
-      label: "Database",
-      value: sourceNotice ? "Needs attention" : "Operational",
-      level: sourceNotice ? "warning" : "ok",
-      icon: FiDatabase,
-    },
-    { label: "Web Application", value: "Online", level: "ok", icon: FiMonitor },
-    {
-      label: "Android API",
-      value: "Connected",
-      level: "ok",
-      icon: FiSmartphone,
-    },
-    {
-      label: "Email or OTP Service",
-      value: "Operational",
-      level: "ok",
-      icon: FiMail,
-    },
-    {
-      label: "Last Database Backup",
-      value: `${formatDate(new Date(), { short: true })}, 2:00 AM`,
-      level: "ok",
-      icon: FiRefreshCw,
-    },
-    {
-      label: "Storage Usage",
-      value: "64% used",
-      level: "ok",
-      icon: FiHardDrive,
-    },
-  ];
-
   const suspendedAccounts = users.filter(
     (user) => user.isArchived || user.status === "Declined",
   ).length;
@@ -837,33 +797,6 @@ export default function ManagementDashboard() {
           </section>
         )}
       </div>
-
-      {isSuperAdmin && (
-        <section className="dashboard-panel">
-          <div className="dashboard-panel-header">
-            <div>
-              <h2>System Status</h2>
-              <p>Current condition of essential PuffyBrain services.</p>
-            </div>
-          </div>
-
-          <div className="status-list">
-            {statusItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article className="status-item" key={item.label}>
-                  <span className={`status-indicator is-${item.level}`} />
-                  <Icon />
-                  <div>
-                    <strong>{item.label}</strong>
-                    <p>{item.value}</p>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

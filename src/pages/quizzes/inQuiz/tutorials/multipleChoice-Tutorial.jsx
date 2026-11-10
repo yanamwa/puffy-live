@@ -30,18 +30,30 @@ const slidesData = [
   },
 ];
 
-export default function MultipleChoiceTutorial() {
+export const multipleChoiceIntro = {
+  frames: multipleFrames,
+  screen: styles.introScreen,
+  artwork: styles.multipleIntroImage,
+};
+
+export default function MultipleChoiceTutorial({
+  onStart,
+  onBack,
+  startDisabled,
+  skipIntro = false,
+} = {}) {
   const navigate = useNavigate();
   const { lessonId, deckId } = useParams();
 
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(!skipIntro);
   const [frameIndex, setFrameIndex] = useState(0);
   const [showCircle, setShowCircle] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
 
   useEffect(() => {
+    if (skipIntro) return;
     const animationSequence = [0, 1, 2, 0, 1, 2, 0, 1, 2];
     let current = 0;
 
@@ -61,7 +73,7 @@ export default function MultipleChoiceTutorial() {
     }, 220);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [skipIntro]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -88,7 +100,7 @@ export default function MultipleChoiceTutorial() {
 
   return (
     <div className={styles.page}>
-      <TutorialBackButton />
+      <TutorialBackButton onBack={onBack} />
 
       {(showIntro || startLoading) && (
         <div className={styles.introScreen}>
@@ -121,7 +133,11 @@ export default function MultipleChoiceTutorial() {
               </p>
             </div>
 
-            <button className={styles.startBtn} onClick={handleStart}>
+            <button
+              className={styles.startBtn}
+              onClick={onStart || handleStart}
+              disabled={startDisabled}
+            >
               Start
             </button>
           </div>

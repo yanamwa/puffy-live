@@ -1,7 +1,8 @@
 import ProfessorProofImage from "../../../components/ProfessorProofImage.jsx";
 import { professorProofUrl } from "../../../utils/professorProof.js";
 import UserPagination, { useUserPagination } from "../../../components/UserPagination";
-import { useEffect, useMemo, useRef, useState } from "react";
+import StudentImportPanel from "../../../components/StudentImportPanel.jsx";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   FiArchive,
@@ -54,7 +55,6 @@ const initialProfessorForm = {
   employmentProof: null,
 };
 
-const STUDENT_IMPORT_ACCEPT = ".csv,.xlsx";
 const PROFESSOR_PROOF_ACCEPT =
   ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
 
@@ -394,7 +394,6 @@ function showInfo(message, title = "Information") {
 
 export default function SuperAdminUserManagementPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const fileInputRef = useRef(null);
   const [users, setUsers] = useState([]);
   const [activeTab, setActiveTab] = useState(() => {
     const requestedTab = searchParams.get("tab");
@@ -499,7 +498,7 @@ export default function SuperAdminUserManagementPage() {
     if (requestedAction === "add-student") {
       nextParams.set("tab", "students");
       setActiveTab("students");
-      setStudentModalOpen(true);
+      if (!studentImportBusy) setStudentModalOpen(true);
     }
 
     if (requestedAction === "add-admin") {
@@ -515,7 +514,7 @@ export default function SuperAdminUserManagementPage() {
     }
 
     setSearchParams(nextParams, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, studentImportBusy]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -888,6 +887,7 @@ export default function SuperAdminUserManagementPage() {
           email: data.user.email,
           temporaryPassword: data.temporaryPassword,
           temporaryExpiresAt: data.user.temporaryExpiresAt,
+          credentialsEmailed: data.credentialsEmailed === true,
         },
       ]);
       setStudentForm(initialStudentForm);
@@ -1009,81 +1009,6 @@ export default function SuperAdminUserManagementPage() {
   };
 
   /* =====================================================
-     STUDENT BULK IMPORT
-     Supports: CSV + XLSX
-
-     Required columns:
-     Name
-     Email
-     Student ID
-     Gender
-     Year Level
-     Section
-  ===================================================== */
-
-  const normalizeImportHeader = (value) =>
-    String(value || "")
-      .replace(/^\ufeff/, "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "");
-
-  /* =====================================================
-     CSV PARSER
-  ===================================================== */
-
-  const parseCsvRows = (text) => {
-    const rows = [];
-
-    let row = [];
-    let cell = "";
-    let inQuotes = false;
-
-    for (let index = 0; index < text.length; index += 1) {
-      const character = text[index];
-      const nextCharacter = text[index + 1];
-
-      if (character === '"') {
-        if (inQuotes && nextCharacter === '"') {
-          cell += '"';
-          index += 1;
-        } else {
-          inQuotes = !inQuotes;
-        }
-
-        continue;
-      }
-
-      if (character === "," && !inQuotes) {
-        row.push(cell);
-        cell = "";
-        continue;
-      }
-
-      if ((character === "\n" || character === "\r") && !inQuotes) {
-        row.push(cell);
-        rows.push(row);
-
-        row = [];
-        cell = "";
-
-        if (character === "\r" && nextCharacter === "\n") {
-          index += 1;
-        }
-
-        continue;
-      }
-
-      cell += character;
-    }
-
-    row.push(cell);
-    rows.push(row);
-
-    return rows;
-  };
-
-  /* =====================================================
      NORMALIZE GENDER
   ===================================================== */
 
@@ -1174,210 +1099,6 @@ export default function SuperAdminUserManagementPage() {
   };
 
   /* =====================================================
-     NORMALIZE IMPORTED ROWS
-  ===================================================== */
-
-  const normalizeStudentImportRows = (rows) => {
-    const sourceRows = Array.isArray(rows) ? rows : [];
-
-    const cleanedRows = sourceRows
-      .map((row) => {
-        if (Array.isArray(row)) {
-          return row;
-        }
-
-        if (row && typeof row === "object") {
-          return Object.values(row);
-        }
-
-        return [row];
-      })
-      .map((row) => row.map((cell) => String(cell ?? "").trim()))
-      .filter((row) => row.some(Boolean));
-
-    if (cleanedRows.length === 0) {
-      return [];
-    }
-
-    const header = cleanedRows[0].map(normalizeImportHeader);
-
-    const headerAliases = [
-      "email",
-      "emailaddress",
-      "studentemail",
-
-      "name",
-      "fullname",
-      "studentname",
-
-      "studentid",
-      "studentnumber",
-      "studentno",
-
-      "gender",
-      "sex",
-
-      "year",
-      "yearlevel",
-
-      "section",
-      "sectionname",
-    ];
-
-    const hasHeader = header.some((cell) => headerAliases.includes(cell));
-
-    const dataRows = hasHeader ? cleanedRows.slice(1) : cleanedRows;
-
-    const headerCells = hasHeader ? header : [];
-
-    const indexOf = (names, fallback) => {
-      if (!hasHeader) {
-        return fallback;
-      }
-
-      const normalizedNames = names.map((name) => normalizeImportHeader(name));
-
-      const index = headerCells.findIndex((cell) =>
-        normalizedNames.includes(normalizeImportHeader(cell)),
-      );
-
-      return index >= 0 ? index : fallback;
-    };
-
-    return dataRows
-      .map((row, rowIndex) => {
-        const rawGender = row[indexOf(["gender", "sex"], 3)] || "";
-
-        const rawYearLevel =
-          row[
-            indexOf(
-              ["year", "yearlevel", "studentyear", "grade", "gradelevel"],
-              4,
-            )
-          ] || "";
-
-        const rawSection =
-          row[
-            indexOf(["section", "sectionname", "studentsection", "block"], 5)
-          ] || "";
-
-        return {
-          sourceRow: rowIndex + (hasHeader ? 2 : 1),
-
-          name: row[indexOf(["name", "fullname", "studentname"], 0)] || "",
-
-          email:
-            row[indexOf(["email", "emailaddress", "studentemail"], 1)] || "",
-
-          studentId: String(
-            row[
-              indexOf(
-                [
-                  "studentid",
-                  "student id",
-                  "student_id",
-                  "studentnumber",
-                  "student number",
-                  "studentno",
-                  "student no",
-                  "id",
-                  "idnumber",
-                  "id number",
-                  "schoolid",
-                  "school id",
-                ],
-                2,
-              )
-            ] ?? "",
-          ).trim(),
-
-          gender: normalizeImportedGender(rawGender),
-
-          rawGender,
-
-          yearLevel: normalizeImportedYearLevel(rawYearLevel),
-
-          rawYearLevel,
-
-          sectionName: normalizeImportedSection(rawSection),
-
-          rawSection,
-        };
-      })
-      .filter(
-        (student) =>
-          student.name ||
-          student.email ||
-          student.studentId ||
-          student.rawGender ||
-          student.rawYearLevel ||
-          student.rawSection,
-      );
-  };
-
-  /* =====================================================
-     PARSE CSV
-  ===================================================== */
-
-  const parseStudentCsv = (text) => {
-    return normalizeStudentImportRows(parseCsvRows(text));
-  };
-
-  /* =====================================================
-     PARSE CSV / XLSX FILE
-  ===================================================== */
-
-  const parseStudentImportFile = async (file) => {
-    const extension = file.name.split(".").pop()?.toLowerCase();
-
-    if (extension === "xlsx") {
-      const readXlsxFile = (await import("read-excel-file/browser")).default;
-
-      const result = await readXlsxFile(file);
-
-      console.log("===== RAW EXCEL RESULT =====", result);
-
-      /*
-        Some versions/configurations return:
-
-        [
-          {
-            sheet: 'Students',
-            data: [...]
-          }
-        ]
-
-        while others return the rows directly.
-      */
-
-      let rows = result;
-
-      if (
-        Array.isArray(result) &&
-        result.length > 0 &&
-        result[0] &&
-        typeof result[0] === "object" &&
-        !Array.isArray(result[0]) &&
-        Array.isArray(result[0].data)
-      ) {
-        rows = result[0].data;
-      }
-
-      console.log("===== EXTRACTED EXCEL ROWS =====", rows);
-
-      const normalizedStudents = normalizeStudentImportRows(rows);
-
-      console.log("===== NORMALIZED STUDENTS =====", normalizedStudents);
-
-      return normalizedStudents;
-    }
-
-    const text = await file.text();
-
-    return parseStudentCsv(text);
-  };
-
-  /* =====================================================
      SUPPORTED FILE CHECK
   ===================================================== */
 
@@ -1425,11 +1146,11 @@ export default function SuperAdminUserManagementPage() {
 
     const studentId = String(student.studentId || "").trim();
 
-    const rawGender = String(student.rawGender || "").trim();
+    const rawGender = String(student.gender || "").trim();
 
-    const rawYearLevel = String(student.rawYearLevel || "").trim();
+    const rawYearLevel = String(student.yearLevel || "").trim();
 
-    const rawSection = String(student.rawSection || "").trim();
+    const rawSection = String(student.sectionName || "").trim();
 
     const gender = normalizeImportedGender(rawGender);
 
@@ -1552,6 +1273,7 @@ export default function SuperAdminUserManagementPage() {
         gender,
         yearLevel,
         sectionName,
+        course: student.course,
 
         /*
           Bulk-created students use the
@@ -1562,21 +1284,6 @@ export default function SuperAdminUserManagementPage() {
         temporaryDurationDays: "",
       },
     };
-  };
-
-  /* =====================================================
-     IMPORT BUTTON
-  ===================================================== */
-
-  const handleImportStudentsClick = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (studentImportBusy) {
-      return;
-    }
-
-    fileInputRef.current?.click();
   };
 
   /* =====================================================
@@ -1642,19 +1349,7 @@ export default function SuperAdminUserManagementPage() {
       console.error("Bulk import audit error:", error);
     }
   };
-  const handleBulkImport = async (event) => {
-    const file = event.target.files?.[0];
-
-    /*
-      Allow selecting the same file again
-      after an import.
-    */
-    event.target.value = "";
-
-    if (!file) {
-      return;
-    }
-
+  const handleBulkImport = async (file, prepareStudents) => {
     /* -------------------------
        FILE TYPE
     ------------------------- */
@@ -1686,7 +1381,11 @@ export default function SuperAdminUserManagementPage() {
     });
 
     try {
-      const students = await parseStudentImportFile(file);
+      const students = await prepareStudents();
+      if (students === null) {
+        setStudentImportStatus(initialStudentImportStatus);
+        return;
+      }
 
       /* -------------------------
          EMPTY FILE
@@ -1698,14 +1397,15 @@ export default function SuperAdminUserManagementPage() {
           fileName: file.name,
           fileSize: file.size,
           message: "No student records found in this file.",
-          detail:
-            "Required columns: Name, Email, Student ID, Gender, Year Level, Section.",
+          detail: "Include at least one student row below the headers.",
         });
 
         showError("Import file has no student records.", "Import Failed");
 
         return;
       }
+
+      setStudentModalOpen(false);
 
       /* -------------------------
          RESULTS
@@ -1805,6 +1505,7 @@ export default function SuperAdminUserManagementPage() {
             email: data.user.email,
             temporaryPassword: data.temporaryPassword,
             temporaryExpiresAt: data.user.temporaryExpiresAt,
+            credentialsEmailed: data.credentialsEmailed === true,
           });
         } catch (error) {
           failures.push(
@@ -1890,12 +1591,6 @@ export default function SuperAdminUserManagementPage() {
         failedCount: failures.length,
         totalCount: students.length,
       });
-
-      /* -------------------------
-         CLOSE ADD STUDENT MODAL
-      ------------------------- */
-
-      setStudentModalOpen(false);
 
       /* -------------------------
          PAGE NOTICE
@@ -2322,7 +2017,7 @@ export default function SuperAdminUserManagementPage() {
 
   return (
     <div className="users-page">
-      {studentImportStatus.state !== "idle" && (
+      {!studentModalOpen && studentImportStatus.state !== "idle" && (
         <aside
           className={`student-import-popup is-${studentImportStatus.state}`}
           role="status"
@@ -2395,6 +2090,7 @@ export default function SuperAdminUserManagementPage() {
           <button
             className="users-create-btn"
             type="button"
+            disabled={studentImportBusy}
             onClick={() => setStudentModalOpen(true)}
           >
             <FiPlus />
@@ -2511,6 +2207,13 @@ export default function SuperAdminUserManagementPage() {
                     {item.name} - {item.email}
                   </span>
                   <code>{item.temporaryPassword}</code>
+                  {typeof item.credentialsEmailed === "boolean" && (
+                    <span>
+                      {item.credentialsEmailed
+                        ? "Mail server accepted the credentials email."
+                        : "Email delivery is unconfirmed. Copy the password to share it securely."}
+                    </span>
+                  )}
                   <span>
                     {item.temporaryExpiresAt
                       ? `Temporary account expires ${formatDate(item.temporaryExpiresAt)}`
@@ -2781,32 +2484,10 @@ export default function SuperAdminUserManagementPage() {
                 </p>
               </div>
             </div>
-            <div className="student-import-panel">
-              <div>
-                <strong>Bulk Import Students</strong>
-                <p>
-                  Upload a CSV or Excel file with name, email, student ID, year
-                  level, and section columns.
-                </p>
-              </div>
-              <button
-                className="users-secondary-btn"
-                type="button"
-                formNoValidate
-                disabled={studentImportBusy}
-                onClick={handleImportStudentsClick}
-              >
-                <FiUpload />
-                Import CSV or Excel
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={STUDENT_IMPORT_ACCEPT}
-                hidden
-                onChange={handleBulkImport}
-              />
-            </div>
+            <StudentImportPanel
+              busy={studentImportBusy}
+              onImport={handleBulkImport}
+            />
             <form className="users-student-form" onSubmit={handleCreateStudent}>
               <label>
                 Student Name

@@ -1,6 +1,15 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { requiresPasswordChange, requiresStudentTutorial } from "../utils/passwordPolicy.js";
+import {
+  requiresPasswordChange,
+  requiresProfessorTutorial,
+  requiresStudentTutorial,
+} from "../utils/passwordPolicy.js";
+import {
+  getProfessorTutorialStep,
+  professorTutorialStepPath,
+  professorTutorialSteps,
+} from "../pages/professor/tutorial/professorTutorialSteps.js";
 import StudentTutorial from "../pages/student/tutorial/StudentTutorial.jsx";
 import {
   getStudentSetupRedirect,
@@ -186,12 +195,24 @@ export default function ProtectedRoute() {
     return <Navigate to={getHomePathForRole(role)} replace />;
   }
 
+  const professorTutorial =
+    role === APP_ROLES.PROFESSOR && requiresProfessorTutorial(currentUser);
+  const professorStep =
+    role === APP_ROLES.PROFESSOR ? getProfessorTutorialStep(location) : null;
+  if (professorTutorial && pathname.startsWith("/professor") && !professorStep) {
+    return <Navigate to={professorTutorialStepPath(professorTutorialSteps[0])} replace />;
+  }
+
   if (
-    [APP_ROLES.PROFESSOR, APP_ROLES.ADMIN].includes(role) &&
+    role === APP_ROLES.ADMIN &&
     requiresPasswordChange(currentUser) &&
+    !(professorTutorial && professorStep) &&
     pathname.replace(/\/+$/, "").toLowerCase() !== `/${role}/settings`
   ) {
     return <Navigate to={`/${role}/settings`} replace />;
+  }
+  if (professorStep && !professorTutorial) {
+    return <Navigate to={professorStep.path} replace />;
   }
 
   if (role === APP_ROLES.STUDENT) {

@@ -5,7 +5,7 @@ import {
   readAccountQuizResult,
   saveAccountQuizResult,
 } from "../../utils/quizStorage.js";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { API_BASE } from "../../config.js";
 import { syncDeckCardMemorizationFromAnswers } from "../../utils/cardMemorization.js";
@@ -198,9 +198,50 @@ const toOptionalNumber = (value) => {
   return Number.isInteger(number) ? number : null;
 };
 
-export default function LessonResult() {
+function getPracticeTopicFeedback(answers, contentTitle, quizMode) {
+  const groups = new Map();
+  answers.forEach((answer, index) => {
+    const topic =
+      String(answer.topic || "").trim() || contentTitle || "Module concepts";
+    const key = topic.toLowerCase();
+    if (!groups.has(key)) {
+      groups.set(key, {
+        topic,
+        questionIndexes: [],
+        correct: 0,
+        missedConcepts: new Set(),
+      });
+    }
+    const group = groups.get(key);
+    group.questionIndexes.push(index);
+    if (isAnswerCorrect(answer)) {
+      group.correct++;
+    } else {
+      const concept = getFocusedConcept(answer);
+      if (concept) group.missedConcepts.add(concept);
+    }
+  });
+
+  return [...groups.values()].map(
+    ({ topic, questionIndexes, correct, missedConcepts }) => {
+      const confidence = Math.round((correct / questionIndexes.length) * 100);
+      return {
+        topic,
+        questionIndexes,
+        confidence,
+        understanding: getUnderstanding(confidence),
+        recommendation: getAdaptiveRecommendation(topic, confidence, quizMode, [
+          ...missedConcepts,
+        ]),
+      };
+    },
+  );
+}
+
+export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
   const navigate = useNavigate();
   const { lessonId, deckId } = useParams();
+  const scoreHeading = useRef(null);
 
   const [results, setResults] = useState({
     score: 0,
@@ -222,7 +263,8 @@ export default function LessonResult() {
   });
 
   useEffect(() => {
-    if (!resultCourseId || moduleNavigation.moduleIndex === null) return;
+    if (practiceResult || !resultCourseId || moduleNavigation.moduleIndex === null)
+      return;
     let active = true;
     fetchCourseContent(resultCourseId)
       .then((content) => {
@@ -252,7 +294,7 @@ export default function LessonResult() {
     return () => {
       active = false;
     };
-  }, [resultCourseId, moduleNavigation.moduleIndex]);
+  }, [practiceResult, resultCourseId, moduleNavigation.moduleIndex]);
 
   const [quizMode, setQuizMode] = useState("");
   const [isTimedOut, setIsTimedOut] = useState(false);
@@ -262,6 +304,10 @@ export default function LessonResult() {
   const [contentTitle, setContentTitle] = useState("");
   const [feedbackIndex, setFeedbackIndex] = useState(0);
   const [showScrollUp, setShowScrollUp] = useState(false);
+
+  useEffect(() => {
+    if (practiceResult && results.total > 0) scoreHeading.current?.focus();
+  }, [practiceResult, results.total]);
 
   useEffect(() => {
     const updateScrollButton = () => {
@@ -283,13 +329,22 @@ export default function LessonResult() {
 
   const fetchAttempts = async (savedResults) => {
     try {
-      const query = new URLSearchParams({
-        source: savedResults.source || (deckId ? "deck" : "lesson"),
-        lessonId:
-          savedResults.lessonId || savedResults.lesson_id || lessonId || "",
-        deckId: savedResults.deckId || savedResults.deck_id || deckId || "",
-        quizMode: savedResults.quizMode || savedResults.mode || "",
-      });
+      const query = new URLSearchParams(
+        practiceResult
+          ? {
+              source: "module",
+              quizMode: "adaptive_practice",
+              courseId: savedResults.courseId,
+              moduleId: savedResults.moduleId,
+            }
+          : {
+              source: savedResults.source || (deckId ? "deck" : "lesson"),
+              lessonId:
+                savedResults.lessonId || savedResults.lesson_id || lessonId || "",
+              deckId: savedResults.deckId || savedResults.deck_id || deckId || "",
+              quizMode: savedResults.quizMode || savedResults.mode || "",
+            },
+      );
 
       const res = await fetch(
         `${API_BASE}/getQuizAttempts.php?${query.toString()}`,
@@ -324,14 +379,16 @@ export default function LessonResult() {
       `deckQuizResults_${deckId}`,
       "quizResults",
     ];
-    const storedResult = resultKeys
-      .map((key) => ({ key, data: parseStorage(key) }))
-      .sort(
-        (first, second) =>
-          Number(second.data?.completedAt || 0) -
-          Number(first.data?.completedAt || 0),
-      )
-      .find(({ data }) => data);
+    const storedResult = practiceResult
+      ? { data: practiceResult }
+      : resultKeys
+          .map((key) => ({ key, data: parseStorage(key) }))
+          .sort(
+            (first, second) =>
+              Number(second.data?.completedAt || 0) -
+              Number(first.data?.completedAt || 0),
+          )
+          .find(({ data }) => data);
     const savedResults = storedResult?.data;
 
     if (savedResults) {
@@ -404,8 +461,14 @@ export default function LessonResult() {
         moduleCount: Number.isInteger(detectedModuleCount)
           ? detectedModuleCount
           : null,
-        // Recheck current publication status before offering another module.
-        nextModuleIndex: null,
+        // Module Practice has already loaded the current publication status.
+        nextModuleIndex: practiceResult ? detectedNextModuleIndex : null,
+        nextModuleNumber:
+          practiceResult &&
+          detectedNextModuleIndex !== null &&
+          detectedModuleNumber !== null
+            ? detectedModuleNumber + 1
+            : null,
         nextModuleTitle:
           savedResults.nextModuleTitle ||
           savedResults.next_module_title ||
@@ -414,6 +477,12 @@ export default function LessonResult() {
       });
       setQuizMode(detectedQuizMode);
       setIsTimedOut(Boolean(savedResults.isTimedOut || savedResults.timedOut));
+
+      if (practiceResult) {
+        setContentTitle(savedResults.contentTitle);
+        void fetchAttempts(savedResults);
+        return;
+      }
 
       const persistQuizAttempt = async () => {
         if (savedResults.savedAttemptId || savedResults.attemptId) return;
@@ -709,7 +778,7 @@ export default function LessonResult() {
     return () => {
       ignore = true;
     };
-  }, [lessonId, deckId]);
+  }, [lessonId, deckId, practiceResult]);
 
   useEffect(() => {
     const blockKeys = (e) => {
@@ -760,21 +829,23 @@ export default function LessonResult() {
     .map(getFocusedConcept)
     .filter(Boolean);
   const topicFeedback =
-    results.answers.length > 0
-      ? [
-          {
-            topic: fallbackTopic,
-            confidence: fallbackConfidence,
-            understanding: getUnderstanding(fallbackConfidence),
-            recommendation: getAdaptiveRecommendation(
-              fallbackTopic,
-              fallbackConfidence,
-              quizMode,
-              missedConcepts,
-            ),
-          },
-        ]
-      : [];
+    practiceResult
+      ? getPracticeTopicFeedback(results.answers, contentTitle, quizMode)
+      : results.answers.length > 0
+        ? [
+            {
+              topic: fallbackTopic,
+              confidence: fallbackConfidence,
+              understanding: getUnderstanding(fallbackConfidence),
+              recommendation: getAdaptiveRecommendation(
+                fallbackTopic,
+                fallbackConfidence,
+                quizMode,
+                missedConcepts,
+              ),
+            },
+          ]
+        : [];
 
   const displayedFeedback =
     Array.isArray(aiFeedback) && aiFeedback.length > 0
@@ -832,8 +903,9 @@ export default function LessonResult() {
     feedbackMessage =
       "You mastered this activity and showed strong understanding of the topic.";
     masteryLevel = "Outstanding (A)";
-    recommendation =
-      "You can continue to the next activity or try a more challenging quiz.";
+    recommendation = practiceResult?.mastered
+      ? "You can continue to the next activity."
+      : "You can continue to the next activity or try a more challenging quiz.";
   } else if (percentage >= 80) {
     feedbackTitle = "Very Good!";
     feedbackMessage =
@@ -867,14 +939,19 @@ export default function LessonResult() {
 
   if (quizMode === "timed" && isTimedOut) {
     feedbackTitle = "Time Ran Out";
-    feedbackMessage =
-      "The timer ended before you finished the quiz. Your score is based only on the questions you answered before time ran out.";
+    feedbackMessage = practiceResult
+      ? "The timer ended before you finished. Your score includes all questions in the attempt."
+      : "The timer ended before you finished the quiz. Your score is based only on the questions you answered before time ran out.";
     masteryLevel = "Incomplete";
     recommendation =
       "Try again and manage your time better, or review before retrying.";
   }
 
   const retryQuiz = () => {
+    if (onPracticeAgain) {
+      onPracticeAgain();
+      return;
+    }
     setShowQuizModal(true);
   };
 
@@ -925,13 +1002,13 @@ export default function LessonResult() {
       <div className={styles.scoreSection}>
         <div className={styles.feedbackBox}>
           <div className={styles.scoreHeader}>
-            <h1>
+            <h1 ref={scoreHeading} tabIndex={practiceResult ? -1 : undefined}>
               You Scored <span>{results.score}</span>/
               <span>{results.total}</span>
             </h1>
           </div>
 
-          {quizMode !== "timed" && (
+          {(quizMode !== "timed" || practiceResult) && (
             <p className={styles.percentage}>Score Percentage: {percentage}%</p>
           )}
 
@@ -957,9 +1034,11 @@ export default function LessonResult() {
         </div>
 
         <div className={styles.resultButtons}>
-          <button className={styles.retry} onClick={retryQuiz}>
-            Practice Again
-          </button>
+          {!practiceResult?.mastered && (
+            <button className={styles.retry} onClick={retryQuiz}>
+              Practice Again
+            </button>
+          )}
 
           {source === "module" &&
             resultCourseId &&

@@ -1,5 +1,5 @@
 import { removeLessonPracticeActivities } from "../../../services/lessonPracticeContent.js";
-import { generateModulePractice } from "../../../services/modulePracticeGeneration.js";
+import { generateModuleRecap } from "../../../services/moduleRecapGeneration.js";
 import { LessonContentEditor } from "../../../components/lesson/LessonContent.jsx";
 import { createPortal } from "react-dom";
 import ManagementBackBar from "../../../components/ManagementBackBar.jsx";
@@ -10,11 +10,10 @@ import {
   requestQuizSettings,
   quizSourceFields,
   quizGenerationFields,
-  notifyQuizGenerated,
 } from "../../../services/quizGenerationUi.js";
 import { notifyLessonGenerated } from "../../../services/lessonNotifications.js";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 
 import { API_BASE } from "../../../config.js";
@@ -26,6 +25,7 @@ import LessonSourceManager from "../../../components/lesson/LessonSourceManager.
 import LoadingState from "../../../components/LoadingState.jsx";
 
 import styles from "./Addmodule.module.css";
+import { tutorialCourseDraft } from "../tutorial/professorTutorialExamples.js";
 
 const TITLE_LIMIT = 100;
 const LONG_LIMIT = 750;
@@ -260,26 +260,8 @@ function formatDateTimeLabel(value) {
   });
 }
 
-function normalizeAssessmentRoute(value = "") {
-  const assessment = String(value || "").toLowerCase();
-
-  if (assessment === "main" || assessment === "main-quiz") {
-    return "main";
-  }
-
-  if (assessment === "practice" || assessment === "practice-quiz") {
-    return "practice";
-  }
-
-  return "";
-}
-
-function getAssessmentRouteSegment(assessment) {
-  return assessment === "main" ? "main-quiz" : "practice-quiz";
-}
-
-function getAssessmentLabel(assessment) {
-  return assessment === "main" ? "Main Quiz" : "Practice Quiz";
+function isMainQuizRoute(value = "") {
+  return ["main", "main-quiz"].includes(String(value).toLowerCase());
 }
 
 function normalizeContentModule(module, index = 0) {
@@ -477,7 +459,19 @@ export default function CourseModuleEditor({ quizManagement = false }) {
   const { id, moduleId, assessmentType } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const routeAssessment = normalizeAssessmentRoute(assessmentType);
+  const { tutorialStep } = useOutletContext() ?? {};
+  const tutorialEditor =
+    [
+      "generate-module",
+      "add-page",
+      "quiz-settings",
+      "quiz-add-question",
+      "quiz-auto-generate-total",
+      "quiz-auto-generate-distribution",
+      "quiz-auto-generate-passing-grade",
+    ].includes(tutorialStep?.id) ||
+    (id === "tutorial-course" && moduleId === "tutorial-module");
+  const isMainAssessment = isMainQuizRoute(assessmentType);
 
   const generationCourseRef = useRef(null);
   const mainQuizSettingsDialog = useRef(null);
@@ -516,21 +510,18 @@ export default function CourseModuleEditor({ quizManagement = false }) {
   useEffect(() => {
     setSelectedPageIndexes([]);
   }, [id, moduleId]);
-  const [activeAssessment, setActiveAssessment] = useState(routeAssessment);
 
   const builderPath = id
     ? `/professor/courses/edit/${id}`
     : "/professor/courses/new";
-  const isAssessmentPage = Boolean(routeAssessment);
-  const isQuizWorkspace = quizManagement || isAssessmentPage;
+  const isQuizWorkspace = quizManagement || isMainAssessment;
   const quizModulePath = id
     ? `/professor/quizzes/${encodeURIComponent(id)}/modules/${encodeURIComponent(moduleId)}`
     : `${builderPath}/modules/${moduleId}`;
 
   useEffect(() => {
-    setActiveAssessment(routeAssessment);
     setActiveQuizIndex(0);
-  }, [routeAssessment]);
+  }, [isMainAssessment]);
 
   useEffect(() => {
     let active = true;
@@ -539,7 +530,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       try {
         setLoading(true);
 
-        let draft = location.state?.courseDraft || readCourseBuilderDraft(id);
+        let draft = tutorialEditor
+          ? tutorialCourseDraft
+          : location.state?.courseDraft || readCourseBuilderDraft(id);
 
         if (!draft && id) {
           const course = await fetchCourse(id);
@@ -565,7 +558,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
         setCourseDraft(normalizedCourse);
         setModuleDraft(selectedModule);
-        writeCourseBuilderDraft(id, normalizedCourse);
+        if (!tutorialEditor) writeCourseBuilderDraft(id, normalizedCourse);
       } catch (error) {
         if (!active) {
           return;
@@ -591,9 +584,10 @@ export default function CourseModuleEditor({ quizManagement = false }) {
     return () => {
       active = false;
     };
-  }, [builderPath, id, location.state, moduleId, navigate]);
+  }, [builderPath, id, location.state, moduleId, navigate, tutorialEditor]);
 
   useEffect(() => {
+    if (tutorialEditor) return;
     const savedId = courseDraft?.id || id;
     setMainQuizConfig(null);
     setMainConfigError("");
@@ -646,10 +640,42 @@ export default function CourseModuleEditor({ quizManagement = false }) {
         if (error.name !== "AbortError") setMainConfigError(error.message);
       });
     return () => controller.abort();
-  }, [courseDraft?.id, id, moduleId]);
+  }, [courseDraft?.id, id, moduleId, tutorialEditor]);
+
+  useEffect(() => {
+    if (
+      !isMainAssessment ||
+      loading ||
+      !moduleDraft ||
+      tutorialStep?.id !== "quiz-settings"
+    ) {
+      return;
+    }
+    const dialog = mainQuizSettingsDialog.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, [isMainAssessment, loading, moduleDraft?.id, tutorialStep?.id]);
+
+  useEffect(() => {
+    if (
+      !isMainAssessment ||
+      loading ||
+      !moduleDraft ||
+      ![
+        "quiz-auto-generate-total",
+        "quiz-auto-generate-distribution",
+        "quiz-auto-generate-passing-grade",
+      ].includes(tutorialStep?.id)
+    ) {
+      return;
+    }
+    void requestQuizSettings({ assessment: "main", tutorialPreview: true });
+    return () => Swal.close();
+  }, [isMainAssessment, loading, moduleDraft?.id, tutorialStep?.id]);
 
   const activePage = moduleDraft?.lessonPages?.[activePageIndex] || null;
-  const isMainAssessment = (routeAssessment || activeAssessment) === "main";
   const baselinePreview =
     isMainAssessment &&
     selectedMainQuiz < 0 &&
@@ -661,9 +687,8 @@ export default function CourseModuleEditor({ quizManagement = false }) {
         ? mainQuizConfig.baselineQuestions.map(normalizeQuizItem)
         : moduleDraft?.mainQuizItems || []
       : generatedMainQuizzes[selectedMainQuiz]?.questions || []
-    : moduleDraft?.quizItems || [];
+    : [];
   const activeQuiz = assessmentItems[activeQuizIndex] || null;
-  const quizItemsKey = isMainAssessment ? "mainQuizItems" : "quizItems";
   const viewingGeneratedMain = isMainAssessment && selectedMainQuiz >= 0;
   const activePageMedia = getLessonPageMedia(activePage);
 
@@ -678,7 +703,6 @@ export default function CourseModuleEditor({ quizManagement = false }) {
     quizCount,
     baselinePreview,
   ]);
-  const practiceQuizCount = moduleDraft?.quizItems?.length || 0;
   const lessonPageNumbers = getLessonPageNumbers(
     lessonCount,
     activePageIndex + 1,
@@ -695,6 +719,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
   );
   const mainQuizSettings = normalizeMainQuizSettings(moduleDraft || {});
   const mainQuizUnlockLabel = formatDateTimeLabel(mainQuizSettings.unlockAt);
+  const tutorialSettingsPreview = tutorialStep?.id === "quiz-settings";
 
   const canMovePrevious = useMemo(() => activePageIndex > 0, [activePageIndex]);
 
@@ -949,7 +974,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
     }
     setModuleDraft((current) => ({
       ...current,
-      [quizItemsKey]: (current[quizItemsKey] || []).map((item, index) =>
+      mainQuizItems: (current.mainQuizItems || []).map((item, index) =>
         index === quizIndex
           ? {
               ...item,
@@ -981,7 +1006,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
     }
     setModuleDraft((current) => ({
       ...current,
-      [quizItemsKey]: (current[quizItemsKey] || []).map((item, index) => {
+      mainQuizItems: (current.mainQuizItems || []).map((item, index) => {
         if (index !== quizIndex) {
           return item;
         }
@@ -1015,19 +1040,15 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       return;
     }
     setModuleDraft((current) => {
-      if ((current[quizItemsKey] || []).length >= 100) return current;
+      if ((current.mainQuizItems || []).length >= 100) return current;
       const quizItems = [
-        ...(current[quizItemsKey] || []),
+        ...(current.mainQuizItems || []),
         createEmptyQuizItem(),
       ];
       setActiveQuizIndex(quizItems.length - 1);
-      setActiveAssessment(
-        (currentAssessment) => currentAssessment || "practice",
-      );
-
       return {
         ...current,
-        [quizItemsKey]: quizItems,
+        mainQuizItems: quizItems,
       };
     });
   };
@@ -1071,7 +1092,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
     }
 
     setModuleDraft((current) => {
-      const quizItems = (current[quizItemsKey] || []).filter(
+      const quizItems = (current.mainQuizItems || []).filter(
         (_, index) => !removedIndexes.has(index),
       );
 
@@ -1081,7 +1102,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
       return {
         ...current,
-        [quizItemsKey]: quizItems,
+        mainQuizItems: quizItems,
       };
     });
   };
@@ -1111,112 +1132,23 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       return;
     }
 
-    const result = await requestQuizSettings({
-      assessment: routeAssessment || activeAssessment || "practice",
-    });
+    const result = await requestQuizSettings({ assessment: "main" });
 
     if (!result.isConfirmed || !result.value) {
       return;
     }
 
-    if (result.value.assessmentType === "main") {
-      try {
-        setGeneratingQuiz(true);
-        Swal.fire({
-          title: "Generating Main Quiz",
-          text: "Saving settings and generating lesson-based questions for review.",
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          didOpen: () => Swal.showLoading(),
-        });
-        await saveCourse(buildUpdatedCourse(), { fallback: false });
-        const response = await fetch(`${API_BASE}/lessons/main-quiz/config`, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            ...lessonAuthHeaders(),
-          },
-          body: JSON.stringify({
-            ...quizSourceFields(
-              courseDraft?.id || id,
-              moduleId,
-              moduleDraft.lessonPages,
-            ),
-            module_id: String(moduleId),
-            module_index: moduleDraft.moduleIndex ?? moduleDraft.module_index,
-            lesson_title: moduleDraft.title,
-            learning_objectives: moduleDraft.learningObjectives,
-            ...quizGenerationFields(result.value),
-          }),
-        });
-        const data = await response.json().catch(() => {
-          throw Error(
-            "Main Quiz service returned an empty or invalid response. Check that the backend is running, then reload.",
-          );
-        });
-        if (!response.ok || !data.success)
-          throw new Error(
-            data.message || "Could not save Main Quiz configuration.",
-          );
-        setMainQuizConfig(data.config);
-        setMainConfigError("");
-        setGeneratedMainQuizzes([]);
-        setSelectedMainQuiz(-1);
-        const previewResponse = await fetch(
-          `${API_BASE}/lessons/main-quiz/preview`,
-          {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-              ...lessonAuthHeaders(),
-            },
-            body: JSON.stringify({
-              course_id: courseDraft?.id || id,
-              module_id: String(moduleId),
-            }),
-          },
-        );
-        const previewData = await previewResponse.json();
-        if (!previewResponse.ok || !previewData.success)
-          throw new Error(
-            previewData.message ||
-              "Settings saved, but Main Quiz questions could not be generated. Try Auto Generate again.",
-          );
-        setMainQuizConfig(previewData.config);
-        setActiveQuizIndex(0);
-        await Swal.fire({
-          icon: "success",
-          title: "Main Quiz generated",
-          text: "Lesson-based questions are ready to review. Students can start without Practice Quiz; completed practice results personalize their questions.",
-        });
-      } catch (error) {
-        await Swal.fire({
-          icon: "error",
-          title: "Configuration failed",
-          text: error.message,
-        });
-      } finally {
-        setGeneratingQuiz(false);
-      }
-      return;
-    }
-
     try {
       setGeneratingQuiz(true);
-
       Swal.fire({
-        title: "Generating Practice Quiz",
-        text: "Retrieving source passages and checking the questions and answers.",
+        title: "Generating Main Quiz",
+        text: "Saving settings and generating lesson-based questions for review.",
         allowOutsideClick: false,
         allowEscapeKey: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
+        didOpen: () => Swal.showLoading(),
       });
-
-      const response = await fetch(`${API_BASE}/lessons/generate-quiz`, {
+      await saveCourse(buildUpdatedCourse(), { fallback: false });
+      const response = await fetch(`${API_BASE}/lessons/main-quiz/config`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -1229,14 +1161,11 @@ export default function CourseModuleEditor({ quizManagement = false }) {
             moduleId,
             moduleDraft.lessonPages,
           ),
+          module_id: String(moduleId),
+          module_index: moduleDraft.moduleIndex ?? moduleDraft.module_index,
           lesson_title: moduleDraft.title,
-          lesson_content: lessonContent,
           learning_objectives: moduleDraft.learningObjectives,
-          ...quizGenerationFields(result.value, {
-            lessonTitle: moduleDraft.title,
-            learningObjectives: moduleDraft.learningObjectives,
-            lessonContent,
-          }),
+          ...quizGenerationFields(result.value),
         }),
       });
       const data = await response.json().catch(() => {
@@ -1244,87 +1173,58 @@ export default function CourseModuleEditor({ quizManagement = false }) {
           "Main Quiz service returned an empty or invalid response. Check that the backend is running, then reload.",
         );
       });
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not generate the quiz.");
-      }
-
-      const generatedQuestions = Array.isArray(data.quiz?.questions)
-        ? data.quiz.questions
-            .map(normalizeQuizItem)
-            .filter((item) => item.question)
-        : [];
-
-      if (generatedQuestions.length === 0) {
-        throw new Error("No valid quiz questions were generated.");
-      }
-
-      setModuleDraft((current) => ({
-        ...current,
-        quizItems: generatedQuestions,
-      }));
-      setActiveQuizIndex(0);
-      setActiveAssessment(
-        (currentAssessment) => currentAssessment || "practice",
+      if (!response.ok || !data.success)
+        throw new Error(
+          data.message || "Could not save Main Quiz configuration.",
+        );
+      setMainQuizConfig(data.config);
+      setMainConfigError("");
+      setGeneratedMainQuizzes([]);
+      setSelectedMainQuiz(-1);
+      const previewResponse = await fetch(
+        `${API_BASE}/lessons/main-quiz/preview`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...lessonAuthHeaders(),
+          },
+          body: JSON.stringify({
+            course_id: courseDraft?.id || id,
+            module_id: String(moduleId),
+          }),
+        },
       );
-
-      notifyQuizGenerated(generatedQuestions.length);
+      const previewData = await previewResponse.json();
+      if (!previewResponse.ok || !previewData.success)
+        throw new Error(
+          previewData.message ||
+            "Settings saved, but Main Quiz questions could not be generated. Try Auto Generate again.",
+        );
+      setMainQuizConfig(previewData.config);
+      setActiveQuizIndex(0);
+      await Swal.fire({
+        icon: "success",
+        title: "Main Quiz generated",
+        text: "Lesson-based questions are ready to review. Students can start without Practice Quiz; completed practice results personalize their questions.",
+      });
     } catch (error) {
       await Swal.fire({
         icon: "error",
-        title: "Quiz Generation Failed",
-        text: error.message || "Could not generate the quiz.",
-        confirmButtonText: "OK",
+        title: "Configuration failed",
+        text: error.message,
       });
     } finally {
       setGeneratingQuiz(false);
     }
   };
 
-  const openAssessmentEditor = (assessment) => {
-    const nextAssessment = normalizeAssessmentRoute(assessment);
-
-    if (!nextAssessment) {
-      return;
-    }
-
-    const updatedCourse =
-      courseDraft && moduleDraft ? buildUpdatedCourse() : courseDraft;
-
-    if (updatedCourse) {
-      writeCourseBuilderDraft(id, updatedCourse);
-    }
-
-    setActiveAssessment(nextAssessment);
-
-    if (quizCount === 0) {
-      setActiveQuizIndex(0);
-    }
-
-    navigate(
-      `${quizModulePath}/${getAssessmentRouteSegment(nextAssessment)}/edit`,
-      {
-        state: {
-          courseDraft: updatedCourse,
-        },
-      },
-    );
-  };
-
-  const returnToAssessments = () => {
-    const updatedCourse =
-      courseDraft && moduleDraft ? buildUpdatedCourse() : courseDraft;
-
-    if (updatedCourse) {
-      writeCourseBuilderDraft(id, updatedCourse);
-    }
-
-    setActiveAssessment("");
-
-    navigate(quizModulePath, {
-      state: {
-        courseDraft: updatedCourse,
-      },
+  const openMainQuizEditor = () => {
+    const updatedCourse = buildUpdatedCourse();
+    writeCourseBuilderDraft(id, updatedCourse);
+    navigate(quizModulePath + "/main-quiz/edit", {
+      state: { courseDraft: updatedCourse },
     });
   };
 
@@ -1402,13 +1302,13 @@ export default function CourseModuleEditor({ quizManagement = false }) {
         ),
         lessonPages: generatedPages,
       };
-      setGenerationProgress("Generating Practice Quiz questions…");
-      const practice = await generateModulePractice({
+      setGenerationProgress("Generating Quick Recap questions…");
+      const recap = await generateModuleRecap({
         courseId: generationCourse.id, moduleId, title: generatedModule.title,
         objectives: generatedModule.learningObjectives, pages: generatedPages,
         existing: moduleDraft.quizItems || [],
       });
-      generatedModule.quizItems = practice.questions.map(normalizeQuizItem);
+      generatedModule.quizItems = recap.questions.map(normalizeQuizItem);
       const nextCourse = {
         ...generationCourse,
         subject: limit(data.subject || generationCourse.subject, TITLE_LIMIT),
@@ -1430,10 +1330,12 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       setGeneratorOpen(false);
       setUploadedFile([]);
       await notifyLessonGenerated(generatedPages);
-      if (practice.error) {
-        await Swal.fire({icon: "warning", title: "Lessons ready; Practice Quiz needs a retry", text: `${practice.error} Your generated lessons are preserved. Open Practice Quiz and choose Auto Generate to retry.`});
-      } else if (!practice.keptExisting) {
-        notifyQuizGenerated(practice.questions.length);
+      if (recap.error) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Lessons ready",
+          text: "Quick Recap could not be generated. The system will retry when you save the module.",
+        });
       }
     } catch (error) {
       await Swal.fire({
@@ -1451,10 +1353,10 @@ export default function CourseModuleEditor({ quizManagement = false }) {
     }
   };
 
-  const buildUpdatedCourse = () => ({
+  const buildUpdatedCourse = (updatedModule = moduleDraft) => ({
     ...courseDraft,
     contentModules: courseDraft.contentModules.map((module) =>
-      String(module.id) === String(moduleId) ? moduleDraft : module,
+      String(module.id) === String(moduleId) ? updatedModule : module,
     ),
   });
 
@@ -1529,7 +1431,35 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       return;
     }
 
-    const updatedCourse = buildUpdatedCourse();
+    const savedId = courseDraft.id || id;
+    let recapError = "";
+    let updatedModule = moduleDraft;
+    if (
+      !isQuizWorkspace &&
+      Number(savedId) > 0 &&
+      !moduleDraft.quizItems.length &&
+      moduleDraft.lessonPages.some((page) => String(page.content || "").trim())
+    ) {
+      Swal.fire({
+        title: "Generating Quick Recap",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      const recap = await generateModuleRecap({
+        courseId: savedId,
+        moduleId,
+        title: moduleDraft.title,
+        objectives: moduleDraft.learningObjectives,
+        pages: moduleDraft.lessonPages,
+      });
+      recapError = recap.error || "";
+      updatedModule = {
+        ...moduleDraft,
+        quizItems: recap.questions.map(normalizeQuizItem),
+      };
+    }
+    const updatedCourse = buildUpdatedCourse(updatedModule);
     writeCourseBuilderDraft(id, updatedCourse);
 
     if (
@@ -1582,7 +1512,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       title: isQuizWorkspace ? "Quiz Saved" : "Module Saved",
       text: isQuizWorkspace
         ? "Your quiz changes have been saved."
-        : "Your module changes were added back to the course.",
+        : recapError
+          ? "Your module was saved. Quick Recap could not be generated, so the first practice will cover the module broadly."
+          : "Your module changes were added back to the course.",
       confirmButtonText: "Done",
     });
 
@@ -1631,7 +1563,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
   return (
     <div
-      className={`${styles.addModulePage} ${styles.courseModuleEditorPage} ${isAssessmentPage ? styles.assessmentPage : ""} course-module-editor-page`}
+      className={`${styles.addModulePage} ${styles.courseModuleEditorPage} ${isMainAssessment ? styles.assessmentPage : ""} course-module-editor-page`}
     >
       <ManagementBackBar
         onClick={() => {
@@ -1649,19 +1581,17 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       </ManagementBackBar>
       <div className={styles.pageHeader}>
         <h1>
-          {isAssessmentPage
-            ? `${getAssessmentLabel(activeAssessment)} Editor`
+          {isMainAssessment
+            ? "Main Quiz Editor"
             : quizManagement
               ? `Quiz Management · ${moduleDraft.title}`
               : "Edit Module"}
         </h1>
         <p className={styles.pageHeaderText}>
-          {isAssessmentPage
-            ? `Edit the ${getAssessmentLabel(
-                activeAssessment,
-              ).toLowerCase()} for this module on its own page.`
+          {isMainAssessment
+            ? "Edit the Main Quiz for this module."
             : quizManagement
-              ? "Manage practice and main quizzes for this module."
+              ? "Manage the Main Quiz for this module."
               : "Build lesson pages for this course module."}
         </p>
         {isMainAssessment && (
@@ -1671,10 +1601,11 @@ export default function CourseModuleEditor({ quizManagement = false }) {
             when available; practice is optional.
           </p>
         )}
-        {activeAssessment === "main" && (
+        {isMainAssessment && (
           <button
             className={styles.assessmentSettingsButton}
             type="button"
+            data-tutorial="main-quiz-settings"
             onClick={() => mainQuizSettingsDialog.current?.showModal()}
           >
             Main Quiz Settings
@@ -1684,6 +1615,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
           <button
             className={styles.assessmentSettingsButton}
             type="button"
+            data-tutorial="generate-module-button"
             onClick={() => setGeneratorOpen(true)}
           >
             Generate Module
@@ -1886,6 +1818,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
         {!isQuizWorkspace && (
           <section
             className={`${styles.moduleEditorBand} ${styles.lessonPageEditor}`}
+            data-tutorial="module-lesson-pages"
           >
             <div className={styles.moduleEditorBandHeader}>
               <div>
@@ -2083,45 +2016,22 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
         {isQuizWorkspace && (
           <section className={styles.moduleEditorBand}>
-            {!activeAssessment && (
+            {!isMainAssessment && (
               <div className={styles.moduleEditorBandHeader}>
                 <div>
                   <h2>Module Assessments</h2>
                   <p>
-                    Practice and main quiz settings belonging only to this
-                    module.
+                    The system creates each student’s adaptive Practice Quiz.
                   </p>
                 </div>
               </div>
             )}
 
-            {!activeAssessment ? (
+            {!isMainAssessment ? (
               <div className={styles.moduleAssessmentGrid}>
-                <article className={styles.moduleAssessmentCard}>
-                  <span
-                    className={styles.assessmentFolderAccent}
-                    aria-hidden="true"
-                  >
-                    +
-                  </span>
-                  <div>
-                    <h3>Practice Quiz</h3>
-                    <p>{practiceQuizCount} Questions</p>
-                    <p>Unlimited Attempts</p>
-                  </div>
-
-                  <div className={styles.assessmentCardFooter}>
-                    <button
-                      className={styles.assessmentEditButton}
-                      type="button"
-                      onClick={() => openAssessmentEditor("practice")}
-                    >
-                      Edit Practice Quiz
-                    </button>
-                  </div>
-                </article>
-
-                <article className={styles.moduleAssessmentCard}>
+                <article
+                  className={styles.moduleAssessmentCard}
+                >
                   <span
                     className={styles.assessmentFolderAccent}
                     aria-hidden="true"
@@ -2152,7 +2062,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                     <button
                       className={styles.assessmentEditButton}
                       type="button"
-                      onClick={() => openAssessmentEditor("main")}
+                      onClick={openMainQuizEditor}
                     >
                       Edit Main Quiz
                     </button>
@@ -2161,25 +2071,33 @@ export default function CourseModuleEditor({ quizManagement = false }) {
               </div>
             ) : (
               <div className={styles.moduleAssessmentEditor}>
-                {activeAssessment === "main" && (
+                {isMainAssessment && (
                   <dialog
                     ref={mainQuizSettingsDialog}
                     className={styles.mainQuizSettingsDialog}
                     aria-labelledby="main-quiz-access-title"
                     onClick={(event) => {
-                      if (event.target === event.currentTarget)
+                      if (
+                        !tutorialSettingsPreview &&
+                        event.target === event.currentTarget
+                      )
                         event.currentTarget.close();
+                    }}
+                    onCancel={(event) => {
+                      if (tutorialSettingsPreview) event.preventDefault();
                     }}
                   >
                     <div className={styles.mainQuizSettingsPanel}>
-                      <button
-                        type="button"
-                        className={styles.settingsDialogClose}
-                        aria-label="Close main quiz settings"
-                        onClick={() => mainQuizSettingsDialog.current?.close()}
-                      >
-                        ×
-                      </button>
+                      {!tutorialSettingsPreview && (
+                        <button
+                          type="button"
+                          className={styles.settingsDialogClose}
+                          aria-label="Close main quiz settings"
+                          onClick={() => mainQuizSettingsDialog.current?.close()}
+                        >
+                          ×
+                        </button>
+                      )}
                       <div>
                         <h4 id="main-quiz-access-title">Main Quiz Access</h4>
                         <p>
@@ -2187,8 +2105,14 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           access opens and closes.
                         </p>
                       </div>
+                      {tutorialSettingsPreview && (
+                        <div id="main-quiz-settings-tutorial" />
+                      )}
 
-                      <div className={styles.mainQuizSettingsControls}>
+                      <div
+                        className={styles.mainQuizSettingsControls}
+                        data-tutorial="main-quiz-access-controls"
+                      >
                         <button
                           className={`${styles.mainQuizToggle} ${
                             mainQuizSettings.enabled
@@ -2197,6 +2121,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           }`}
                           type="button"
                           aria-pressed={!mainQuizSettings.enabled}
+                          disabled={tutorialSettingsPreview}
                           onClick={() =>
                             updateMainQuizSettings(
                               "enabled",
@@ -2215,6 +2140,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                             className={styles.popupInput}
                             type="datetime-local"
                             value={mainQuizSettings.unlockAt}
+                            disabled={tutorialSettingsPreview}
                             onChange={(event) =>
                               updateMainQuizSettings(
                                 "unlockAt",
@@ -2228,7 +2154,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           className={styles.assessmentBackButton}
                           type="button"
                           onClick={() => updateMainQuizSettings("unlockAt", "")}
-                          disabled={!mainQuizSettings.unlockAt}
+                          disabled={tutorialSettingsPreview || !mainQuizSettings.unlockAt}
                         >
                           Clear Unlock Date
                         </button>
@@ -2239,6 +2165,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                             type="datetime-local"
                             value={mainQuizSettings.lockAt}
                             min={mainQuizSettings.unlockAt || undefined}
+                            disabled={tutorialSettingsPreview}
                             onChange={(event) =>
                               updateMainQuizSettings(
                                 "lockAt",
@@ -2251,7 +2178,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           className={styles.assessmentBackButton}
                           type="button"
                           onClick={() => updateMainQuizSettings("lockAt", "")}
-                          disabled={!mainQuizSettings.lockAt}
+                          disabled={tutorialSettingsPreview || !mainQuizSettings.lockAt}
                         >
                           Clear Lock Date
                         </button>
@@ -2270,13 +2197,15 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           {formatDateTimeLabel(mainQuizSettings.lockAt)}.
                         </p>
                       )}
-                      <button
-                        type="button"
-                        className={styles.assessmentSettingsButton}
-                        onClick={() => mainQuizSettingsDialog.current?.close()}
-                      >
-                        Done
-                      </button>
+                      {!tutorialSettingsPreview && (
+                        <button
+                          type="button"
+                          className={styles.assessmentSettingsButton}
+                          onClick={() => mainQuizSettingsDialog.current?.close()}
+                        >
+                          Done
+                        </button>
+                      )}
                     </div>
                   </dialog>
                 )}
@@ -2401,23 +2330,21 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                         <button
                           className={styles.popupAddBtn}
                           type="button"
+                          data-tutorial="add-main-quiz-question"
                           onClick={addQuizItem}
                           disabled={viewingGeneratedMain}
                         >
-                          + Add Qestion
+                          + Add Question
                         </button>
 
                         <button
                           className={styles.popupAddBtn}
                           type="button"
+                          data-tutorial="auto-generate-main-quiz"
                           onClick={autoGenerateQuiz}
                           disabled={generatingQuiz}
                         >
-                          {generatingQuiz
-                            ? isMainAssessment
-                              ? "Generating Main Quiz…"
-                              : "Generating Practice Quiz…"
-                            : "Auto Generate"}
+                          {generatingQuiz ? "Generating Main Quiz…" : "Auto Generate"}
                         </button>
                       </div>
                     </div>
@@ -2597,9 +2524,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                         </fieldset>
                       ) : (
                         <div className={styles.popupEmptyQuiz}>
-                          {isMainAssessment
-                            ? "Add a quiz item to begin."
-                            : "Add a quiz item to begin."}
+                          Add a quiz item to begin.
                         </div>
                       )}
                     </div>
@@ -2618,13 +2543,15 @@ export default function CourseModuleEditor({ quizManagement = false }) {
           >
             Back
           </button>
-          <button
-            className={styles.popupSaveBtn}
-            type="button"
-            onClick={saveModule}
-          >
-            {isQuizWorkspace ? "Save Quiz" : "Save Module"}
-          </button>
+          {(!isQuizWorkspace || isMainAssessment) && (
+            <button
+              className={styles.popupSaveBtn}
+              type="button"
+              onClick={saveModule}
+            >
+              {isMainAssessment ? "Save Quiz" : "Save Module"}
+            </button>
+          )}
         </div>
       </main>
     </div>

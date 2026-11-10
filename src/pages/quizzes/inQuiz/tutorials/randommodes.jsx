@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import styles from "./randommodes.module.css";
 
-export default function RandomModesTutorial() {
+export default function RandomModesTutorial({ onStart, onBack, startDisabled } = {}) {
   const navigate = useNavigate();
   const { lessonId, deckId } = useParams();
   const isMainQuiz = getStoredPracticeSession({ lessonId, deckId })?.scope?.scopeType === "main_quiz";
@@ -70,7 +70,7 @@ export default function RandomModesTutorial() {
 
   return (
     <div className={styles.wrapper}>
-      <TutorialBackButton />
+      <TutorialBackButton onBack={onBack} />
 
       {/* HEADER */}
 
@@ -89,7 +89,11 @@ export default function RandomModesTutorial() {
           </p>
         </div>
 
-        <button className={styles.startBtn} onClick={handleStart}>
+        <button
+          className={styles.startBtn}
+          onClick={onStart || handleStart}
+          disabled={startDisabled}
+        >
           Start
         </button>
       </div>

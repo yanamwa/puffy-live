@@ -292,6 +292,10 @@
   border-radius: 8px;
   box-shadow: 0 10px 24px #10233f22;
 }
+.catalog-selection[data-tutorial-open="true"] .catalog-combobox-wrap [role="listbox"] {
+  position: static;
+  margin-top: 6px;
+}
 .catalog-combobox-wrap [role="option"] {
   display: block;
   width: 100%;

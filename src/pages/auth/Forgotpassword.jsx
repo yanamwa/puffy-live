@@ -97,6 +97,7 @@ function ForgotPassword() {
           <form
             className={`${styles.signupCard} ${styles.loginPageCard}`}
             onSubmit={handleSubmit}
+            noValidate
           >
             <h2>Forgot Password</h2>
             <label htmlFor="forgot-password-email">Email Address</label>

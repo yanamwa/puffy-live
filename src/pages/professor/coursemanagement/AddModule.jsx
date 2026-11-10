@@ -1,20 +1,12 @@
 import { removeLessonPracticeActivities } from "../../../services/lessonPracticeContent.js";
-import { generateModulePractice } from "../../../services/modulePracticeGeneration.js";
+import { generateModuleRecap } from "../../../services/moduleRecapGeneration.js";
 import ProfessorCatalogSelection from "../../../components/catalog/ProfessorCatalogSelection.jsx";
 import ManagementBackBar from "../../../components/ManagementBackBar.jsx";
 import { selectCourseBuilderDraft } from "../../../services/courseBuilderDraft.js";
 import { ensureGenerationCourse } from "../../../services/generationCourseDraft.js";
-import QuizSourceEvidence from "../../../components/quizmodes/QuizSourceEvidence.jsx";
-import {
-  requestQuizSettings,
-  quizSourceFields,
-  quizGenerationFields,
-  notifyQuizGenerated,
-} from "../../../services/quizGenerationUi.js";
 import { notifyLessonGenerated } from "../../../services/lessonNotifications.js";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
+import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { uploadLessonSource } from "../../../services/lessonRagApi.js";
 import LessonSourceEvidence from "../../../components/lesson/LessonSourceEvidence.jsx";
 import LessonSourceManager from "../../../components/lesson/LessonSourceManager.jsx";
@@ -22,16 +14,15 @@ import LessonFilePicker from "../../../components/lesson/LessonFilePicker.jsx";
 import Swal from "sweetalert2";
 
 import { useAuth } from "../../../context/AuthContext.jsx";
-import { API_BASE } from "../../../config.js";
 import { fetchCourse, saveCourse } from "../../../services/courseApi.js";
 
 import styles from "./Addmodule.module.css";
+import { tutorialCourseDraft } from "../tutorial/professorTutorialExamples.js";
 
 const TITLE_LIMIT = 100;
 const CODE_LIMIT = 24;
 const LONG_LIMIT = 750;
 const LESSON_LIMIT = 6000;
-const QUIZ_LIMIT = 500;
 
 function createId(prefix = "item") {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -56,17 +47,6 @@ function createEmptyLessonPage() {
     title: "",
     content: "",
     media: null,
-  };
-}
-
-function createEmptyQuizItem() {
-  return {
-    id: createId("quiz"),
-    type: "multiple_choice",
-    question: "",
-    options: ["", "", "", ""],
-    correct_answer: "",
-    explanation: "",
   };
 }
 
@@ -557,12 +537,21 @@ export default function AddModule() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { tutorialStep } = useOutletContext() ?? {};
+  const showTutorialCourse =
+    tutorialStep?.id === "add-course" ||
+    tutorialStep?.id === "course-modules";
+  const tutorialCoursePreview =
+    tutorialStep?.id === "add-course"
+      ? { ...tutorialCourseDraft, catalogId: "", catalogCode: "", title: "" }
+      : tutorialCourseDraft;
 
   const isEditing = Boolean(id);
   const generationCourseRef = useRef(null);
   const courseSaveInFlight = useRef(false);
 
   const [form, setForm] = useState(() => {
+    if (showTutorialCourse) return normalizeCourse(tutorialCoursePreview);
     const draft = selectCourseBuilderDraft(
       id,
       location.state?.courseDraft,
@@ -582,7 +571,6 @@ export default function AddModule() {
 
   const [processingModuleId, setProcessingModuleId] = useState(null);
 
-  const [generatingQuizModuleId, setGeneratingQuizModuleId] = useState(null);
 
   const [expandedModuleId, setExpandedModuleId] = useState(null);
 
@@ -592,6 +580,15 @@ export default function AddModule() {
 
   useEffect(() => {
     if (isEditing) {
+      return;
+    }
+
+    if (showTutorialCourse) {
+      setForm(normalizeCourse(tutorialCoursePreview));
+      setExpandedModuleId(null);
+      setModuleFiles({});
+      setActivePageIndexes({});
+      setLoading(false);
       return;
     }
 
@@ -609,7 +606,14 @@ export default function AddModule() {
     setModuleFiles(location.state?.moduleFiles || {});
     setActivePageIndexes({});
     setLoading(false);
-  }, [id, isEditing, location.key, location.state]);
+  }, [
+    id,
+    isEditing,
+    location.key,
+    location.state,
+    showTutorialCourse,
+    tutorialStep?.id,
+  ]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -915,99 +919,6 @@ export default function AddModule() {
     });
   };
 
-  const addQuizItem = (moduleId) => {
-    setForm((current) => ({
-      ...current,
-
-      contentModules: current.contentModules.map((module) =>
-        module.id === moduleId
-          ? {
-              ...module,
-
-              quizItems: [...module.quizItems, createEmptyQuizItem()],
-            }
-          : module,
-      ),
-    }));
-  };
-
-  const updateQuizItem = (moduleId, quizIndex, field, value) => {
-    setForm((current) => ({
-      ...current,
-
-      contentModules: current.contentModules.map((module) =>
-        module.id !== moduleId
-          ? module
-          : {
-              ...module,
-
-              quizItems: module.quizItems.map((item, currentQuizIndex) =>
-                currentQuizIndex === quizIndex
-                  ? {
-                      ...item,
-                      [field]: value,
-                    }
-                  : item,
-              ),
-            },
-      ),
-    }));
-  };
-
-  const updateQuizOption = (moduleId, quizIndex, optionIndex, value) => {
-    setForm((current) => ({
-      ...current,
-
-      contentModules: current.contentModules.map((module) => {
-        if (module.id !== moduleId) {
-          return module;
-        }
-
-        return {
-          ...module,
-
-          quizItems: module.quizItems.map((item, currentQuizIndex) => {
-            if (currentQuizIndex !== quizIndex) {
-              return item;
-            }
-
-            const oldOption = item.options[optionIndex];
-
-            const options = item.options.map((option, currentOptionIndex) =>
-              currentOptionIndex === optionIndex ? value : option,
-            );
-
-            return {
-              ...item,
-              options,
-
-              correct_answer:
-                item.correct_answer === oldOption ? value : item.correct_answer,
-            };
-          }),
-        };
-      }),
-    }));
-  };
-
-  const removeQuizItem = (moduleId, quizIndex) => {
-    setForm((current) => ({
-      ...current,
-
-      contentModules: current.contentModules.map((module) =>
-        module.id !== moduleId
-          ? module
-          : {
-              ...module,
-
-              quizItems: module.quizItems.filter(
-                (_, currentQuizIndex) => currentQuizIndex !== quizIndex,
-              ),
-            },
-      ),
-    }));
-  };
-
   const uploadAndAutoSort = async (moduleId) => {
     const uploadedFile = moduleFiles[moduleId] || [];
 
@@ -1085,7 +996,7 @@ export default function AddModule() {
         );
       }
 
-      const practice = await generateModulePractice({
+      const recap = await generateModuleRecap({
         courseId: generationCourse.id, moduleId,
         title: selectedModule.title || data.module_title,
         objectives: selectedModule.learningObjectives || data.learning_objectives,
@@ -1110,7 +1021,7 @@ export default function AddModule() {
                 ),
                 studentPublished: false,
                 lessonPages: generatedPages,
-                quizItems: practice.questions.map(normalizeQuizItem),
+                quizItems: recap.questions.map(normalizeQuizItem),
               },
         ),
       };
@@ -1128,10 +1039,12 @@ export default function AddModule() {
       }));
 
       await notifyLessonGenerated(generatedPages);
-      if (practice.error) {
-        await Swal.fire({icon: "warning", title: "Lessons ready; Practice Quiz needs a retry", text: `${practice.error} Your generated lessons are preserved. Open Practice Quiz and choose Auto Generate to retry.`});
-      } else if (!practice.keptExisting) {
-        notifyQuizGenerated(practice.questions.length);
+      if (recap.error) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Lessons ready",
+          text: "Quick Recap could not be generated. The system will retry when you upload the module to students.",
+        });
       }
     } catch (error) {
       await Swal.fire({
@@ -1142,115 +1055,6 @@ export default function AddModule() {
       });
     } finally {
       setProcessingModuleId(null);
-    }
-  };
-
-  const autoGenerateQuiz = async (moduleId) => {
-    const selectedModule = form.contentModules.find(
-      (module) => module.id === moduleId,
-    );
-
-    if (!selectedModule) {
-      return;
-    }
-
-    const lessonContent = selectedModule.lessonPages
-      .map((page) =>
-        [page.title ? `Lesson page: ${page.title}` : "", page.content]
-          .filter(Boolean)
-          .join("\n"),
-      )
-      .filter(Boolean)
-      .join("\n\n");
-
-    if (!lessonContent && !selectedModule.learningObjectives.trim()) {
-      await Swal.fire({
-        icon: "warning",
-        title: "Module Content Required",
-        text: "Add learning objectives or lesson pages to this module first.",
-        confirmButtonText: "OK",
-      });
-
-      return;
-    }
-
-    const result = await requestQuizSettings();
-
-    if (!result.isConfirmed || !result.value) {
-      return;
-    }
-
-    try {
-      setGeneratingQuizModuleId(moduleId);
-
-      Swal.fire({
-        title: "Generating Quiz",
-        text: "Retrieving source passages and checking the questions and answers.",
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
-      const response = await fetch(`${API_BASE}/lessons/generate-quiz`, {
-        method: "POST",
-        credentials: "include",
-
-        headers: {
-          "Content-Type": "application/json",
-          ...lessonAuthHeaders(),
-        },
-
-        body: JSON.stringify({
-          ...quizSourceFields(
-            id || form.id,
-            selectedModule.id,
-            selectedModule.lessonPages,
-          ),
-          lesson_title: selectedModule.title,
-
-          lesson_content: lessonContent,
-
-          learning_objectives: selectedModule.learningObjectives,
-
-          ...quizGenerationFields(result.value, {
-            lessonTitle: selectedModule.title,
-            learningObjectives: selectedModule.learningObjectives,
-            lessonContent,
-          }),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not generate the quiz.");
-      }
-
-      const generatedQuestions = Array.isArray(data.quiz?.questions)
-        ? data.quiz.questions
-            .map(normalizeQuizItem)
-            .filter((item) => item.question)
-        : [];
-
-      if (generatedQuestions.length === 0) {
-        throw new Error("No valid quiz questions were generated.");
-      }
-
-      updateContentModule(moduleId, "quizItems", generatedQuestions);
-
-      notifyQuizGenerated(generatedQuestions.length);
-    } catch (error) {
-      await Swal.fire({
-        icon: "error",
-        title: "Quiz Generation Failed",
-        text: error.message || "Could not generate the quiz.",
-        confirmButtonText: "OK",
-      });
-    } finally {
-      setGeneratingQuizModuleId(null);
     }
   };
 
@@ -1296,13 +1100,25 @@ export default function AddModule() {
         id: persisted.id,
         code: persisted.code || current.code,
       }));
-      const contentModules = form.contentModules.map((module) => ({
-        ...module,
-        studentPublished:
-          String(module.id) === String(moduleId)
-            ? publishing
-            : module.studentPublished === true,
-      }));
+      const recap = publishing
+        ? await generateModuleRecap({
+            courseId: persisted.id,
+            moduleId: target.id,
+            title: target.title,
+            objectives: target.learningObjectives,
+            pages: target.lessonPages,
+            existing: target.quizItems,
+          })
+        : { questions: target.quizItems };
+      const contentModules = form.contentModules.map((module) =>
+        String(module.id) === String(moduleId)
+          ? {
+              ...module,
+              studentPublished: publishing,
+              quizItems: recap.questions.map(normalizeQuizItem),
+            }
+          : { ...module, studentPublished: module.studentPublished === true },
+      );
       const updated = {
         ...form,
         id: persisted.id,
@@ -1323,7 +1139,9 @@ export default function AddModule() {
         icon: "success",
         title: publishing ? "Module uploaded" : "Module removed from students",
         text: publishing
-          ? "This module is available to enrolled students. Other modules keep their upload status."
+          ? recap.error
+            ? "Students can access the lessons. Quick Recap could not be generated, so their first practice will cover the module broadly."
+            : "This module is available to enrolled students. Other modules keep their upload status."
           : "Student access is off for this module. Its lessons and quizzes are still saved.",
       });
     } catch (error) {
@@ -1366,7 +1184,6 @@ export default function AddModule() {
     }
 
     const missingDetails = [];
-    const missingPracticeQuizzes = [];
     if (!form.summary.trim())
       missingDetails.push("Course description is missing.");
     if (!form.contentModules.length)
@@ -1375,10 +1192,6 @@ export default function AddModule() {
       const label = `Module ${index + 1}${module.title.trim() ? ` (${module.title.trim()})` : ""}`;
       if (!module.title.trim())
         missingDetails.push(`${label}: module title is missing.`);
-      if (!module.quizItems.length)
-        missingPracticeQuizzes.push(
-          `${label}: no Practice Quiz questions yet.`,
-        );
     });
     const uploadToStudents = event.nativeEvent?.submitter?.value === "publish";
     const saveAsDraft =
@@ -1544,10 +1357,7 @@ export default function AddModule() {
         html:
           (saveAsDraft
             ? `<p>Saved as a draft. Students cannot access it until it is published.</p>${form.status !== "published" ? "<p>Status is set to Draft.</p>" : ""}${missingDetails.length ? `<section><h3>Required before publishing</h3>${detailsList(missingDetails)}</section>` : "<p>The required details are complete. Select Publish to make the course available.</p>"}`
-            : "<p>The course is available to students. Empty modules can be completed later. Save this published course after adding lessons to make them available to students.</p>") +
-          (missingPracticeQuizzes.length
-            ? `<section><h3>Practice Quiz <small>Optional</small></h3>${detailsList(missingPracticeQuizzes)}<p>Practice Quizzes do not prevent publishing.</p></section>`
-            : ""),
+            : "<p>The course is available to students. Empty modules can be completed later. Save this published course after adding lessons to make them available to students.</p>"),
 
         confirmButtonText: "Done",
       });
@@ -1615,13 +1425,19 @@ export default function AddModule() {
         </div>
       </div>
 
-      <form className={styles.formCard} onSubmit={saveCourseForm}>
+      <form
+        className={styles.formCard}
+        onSubmit={saveCourseForm}
+        data-tutorial="course-builder-form"
+      >
         <div className={styles.popupInfoGrid}>
           <div className={styles.courseIdentityColumn}>
             <ProfessorCatalogSelection
               form={form}
               onChange={setForm}
               isEditing={isEditing}
+              tutorialPreview={showTutorialCourse}
+              tutorialOpen={tutorialStep?.id === "add-course"}
             />
 
             <div className={styles.popupField}>
@@ -1725,12 +1541,19 @@ export default function AddModule() {
           </div>
         </div>
 
-        <section className={styles.moduleBuilderSection}>
+        <section
+          className={styles.moduleBuilderSection}
+          data-tutorial="course-builder-modules"
+        >
           <div className={styles.moduleBuilderHeader}>
             <div>
               <h2>Course Modules</h2>
 
-              <p>Add your modules below:</p>
+              <p>
+                {tutorialStep?.id === "course-modules"
+                  ? "Example modules for the tutorial: each module can include lesson pages and quiz questions."
+                  : "Add your modules below:"}
+              </p>
             </div>
 
             <button
@@ -1757,8 +1580,6 @@ export default function AddModule() {
 
                 const isProcessing = processingModuleId === module.id;
 
-                const isGenerating = generatingQuizModuleId === module.id;
-
                 return (
                   <article
                     className={`${styles.moduleCard} ${
@@ -1778,7 +1599,7 @@ export default function AddModule() {
 
                         <p>
                           {module.lessonPages.length} lesson page(s) &middot;{" "}
-                          {module.quizItems.length} quiz item(s)
+                          {module.quizItems.length} Quick Recap question(s)
                         </p>
                       </div>
 
@@ -1790,8 +1611,7 @@ export default function AddModule() {
                           title={module.studentPublished === true ? "Click to turn student access off" : "Click to upload to students"}
                           disabled={
                             isSaving ||
-                            Boolean(processingModuleId) ||
-                            Boolean(generatingQuizModuleId)
+                            Boolean(processingModuleId)
                           }
                           onClick={() => uploadModuleToStudents(module.id)}
                         >
@@ -2101,200 +1921,6 @@ export default function AddModule() {
                           )}
                         </div>
 
-                        <div className={styles.moduleInnerSection}>
-                          <div className={styles.popupSectionRow}>
-                            <div>
-                              <h4>Module Quiz</h4>
-
-                              <p>Quiz items belonging only to this module.</p>
-                            </div>
-
-                            <div className={styles.quizActions}>
-                              <button
-                                className={styles.popupAddBtn}
-                                type="button"
-                                onClick={() => autoGenerateQuiz(module.id)}
-                                disabled={
-                                  isGenerating || isProcessing || isSaving
-                                }
-                              >
-                                {isGenerating
-                                  ? "Generating..."
-                                  : "Auto Generate"}
-                              </button>
-
-                              <button
-                                className={styles.popupAddBtn}
-                                type="button"
-                                onClick={() => addQuizItem(module.id)}
-                              >
-                                + Add Quiz
-                              </button>
-                            </div>
-                          </div>
-
-                          {module.quizItems.length === 0 ? (
-                            <div className={styles.popupEmptyQuiz}>
-                              No quiz items in this module.
-                            </div>
-                          ) : (
-                            module.quizItems.map((item, quizIndex) => (
-                              <div
-                                className={styles.popupQuizCard}
-                                key={item.id}
-                              >
-                                <div className={styles.popupQuizCardTop}>
-                                  <span className={styles.popupQuizCardTitle}>
-                                    Item {quizIndex + 1}
-                                  </span>
-
-                                  <button
-                                    className={styles.popupRemoveBtn}
-                                    type="button"
-                                    onClick={() =>
-                                      removeQuizItem(module.id, quizIndex)
-                                    }
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-
-                                <select
-                                  className={styles.popupSelect}
-                                  value={item.type}
-                                  onChange={(event) => {
-                                    const type = event.target.value;
-
-                                    updateQuizItem(
-                                      module.id,
-                                      quizIndex,
-                                      "type",
-                                      type,
-                                    );
-
-                                    updateQuizItem(
-                                      module.id,
-                                      quizIndex,
-                                      "options",
-                                      type === "identification"
-                                        ? []
-                                        : ["", "", "", ""],
-                                    );
-
-                                    updateQuizItem(
-                                      module.id,
-                                      quizIndex,
-                                      "correct_answer",
-                                      "",
-                                    );
-                                  }}
-                                >
-                                  <option value="multiple_choice">
-                                    Multiple Choice
-                                  </option>
-
-                                  <option value="identification">
-                                    Identification
-                                  </option>
-                                </select>
-
-                                <input
-                                  className={styles.popupInput}
-                                  value={item.question}
-                                  onChange={(event) =>
-                                    updateQuizItem(
-                                      module.id,
-                                      quizIndex,
-                                      "question",
-                                      limit(event.target.value, QUIZ_LIMIT),
-                                    )
-                                  }
-                                  placeholder="Question"
-                                />
-
-                                <div className={styles.optionsGrid}>
-                                  {item.options.map((option, optionIndex) => (
-                                    <input
-                                      className={styles.popupInput}
-                                      key={optionIndex}
-                                      value={option}
-                                      disabled={item.type === "true_false"}
-                                      onChange={(event) =>
-                                        updateQuizOption(
-                                          module.id,
-                                          quizIndex,
-                                          optionIndex,
-                                          limit(event.target.value, QUIZ_LIMIT),
-                                        )
-                                      }
-                                      placeholder={`Option ${optionIndex + 1}`}
-                                    />
-                                  ))}
-                                </div>
-
-                                {item.type === "identification" ? (
-                                  <input
-                                    className={styles.popupInput}
-                                    value={item.correct_answer}
-                                    onChange={(event) =>
-                                      updateQuizItem(
-                                        module.id,
-                                        quizIndex,
-                                        "correct_answer",
-                                        event.target.value,
-                                      )
-                                    }
-                                    placeholder="Correct identification answer"
-                                    aria-label="Correct identification answer"
-                                    maxLength={150}
-                                  />
-                                ) : (
-                                  <select
-                                    className={styles.popupSelect}
-                                    value={item.correct_answer}
-                                    onChange={(event) =>
-                                      updateQuizItem(
-                                        module.id,
-                                        quizIndex,
-                                        "correct_answer",
-                                        event.target.value,
-                                      )
-                                    }
-                                  >
-                                    <option value="">
-                                      Select correct answer
-                                    </option>
-
-                                    {item.options.map((option, optionIndex) => (
-                                      <option
-                                        key={optionIndex}
-                                        value={option}
-                                        disabled={!option.trim()}
-                                      >
-                                        {option || `Option ${optionIndex + 1}`}
-                                      </option>
-                                    ))}
-                                  </select>
-                                )}
-                                <QuizSourceEvidence question={item} />
-
-                                <textarea
-                                  className={`${styles.popupTextarea} ${styles.popupAnswerBox}`}
-                                  value={item.explanation}
-                                  onChange={(event) =>
-                                    updateQuizItem(
-                                      module.id,
-                                      quizIndex,
-                                      "explanation",
-                                      limit(event.target.value, QUIZ_LIMIT),
-                                    )
-                                  }
-                                  placeholder="Explanation"
-                                />
-                              </div>
-                            ))
-                          )}
-                        </div>
                       </div>
                     )}
                   </article>
@@ -2314,8 +1940,7 @@ export default function AddModule() {
             }}
             disabled={
               isSaving ||
-              Boolean(processingModuleId) ||
-              Boolean(generatingQuizModuleId)
+              Boolean(processingModuleId)
             }
           >
             Cancel
@@ -2326,8 +1951,7 @@ export default function AddModule() {
             type="submit"
             disabled={
               isSaving ||
-              Boolean(processingModuleId) ||
-              Boolean(generatingQuizModuleId)
+              Boolean(processingModuleId)
             }
           >
             {isSaving ? "Saving..." : "Save Course"}

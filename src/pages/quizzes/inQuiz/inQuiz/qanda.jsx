@@ -1,5 +1,6 @@
 import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
 import TutorialBackButton from "../TutorialBackButton.jsx";
+import { practiceAnswersMatch } from "../../../../services/adaptivePractice.js";
 import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
 import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
 import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
@@ -24,16 +25,17 @@ import {
 } from "../practiceSession.js";
 import styles from "./qanda.module.css";
 
-export default function QandA() {
+export default function QandA({ adaptivePractice } = {}) {
   const routeNavigate = useNavigate();
   const navigate = (...args) => { clearPracticeProgress(); routeNavigate(...args); };
-  const { lessonId, deckId } = useParams();
+  const { lessonId: routeLessonId, deckId } = useParams();
+  const lessonId = adaptivePractice?.session.lessonId || routeLessonId;
 
   const isLessonMode = Boolean(lessonId);
   const isDeckMode = Boolean(deckId);
   const practiceSession = useMemo(
-    () => getStoredPracticeSession({ lessonId, deckId }),
-    [lessonId, deckId],
+    () => adaptivePractice?.session || getStoredPracticeSession({ lessonId, deckId }),
+    [adaptivePractice?.session, lessonId, deckId],
   );
 
   const [lesson, setLesson] = usePracticeState("lesson", null, true);
@@ -49,6 +51,14 @@ export default function QandA() {
   const [checkpointOpen, setCheckpointOpen] = usePracticeState("checkpointOpen", false);
   const [checkpointStartIndex, setCheckpointStartIndex] = usePracticeState("checkpointStartIndex", 0);
   const [checkpointReviewEndIndex, setCheckpointReviewEndIndex] = usePracticeState("checkpointReviewEndIndex", 0);
+
+  useEffect(() => {
+    // Move older adaptive drafts past the review screen without changing their answers.
+    if (adaptivePractice && checkpointOpen) {
+      setCurrent((previous) => Math.max(previous, checkpointReviewEndIndex));
+      setCheckpointOpen(false);
+    }
+  }, [adaptivePractice, checkpointOpen, checkpointReviewEndIndex]);
 
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -170,8 +180,9 @@ export default function QandA() {
         return shuffleArray(
           parsed.map((item) => ({
             ...getReviewMetadata(item),
-            q: cleanQuestionText(getQuizItemQuestion(item)),
-            correctAnswer: cleanAnswerText(getQuizItemAnswer(item)),
+            cardId: adaptivePractice ? item.id : null,
+            q: adaptivePractice ? item.question : cleanQuestionText(getQuizItemQuestion(item)),
+            correctAnswer: adaptivePractice ? item.correct_answer : cleanAnswerText(getQuizItemAnswer(item)),
             explanation: item.explanation || getQuizItemAnswer(item) || "",
           })),
         );
@@ -315,6 +326,7 @@ export default function QandA() {
   }
 
   async function finishQuiz(finalScore, finalResults, returnToDeck = false) {
+    if (adaptivePractice) return adaptivePractice.onFinish(finalResults);
     const resultPayload = {
       ...getPracticeResultMetadata(
         practiceSession,
@@ -373,10 +385,10 @@ export default function QandA() {
 
     window.speechSynthesis?.cancel();
 
-    const isCorrect = isCloseEnough(
-      inputValue,
-      questions[current].correctAnswer,
-    );
+    const correctAnswer = questions[current].correctAnswer;
+    const isCorrect = adaptivePractice
+      ? practiceAnswersMatch(inputValue, correctAnswer, true)
+      : isCloseEnough(inputValue, correctAnswer);
 
     playPracticeFeedbackSound(isCorrect);
     setNotifImage(
@@ -420,7 +432,9 @@ export default function QandA() {
   async function nextQuestion(updatedScore, updatedResults) {
     const completedCount = current + 1;
     const shouldShowCheckpoint =
-      completedCount % 10 === 0 && completedCount < questions.length;
+      !adaptivePractice &&
+      completedCount % 10 === 0 &&
+      completedCount < questions.length;
 
     if (shouldShowCheckpoint) {
       setCheckpointReviewEndIndex(completedCount);
@@ -495,7 +509,7 @@ export default function QandA() {
 
   return (
     <div className={styles.wrapper}>
-      <div className="practice-course-back"><TutorialBackButton /></div>
+      <div className="practice-course-back"><TutorialBackButton onBack={adaptivePractice?.onBack} /></div>
       <PracticeSoundControl />
       <PracticeAnswerFeedback />
       
@@ -573,7 +587,7 @@ export default function QandA() {
         </div>
       )}
 
-      {checkpointOpen ? (
+      {checkpointOpen && !adaptivePractice ? (
         <div className={styles.checkpointWrapper}>
           <div className={styles.checkpointHeader}>
             <span className={styles.checkpointEyebrow}>The previous cards</span>

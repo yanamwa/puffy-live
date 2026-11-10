@@ -1,0 +1,20 @@
+.professor-tutorial-layer {
+  pointer-events: auto;
+}
+
+.professor-tutorial-layer[data-scroll-preview] {
+  pointer-events: none;
+}
+
+.professor-tutorial-panel[data-arrow="left"]::before {
+  top: var(--tutorial-arrow-y);
+  left: -8px;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+@media (max-height: 350px) {
+  .professor-tutorial-panel {
+    max-height: calc(100% - 24px);
+    overflow-y: auto;
+  }
+}

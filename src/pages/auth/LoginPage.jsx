@@ -10,6 +10,7 @@ import LandingNavbar from "../../components/landing/LandingNavbar";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useSystemStatus } from "../../context/SystemStatusContext.jsx";
 import { getStudentSetupPath } from "../student/tutorial/studentTutorialSteps.js";
+import { requiresProfessorTutorial } from "../../utils/passwordPolicy.js";
 import {
   APP_ROLES,
   getHomePathForRole,
@@ -174,6 +175,10 @@ function Login() {
     const studentSetupPath = getStudentSetupPath(loggedInUser);
     if (studentSetupPath) {
       navigate(studentSetupPath, { replace: true });
+      return;
+    }
+    if (requiresProfessorTutorial(loggedInUser)) {
+      navigate(getHomePathForRole(role), { replace: true });
       return;
     }
 

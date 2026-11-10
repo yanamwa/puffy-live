@@ -1,8 +1,9 @@
 import UserPagination, { useUserPagination } from "../../../components/UserPagination";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import StudentImportPanel from "../../../components/StudentImportPanel.jsx";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FiArchive, FiCheck, FiClock, FiEye, FiFileText, FiMail,
-  FiPlus, FiSearch, FiUpload, FiUser, FiUsers, FiX, FiRefreshCw,
+  FiPlus, FiSearch, FiUser, FiUsers, FiX, FiRefreshCw,
 } from "react-icons/fi";
 import { API_BASE } from "../../../config";
 import { formatUserDisplayId } from "../../../utils/userDisplayId.js";
@@ -168,49 +169,6 @@ function formatDate(value) {
 }
 function titleCase(value) { return String(value || "").replace(/[_-]/g, " ").replace(/\b\w/g, c => c.toUpperCase()); }
 function fileSize(bytes) { return bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`; }
-function normalizeHeader(value) { return String(value || "").replace(/^\ufeff/, "").trim().toLowerCase().replace(/[^a-z0-9]/g, ""); }
-function parseCsv(text) {
-  const rows = []; let row = []; let cell = ""; let quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '"') { if (quoted && text[i + 1] === '"') { cell += '"'; i++; } else quoted = !quoted; }
-    else if (ch === "," && !quoted) { row.push(cell); cell = ""; }
-    else if ((ch === "\n" || ch === "\r") && !quoted) {
-      row.push(cell); rows.push(row); row = []; cell = "";
-      if (ch === "\r" && text[i + 1] === "\n") i++;
-    } else cell += ch;
-  }
-  if (quoted) throw new Error("CSV contains an unclosed quotation mark.");
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows;
-}
-function normalizeImportRows(rows) {
-  const cleaned = rows.map(row => Array.isArray(row) ? row : Object.values(row || {}))
-    .map(row => row.map(cell => String(cell ?? "").trim())).filter(row => row.some(Boolean));
-  if (!cleaned.length) return [];
-  const headers = cleaned[0].map(normalizeHeader);
-  const hasHeader = headers.some(h => ["email", "emailaddress", "studentemail", "name", "fullname", "studentname"].includes(h));
-  const index = (names, fallback) => { const found = hasHeader ? headers.findIndex(h => names.includes(h)) : -1; return found < 0 ? fallback : found; };
-  // Headerless files use: Name, Email, Student ID, Gender, Year Level, Section.
-  return (hasHeader ? cleaned.slice(1) : cleaned).map((row, i) => ({
-    sourceRow: i + (hasHeader ? 2 : 1),
-    name: row[index(["name", "fullname", "studentname"], 0)] || "",
-    email: row[index(["email", "emailaddress", "studentemail"], 1)] || "",
-    studentId: row[index(["studentid", "studentnumber", "studentno", "id", "idnumber", "schoolid"], 2)] || "",
-    gender: row[index(["gender", "sex"], 3)] || "",
-    yearLevel: row[index(["year", "yearlevel", "studentyear", "grade", "gradelevel"], hasHeader ? 4 : 4)] || "",
-    sectionName: row[index(["section", "sectionname", "studentsection", "block"], 5)] || "",
-  })).filter(s => s.name || s.email || s.studentId);
-}
-async function parseImportFile(file) {
-  const extension = file.name.split(".").pop()?.toLowerCase();
-  if (extension === "xlsx") {
-    const readXlsxFile = (await import("read-excel-file/browser")).default;
-    return normalizeImportRows(await readXlsxFile(file));
-  }
-  if (extension === "csv") return normalizeImportRows(parseCsv(await file.text()));
-  throw new Error("Only CSV and XLSX files are supported.");
-}
 function validateStudent(student) {
   const name = String(student.name || "").trim();
   const email = String(student.email || "").trim();
@@ -228,7 +186,6 @@ function validateStudent(student) {
 }
 
 export default function UserManagementPage() {
-  const fileInputRef = useRef(null);
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -276,19 +233,23 @@ export default function UserManagementPage() {
       setUsers(current => [normalizeUser(data.user), ...current]);
       setActiveTab("students"); setQuery("");
       closeModal(); setStudentModalOpen(false); setStudentForm({ ...EMPTY_FORM });
-      await showCredentialResult({ title: "Student Created", password: data.temporaryPassword, message: data.credentialsEmailed === true ? "Credentials email sent. You can also copy the temporary password below." : "Email delivery is not confirmed. Copy the temporary password and share it securely." });
+      await showCredentialResult({ title: "Student Created", password: data.temporaryPassword, message: data.credentialsEmailed === true ? "The mail server accepted the credentials email. You can also copy the temporary password below." : "Email delivery is not confirmed. Copy the temporary password and share it securely." });
     } catch (error) { showError(error.message || "Could not create student account.", "Create Failed"); }
     finally { setCreatingStudent(false); }
   };
-  const handleBulkImport = async event => {
-    const file = event.target.files?.[0]; event.target.value = "";
-    if (!file) return;
+  const handleBulkImport = async (file, prepareStudents) => {
     const base = { fileName: file.name, fileSize: file.size };
     setStudentImportStatus({ ...EMPTY_IMPORT, ...base, state: "reading", message: "Reading student file..." });
     try {
-      const students = await parseImportFile(file);
-      if (!students.length) throw new Error("No student records found. Include Name, Email, Student ID, Gender, Year Level, and Section columns.");
+      const students = await prepareStudents();
+      if (students === null) {
+        setStudentImportStatus({ ...EMPTY_IMPORT });
+        return;
+      }
+      if (!students.length) throw new Error("No student records found in this file.");
+      setStudentModalOpen(false);
       const created = []; const failures = [];
+      const unconfirmedEmails = [];
       const seenEmails = new Set(); const seenIds = new Set();
       for (let i = 0; i < students.length; i++) {
         const student = students[i];
@@ -303,18 +264,24 @@ export default function UserManagementPage() {
         seenEmails.add(emailKey); seenIds.add(idKey);
         try {
           const data = await createStudent(student);
-          if (data.user) created.push(normalizeUser(data.user));
-          else failures.push(`Row ${student.sourceRow}: Server did not return the created user.`);
+          if (data.user) {
+            created.push(normalizeUser(data.user));
+            if (data.credentialsEmailed !== true) {
+              unconfirmedEmails.push(`Row ${student.sourceRow}: Email to ${student.email} was not confirmed.`);
+            }
+          } else failures.push(`Row ${student.sourceRow}: Server did not return the created user.`);
         } catch (err) { failures.push(`Row ${student.sourceRow} (${student.email}): ${err.message}`); }
       }
       if (created.length) {
         setUsers(current => [...created, ...current]);
         setActiveTab("students"); setQuery("");
       }
-      const message = `${created.length} imported, ${failures.length} failed.`;
-      setStudentImportStatus({ ...EMPTY_IMPORT, ...base, state: failures.length ? (created.length ? "partial" : "error") : "success", message, detail: failures.slice(0, 5).join("\n") });
-      if (created.length && !failures.length) showSuccess(message, "Import Complete");
-      else if (failures.length) Swal.fire({ icon: created.length ? "warning" : "error", title: "Import Results", text: `${message} ${failures.slice(0, 5).join(" | ")}` });
+      const emailSummary = created.length ? ` Mail server accepted ${created.length - unconfirmedEmails.length} of ${created.length} credentials emails.` : "";
+      const message = `${created.length} imported, ${failures.length} failed.${emailSummary}`;
+      const issues = [...failures, ...unconfirmedEmails].slice(0, 5);
+      setStudentImportStatus({ ...EMPTY_IMPORT, ...base, state: issues.length ? (created.length ? "partial" : "error") : "success", message, detail: issues.join("\n") });
+      if (!issues.length) showSuccess(message, "Import Complete");
+      else Swal.fire({ icon: created.length ? "warning" : "error", title: "Import Results", text: `${message} ${issues.join(" | ")}` });
       try {
         await apiRequest("/users/student/bulk-import-audit", { method: "POST", body: JSON.stringify({ fileName: file.name, importedCount: created.length, failedCount: failures.length, totalCount: students.length }) });
       } catch (auditError) { setNotice(`${message} Audit log could not be saved: ${auditError.message}`); }
@@ -390,7 +357,7 @@ export default function UserManagementPage() {
   ];
   const importTitle = ({ reading: "Reading file", importing: "Importing students", success: "Students imported", partial: "Import completed with errors", error: "Import failed" })[studentImportStatus.state] || "Student import";
   return <div className="users-page">
-    {studentImportStatus.state !== "idle" && <aside className={`student-import-popup is-${studentImportStatus.state}`} role="status" aria-live="polite">
+    {!studentModalOpen && studentImportStatus.state !== "idle" && <aside className={`student-import-popup is-${studentImportStatus.state}`} role="status" aria-live="polite">
       <span className="student-import-popup-icon">{studentImportStatus.state === "success" ? <FiCheck /> : studentImportStatus.state === "error" ? <FiX /> : studentImportStatus.state === "partial" ? <FiFileText /> : <FiClock />}</span>
       <div className="student-import-popup-copy"><strong>{importTitle}</strong><p>{studentImportStatus.message}</p>
         <span>{studentImportStatus.fileName} - {fileSize(studentImportStatus.fileSize)}</span>
@@ -399,7 +366,7 @@ export default function UserManagementPage() {
       {!importBusy && <button className="student-import-popup-dismiss" type="button" onClick={() => setStudentImportStatus({ ...EMPTY_IMPORT })} aria-label="Dismiss import status"><FiX /></button>}
     </aside>}
     <div className="users-page-header"><div><h1>Admin User Management</h1><p>Manage registered students, approved professors, and archived accounts.</p></div>
-      <div className="users-header-actions"><button className="users-create-btn" type="button" onClick={() => { setNotice(""); setStudentModalOpen(true); }}><FiPlus /> Add Student</button></div>
+      <div className="users-header-actions"><button className="users-create-btn" type="button" disabled={importBusy} onClick={() => { setNotice(""); setStudentModalOpen(true); }}><FiPlus /> Add Student</button></div>
     </div>
     <div className="users-stat-grid">{stats.map(stat => { const Icon = stat.icon; return <div className="users-stat-card" key={stat.label}><div className="users-stat-icon"><Icon /></div><span>{stat.label}</span><strong>{stat.value}</strong></div>; })}</div>
     <nav className="user-management-tabs" aria-label="User management sections">
@@ -698,10 +665,11 @@ export default function UserManagementPage() {
     {studentModalOpen && <div className="users-modal-backdrop" onClick={closeModal}><section className="users-modal" role="dialog" aria-modal="true" aria-label="Add student" onClick={event => event.stopPropagation()}>
       <button className="users-modal-close" type="button" onClick={closeModal} disabled={creatingStudent || importBusy} aria-label="Close student form"><FiX /></button>
       <div className="users-modal-profile"><span className="users-modal-avatar"><FiUser /></span><div><h2>Add Student</h2><p>Create or import student accounts with generated credentials.</p></div></div>
-      <div className="student-import-panel"><div><strong>Bulk Import Students</strong><p>CSV or Excel columns: Name, Email, Student ID, Gender, Year Level, Section.</p></div>
-        <button className="users-secondary-btn" type="button" disabled={importBusy || creatingStudent} onClick={() => fileInputRef.current?.click()}><FiUpload /> Import CSV or Excel</button>
-        <input ref={fileInputRef} type="file" accept=".csv,.xlsx" hidden onChange={handleBulkImport} />
-      </div>
+      <StudentImportPanel
+        busy={importBusy}
+        disabled={creatingStudent}
+        onImport={handleBulkImport}
+      />
       <form className="users-student-form" onSubmit={handleCreateStudent}>
         <label>Student Name<input type="text" value={studentForm.name} onChange={e => setStudentForm(s => ({ ...s, name: e.target.value }))} disabled={creatingStudent || importBusy} required /></label>
         <label>Student Email<input type="email" value={studentForm.email} onChange={e => setStudentForm(s => ({ ...s, email: e.target.value }))} disabled={creatingStudent || importBusy} required /></label>

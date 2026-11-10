@@ -4,14 +4,20 @@ import {
 } from "../../../utils/assessmentModuleScope.js";
 import styles from "./AssessmentAnalysis.module.css";
 import MainQuizAnalysis from "./MainQuizAnalysis.jsx";
+import MainQuizResponses from "./MainQuizResponses.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE } from "../../../config.js";
 import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
 import "./QuizAssessmentDashboard.css";
+import { summarizeAssessment } from "../../../utils/assessmentAnalytics.js";
+import {
+  tutorialAssessmentAttempts,
+  tutorialAssessmentStudents,
+  tutorialMainQuizResponses,
+} from "../tutorial/professorTutorialExamples.js";
 
 const pct = (value) =>
   value === null || !Number.isFinite(value) ? "0%" : `${Math.round(value)}%`;
-import { summarizeAssessment } from "../../../utils/assessmentAnalytics.js";
 
 function Bars({ rows }) {
   return (
@@ -41,6 +47,8 @@ export default function QuizAssessmentDashboard({
   exportActions,
   items = [],
   course,
+  tutorialMode = false,
+  tutorialStep,
 }) {
   const modules = useMemo(() => assessmentModules(course), [course]);
   const [moduleIndex, setModuleIndex] = useState("all");
@@ -57,15 +65,31 @@ export default function QuizAssessmentDashboard({
       : modules[Number(moduleIndex)]?.quizItems ||
         modules[Number(moduleIndex)]?.quiz_items ||
         [];
-  const [type, setType] = useState("practice");
-  const [responseView, setResponseView] = useState(false);
+  const [type, setType] = useState(
+    tutorialStep?.id === "analysis-main" || tutorialStep?.id === "analysis-responses"
+      ? "main"
+      : "practice",
+  );
+  const [responseView, setResponseView] = useState(
+    tutorialStep?.id === "analysis-responses",
+  );
   const [view, setView] = useState("graph");
-  const [data, setData] = useState({ attempts: [], students: [] });
-  const [status, setStatus] = useState("Loading recorded attempts…");
+  const [data, setData] = useState(() =>
+    tutorialMode
+      ? { attempts: tutorialAssessmentAttempts, students: tutorialAssessmentStudents }
+      : { attempts: [], students: [] },
+  );
+  const [status, setStatus] = useState(tutorialMode ? "" : "Loading recorded attempts…");
   const [refresh, setRefresh] = useState(0);
   const loadedCourseId = useRef(null);
   const [refreshError, setRefreshError] = useState("");
   useEffect(() => {
+    if (!tutorialMode) return;
+    setType(tutorialStep?.id === "analysis-main" || tutorialStep?.id === "analysis-responses" ? "main" : "practice");
+    setResponseView(tutorialStep?.id === "analysis-responses");
+  }, [tutorialMode, tutorialStep?.id]);
+  useEffect(() => {
+    if (tutorialMode) return;
     const update = () => setRefresh((value) => value + 1);
     window.addEventListener("focus", update);
     const timer = window.setInterval(update, 10000);
@@ -75,6 +99,13 @@ export default function QuizAssessmentDashboard({
     };
   }, []);
   useEffect(() => {
+    if (tutorialMode) {
+      setData({ attempts: tutorialAssessmentAttempts, students: tutorialAssessmentStudents });
+      setStatus("");
+      setRefreshError("");
+      loadedCourseId.current = courseId;
+      return;
+    }
     const controller = new AbortController();
     const isInitialLoad = loadedCourseId.current !== courseId;
     if (isInitialLoad) setStatus("Loading recorded attempts…");
@@ -103,18 +134,24 @@ export default function QuizAssessmentDashboard({
         }
       });
     return () => controller.abort();
-  }, [courseId, refresh]);
+  }, [courseId, refresh, tutorialMode]);
   const [yearFilter, setYearFilter] = useState("all");
   const [sectionFilter, setSectionFilter] = useState("all");
-  const [enrolledStudents, setEnrolledStudents] = useState([]);
+  const [enrolledStudents, setEnrolledStudents] = useState(
+    tutorialMode ? tutorialAssessmentStudents : [],
+  );
   useEffect(() => {
+    if (tutorialMode) {
+      setEnrolledStudents(tutorialAssessmentStudents);
+      return;
+    }
     const controller = new AbortController();
     setEnrolledStudents([]);
     fetch(`${API_BASE}/courses/${encodeURIComponent(courseId)}/enrollments`, { credentials: "include", headers: lessonAuthHeaders(), signal: controller.signal })
       .then(async response => { if (!response.ok) return; const result = await response.json(); if (!controller.signal.aborted) setEnrolledStudents(Array.isArray(result.enrolled) ? result.enrolled : []); })
       .catch(() => {});
     return () => controller.abort();
-  }, [courseId]);
+  }, [courseId, tutorialMode]);
   const yearOf = (s) => {
     const value = String(s.year_level ?? s.yearLevel ?? s.student_year_level ?? s.year ?? s.student?.year_level ?? "").trim();
     return value.match(/[1-4]/)?.[0] || value;
@@ -209,6 +246,7 @@ export default function QuizAssessmentDashboard({
           {["practice", "main"].map((value) => (
             <button
               key={value}
+              data-tutorial={value === "practice" ? "analysis-practice-tab" : "analysis-main-tab"}
               aria-pressed={type === value && !responseView}
               onClick={() => selectType(value)}
             >
@@ -220,6 +258,7 @@ export default function QuizAssessmentDashboard({
           <button
             className="qa-response-button"
             type="button"
+            data-tutorial="analysis-responses-tab"
             aria-pressed={responseView}
             onClick={() => { setType("main"); setResponseView(true); }}
           >
@@ -229,15 +268,28 @@ export default function QuizAssessmentDashboard({
       </div>
       {(moduleIndex !== "all" || responseView) ? (
         <div className="qa-main-analysis">
-          <MainQuizAnalysis
-            key={`${courseId}:${moduleIndex}`}
-            filteredAttempts={filteredAttempts} analysisView={view}
-            moduleIndex={moduleIndex}
-            modules={modules}
-            moduleTitle={moduleTitle}
-            responseView={responseView}
-            onSummary={() => setResponseView(false)}
-          />
+          {tutorialMode && responseView ? (
+            <MainQuizResponses
+              courseId={courseId}
+              courseTitle={`${courseTitle} - ${moduleTitle}`}
+              quizTitle="Main Quiz 1"
+              attempts={tutorialMainQuizResponses}
+              passScore={1}
+              onBack={() => setResponseView(false)}
+              embedded
+            />
+          ) : (
+            <MainQuizAnalysis
+              key={`${courseId}:${moduleIndex}`}
+              filteredAttempts={filteredAttempts}
+              analysisView={view}
+              moduleIndex={moduleIndex}
+              modules={modules}
+              moduleTitle={moduleTitle}
+              responseView={responseView}
+              onSummary={() => setResponseView(false)}
+            />
+          )}
         </div>
       ) : (
         <div className="qa-content-panel qa-print-report">
