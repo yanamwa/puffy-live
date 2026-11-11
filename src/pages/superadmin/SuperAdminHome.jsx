@@ -321,8 +321,10 @@ export default function ManagementDashboard() {
           localStorage.getItem("token") ||
           localStorage.getItem("authToken") ||
           localStorage.getItem("puffy-token") ||
+          sessionStorage.getItem("puffy-token") ||
           sessionStorage.getItem("token") ||
-          sessionStorage.getItem("authToken");
+          sessionStorage.getItem("authToken") ||
+          "";
 
         const [userResult, courseResult] = await Promise.allSettled([
           fetch(`${API_BASE}/users`, {

@@ -23,7 +23,17 @@ export function SystemStatusProvider({ children }) {
       request = new AbortController();
       const { signal } = request;
       try {
-        const response = await fetch(`${API_BASE}/system-settings/status`, { signal });
+        const token =
+          localStorage.getItem("puffy-token") ||
+          localStorage.getItem("token") ||
+          localStorage.getItem("authToken") ||
+          sessionStorage.getItem("puffy-token") ||
+          sessionStorage.getItem("token") ||
+          sessionStorage.getItem("authToken");
+        const response = await fetch(`${API_BASE}/system-settings/status`, {
+          signal,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!response.ok) return;
         const data = await response.json();
         if (!signal.aborted) setStatus({ ...defaults, ...data, loaded: true });
