@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiBell, FiBookOpen, FiCheckCircle, FiMessageSquare } from "react-icons/fi";
 import Swal from "sweetalert2";
+import { API_BASE } from "../../config.js";
 import "./RoleNotificationMenu.css";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = API_BASE;
 const REFRESH_INTERVAL_MS = 30000;
 
 const notificationSets = {
