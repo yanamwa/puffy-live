@@ -14,13 +14,16 @@ export default function Otp() {
   const location = useLocation();
 
   const email = location.state?.email || sessionStorage.getItem("otp_email");
+  const otpRole =
+    location.state?.role || sessionStorage.getItem("otp_role") || "";
 
   const OTP_DURATION = 300;
   const getInitialOtpDeadline = () => {
     const stateDeadline = Number(location.state?.otpExpiresAt);
     const storedDeadline = Number(sessionStorage.getItem("otp_expires_at"));
     const deadline =
-      Math.max(stateDeadline || 0, storedDeadline || 0) || Date.now() + OTP_DURATION * 1000;
+      Math.max(stateDeadline || 0, storedDeadline || 0) ||
+      (otpRole === "student" ? Date.now() : Date.now() + OTP_DURATION * 1000);
 
     sessionStorage.setItem("otp_expires_at", String(deadline));
     return deadline;
@@ -83,10 +86,14 @@ export default function Otp() {
 
   useEffect(() => {
     if (!email) {
-      showThinkAlert("Session Expired", "Please sign up again.");
-      setTimeout(() => navigate("/signup"), 1200);
+      const studentLogin = otpRole === "student";
+      showThinkAlert(
+        "Session Expired",
+        studentLogin ? "Please sign in again to verify your email." : "Please sign up again.",
+      );
+      setTimeout(() => navigate(studentLogin ? "/login" : "/signup"), 1200);
     }
-  }, [email, navigate]);
+  }, [email, navigate, otpRole]);
 
   useEffect(() => {
     const updateTimeLeft = () => {
@@ -155,15 +162,20 @@ export default function Otp() {
       .then((data) => {
         if (data.success) {
           setInlineError("");
+          const verifiedRole = data.role || otpRole;
+          const successMessage = data.requiresApproval
+            ? "Your email is verified. The Super Admin will review your professor registration."
+            : data.verificationStatus === "declined"
+              ? "Your email is verified. Your registration was declined."
+              : verifiedRole === "student"
+                ? "Your email is verified. Sign in to begin the student tutorial."
+                : "Your email is verified. You can now sign in.";
           showSuccessAlert(
             "Verified!",
-            data.requiresApproval
-              ? "Your email is verified. The Super Admin will review your professor registration."
-              : data.verificationStatus === "declined"
-                ? "Your email is verified. Your registration was declined."
-                : "Your email is verified. You can now sign in.",
+            successMessage,
           ).then(() => {
             sessionStorage.removeItem("otp_email");
+            sessionStorage.removeItem("otp_role");
             sessionStorage.removeItem("otp_expires_at");
             navigate("/login");
           });
@@ -209,9 +221,10 @@ export default function Otp() {
       .then((data) => {
         if (data.success) {
           showSuccessAlert("Verification Code Resent", "A new verification code has been sent to your email.");
-          const secondsRemaining = Number(
-            data.otpSecondsRemaining || OTP_DURATION,
-          );
+          const parsedSeconds = Number(data.otpSecondsRemaining);
+          const secondsRemaining = Number.isFinite(parsedSeconds)
+            ? parsedSeconds
+            : OTP_DURATION;
           const nextDeadline =
             Date.now() + Math.max(0, secondsRemaining) * 1000;
 

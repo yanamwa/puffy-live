@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { fetchCourses } from "../../../services/courseApi.js";
 import QuizAssessmentDashboard from "./QuizAssessmentDashboard.jsx";
-import { downloadAssessmentPdf } from "../../../services/pdfDownload.js";
 import { tutorialCourseDraft } from "../tutorial/professorTutorialExamples.js";
 function readItems(course) {
   const value =
@@ -28,19 +27,6 @@ export default function AssessmentDetail() {
   const [course, setCourse] = useState(tutorialAnalysis ? tutorialCourseDraft : initial);
   const [loading, setLoading] = useState(!tutorialAnalysis);
   const [error, setError] = useState("");
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState("");
-  const savePdf = async () => {
-    setDownloading(true);
-    setDownloadError("");
-    try {
-      await downloadAssessmentPdf(`assessment-${courseId}`);
-    } catch (error) {
-      setDownloadError(error.message || "PDF download failed. Please retry.");
-    } finally {
-      setDownloading(false);
-    }
-  };
   useEffect(() => {
     if (tutorialAnalysis) {
       setCourse(tutorialCourseDraft);
@@ -84,10 +70,8 @@ export default function AssessmentDetail() {
         <div><h1>Assessment Analysis</h1><p>Review practice and main quiz results for {title}.</p></div>
         <div className="qa-page-print-actions">
           <button type="button" className="qa-page-print" onClick={() => window.print()} disabled={loading || Boolean(error)}>Print</button>
-          <button type="button" className="qa-page-print" onClick={savePdf} disabled={loading || Boolean(error) || downloading}>{downloading ? "Downloading…" : "Save as PDF"}</button>
         </div>
       </header>
-      {downloadError && <p role="alert">{downloadError}</p>}
       {loading ? <p>Loading assessment details…</p> : error ? <p role="alert">{error}</p> : (
         <QuizAssessmentDashboard
           key={tutorialStep?.id || courseId}

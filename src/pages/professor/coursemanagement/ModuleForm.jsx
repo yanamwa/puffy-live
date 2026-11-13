@@ -6,12 +6,29 @@ import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
 import styles from "./modulemanage.module.css";
 import AdminLayout from "./AdminLayout.js";
 
+function normalizeAcceptedAnswers(value) {
+  const candidates = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/\r?\n/)
+      : [];
+  const unique = new Map();
+  candidates.forEach((candidate) => {
+    if (typeof candidate !== "string") return;
+    const answer = candidate.trim();
+    const key = answer.normalize("NFKC").replace(/\s+/g, " ").toLowerCase();
+    if (key && !unique.has(key)) unique.set(key, answer);
+  });
+  return [...unique.values()].slice(0, 20);
+}
+
 function serializeQuizItems(items) {
   return JSON.stringify(
     items
       .map((item) => ({
         question: String(item.question || "").trim(),
         answer: String(item.answer || "").trim(),
+        accepted_answers: normalizeAcceptedAnswers(item.accepted_answers),
       }))
       .filter((item) => item.question || item.answer),
   );
@@ -49,7 +66,19 @@ export default function ModuleForm({ mode }) {
 
           try {
             const parsed = JSON.parse(mod.quiz_contents || "[]");
-            setQuizItems(Array.isArray(parsed) ? parsed : []);
+            setQuizItems(
+              Array.isArray(parsed)
+                ? parsed.map((item) => ({
+                    ...item,
+                    accepted_answers: normalizeAcceptedAnswers(
+                      item.accepted_answers ??
+                        item.acceptedAnswers ??
+                        item.answer_aliases ??
+                        item.alternatives,
+                    ),
+                  }))
+                : [],
+            );
           } catch {
             setQuizItems([]);
           }
@@ -59,7 +88,10 @@ export default function ModuleForm({ mode }) {
   }, [mode, id]);
 
   const addQuizItem = () => {
-    setQuizItems((prev) => [...prev, { question: "", answer: "" }]);
+    setQuizItems((prev) => [
+      ...prev,
+      { question: "", answer: "", accepted_answers: [] },
+    ]);
   };
 
   const updateQuizItem = (index, field, value) => {
@@ -333,6 +365,24 @@ export default function ModuleForm({ mode }) {
                     updateQuizItem(index, "answer", e.target.value)
                   }
                   placeholder="Answer"
+                />
+
+                <label className={styles.popupLabel}>
+                  Other accepted answers (optional, one per line)
+                </label>
+                <textarea
+                  className={styles.popupTextarea}
+                  value={(item.accepted_answers || []).join("\n")}
+                  onChange={(event) =>
+                    updateQuizItem(
+                      index,
+                      "accepted_answers",
+                      normalizeAcceptedAnswers(event.target.value),
+                    )
+                  }
+                  placeholder="Enter approved alternatives, such as another spelling"
+                  aria-label="Other accepted answers, one per line"
+                  maxLength={3039}
                 />
               </div>
             ))

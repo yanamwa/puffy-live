@@ -1,6 +1,9 @@
 import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
 import TutorialBackButton from "../TutorialBackButton.jsx";
-import { practiceAnswersMatch } from "../../../../services/adaptivePractice.js";
+import {
+  getPracticeAcceptedAnswers,
+  practiceAnswersMatch,
+} from "../../../../services/adaptivePractice.js";
 import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
 import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
 import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
@@ -183,6 +186,7 @@ export default function QandA({ adaptivePractice } = {}) {
             cardId: adaptivePractice ? item.id : null,
             q: adaptivePractice ? item.question : cleanQuestionText(getQuizItemQuestion(item)),
             correctAnswer: adaptivePractice ? item.correct_answer : cleanAnswerText(getQuizItemAnswer(item)),
+            acceptedAnswers: getPracticeAcceptedAnswers(item),
             explanation: item.explanation || getQuizItemAnswer(item) || "",
           })),
         );
@@ -198,6 +202,7 @@ export default function QandA({ adaptivePractice } = {}) {
           cardId: card.cardId || card.card_id || card.id || null,
           q: cleanQuestionText(getQuizItemQuestion(card)),
           correctAnswer: cleanAnswerText(getQuizItemAnswer(card)),
+          acceptedAnswers: getPracticeAcceptedAnswers(card),
           explanation: getQuizItemAnswer(card) || "",
         })),
       );
@@ -226,76 +231,6 @@ export default function QandA({ adaptivePractice } = {}) {
     utterance.pitch = 1;
 
     window.speechSynthesis.speak(utterance);
-  };
-
-  const cleanAnswer = (text = "") =>
-    String(text)
-      .toLowerCase()
-      .replace(/`/g, "")
-      .replace(/\bcant\b/g, "cannot")
-      .replace(/\bcan't\b/g, "cannot")
-      .replace(/\ba\b/g, "")
-      .replace(/\ban\b/g, "")
-      .replace(/\bthe\b/g, "")
-      .replace(/[^\w\s]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
-  const levenshtein = (a, b) => {
-    const dp = Array.from({ length: a.length + 1 }, () =>
-      Array(b.length + 1).fill(0),
-    );
-
-    for (let i = 0; i <= a.length; i++) dp[i][0] = i;
-    for (let j = 0; j <= b.length; j++) dp[0][j] = j;
-
-    for (let i = 1; i <= a.length; i++) {
-      for (let j = 1; j <= b.length; j++) {
-        dp[i][j] =
-          a[i - 1] === b[j - 1]
-            ? dp[i - 1][j - 1]
-            : Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]) + 1;
-      }
-    }
-
-    return dp[a.length][b.length];
-  };
-
-  const isCloseEnough = (userAnswer, correctAnswer) => {
-    const userClean = cleanAnswer(userAnswer);
-    const correctClean = cleanAnswer(correctAnswer);
-
-    if (!userClean || !correctClean) return false;
-
-    if (userClean === correctClean) return true;
-
-    // exact phrase contained
-    if (correctClean.includes(userClean) && userClean.length >= 8) {
-      return true;
-    }
-
-    const userWords = userClean.split(" ").filter(Boolean);
-    const correctWords = correctClean.split(" ").filter(Boolean);
-
-    const matchingWords = userWords.filter((word) =>
-      correctWords.includes(word),
-    );
-
-    const wordRatio =
-      matchingWords.length / Math.max(userWords.length, correctWords.length);
-
-    // enough important words matched
-    if (matchingWords.length >= 3 && wordRatio >= 0.35) {
-      return true;
-    }
-
-    const distance = levenshtein(userClean, correctClean);
-
-    const maxLength = Math.max(userClean.length, correctClean.length);
-
-    const similarity = 1 - distance / maxLength;
-
-    return similarity >= 0.75;
   };
 
   async function saveQuizAttempt(finalScore) {
@@ -386,9 +321,11 @@ export default function QandA({ adaptivePractice } = {}) {
     window.speechSynthesis?.cancel();
 
     const correctAnswer = questions[current].correctAnswer;
-    const isCorrect = adaptivePractice
-      ? practiceAnswersMatch(inputValue, correctAnswer, true)
-      : isCloseEnough(inputValue, correctAnswer);
+    const isCorrect = practiceAnswersMatch(
+      inputValue,
+      correctAnswer,
+      questions[current].acceptedAnswers,
+    );
 
     playPracticeFeedbackSound(isCorrect);
     setNotifImage(

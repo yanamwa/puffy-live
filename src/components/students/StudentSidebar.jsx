@@ -4,6 +4,7 @@ import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { FiLogOut } from "react-icons/fi";
 import { useStudentTutorial } from "../../pages/student/tutorial/StudentTutorialContext.js";
+import { confirmLogout } from "../../utils/confirmLogout.js";
 
 import { Icon } from "../../pages/student/enrolled/EnrolledCourses";
 import "./StudentSidebar.css";
@@ -151,7 +152,9 @@ export default function StudentSidebar({ collapsed, onCollapsedChange, onLockedA
     );
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirmLogout())) return;
+
     void logout();
     navigate("/login", {
       replace: true,

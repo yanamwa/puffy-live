@@ -229,11 +229,34 @@ function counterClass(current, limit) {
     : styles.wordCounter;
 }
 
+function normalizeAcceptedAnswers(value) {
+  const candidates = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/\r?\n/)
+      : [];
+  const unique = new Map();
+  candidates.forEach((candidate) => {
+    if (typeof candidate !== "string") return;
+    const answer = candidate.trim();
+    const key = answer.normalize("NFKC").replace(/\s+/g, " ").toLowerCase();
+    if (key && !unique.has(key)) unique.set(key, answer);
+  });
+  return [...unique.values()];
+}
+
 function normalizeQuizItem(item) {
   if (item.type === "identification")
     return {
       ...item,
       options: [],
+      accepted_answers: normalizeAcceptedAnswers(
+        item.accepted_answers ??
+          item.acceptedAnswers ??
+          item.acceptable_answers ??
+          item.answer_aliases ??
+          item.alternatives,
+      ),
       correct_answer: String(
         item.correct_answer || item.correctAnswer || "",
       ).trim(),
@@ -242,6 +265,7 @@ function normalizeQuizItem(item) {
     return {
       ...item,
       options: ["True", "False"],
+      accepted_answers: [],
       correct_answer: String(
         item.correct_answer || item.correctAnswer || "",
       ).trim(),
@@ -273,6 +297,7 @@ function normalizeQuizItem(item) {
   return {
     ...item,
     options,
+    accepted_answers: [],
     correct_answer: correctAnswer,
   };
 }
@@ -1714,6 +1739,35 @@ export default function EditModule() {
                     {getCharCount(item.correct_answer)}/{QUIZ_CHAR_LIMIT}{" "}
                     characters
                   </div>
+
+                  {item.type === "identification" && (
+                    <div>
+                      <label className={styles.popupLabel}>
+                        Other accepted answers (optional, one per line)
+                      </label>
+                      <textarea
+                        className={styles.popupTextarea}
+                        value={(item.accepted_answers || []).join("\n")}
+                        aria-label="Other accepted answers"
+                        placeholder="Enter approved alternatives, such as another spelling"
+                        maxLength={3039}
+                        onChange={(event) =>
+                          setEditQuizItems((current) =>
+                            current.map((question, itemIndex) =>
+                              itemIndex === index
+                                ? {
+                                    ...question,
+                                    accepted_answers: normalizeAcceptedAnswers(
+                                      event.target.value,
+                                    ).slice(0, 20),
+                                  }
+                                : question,
+                            ),
+                          )
+                        }
+                      />
+                    </div>
+                  )}
 
                   <textarea
                     className={`${styles.popupTextarea} ${styles.popupAnswerBox}`}

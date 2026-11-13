@@ -284,7 +284,7 @@ export default function MainQuizResponses({
               onClick={() => window.print()}
               disabled={!attempt}
             >
-              <FiPrinter /> Print / Save as PDF
+              <FiPrinter /> Print
             </button>
             <button
               className="main-response-primary"

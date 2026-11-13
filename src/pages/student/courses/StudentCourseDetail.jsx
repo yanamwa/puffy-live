@@ -1124,7 +1124,7 @@ export default function StudentCourseDetail() {
       scopeType: "course",
       source: "course",
       moduleIndex: -1,
-      title: `Everything in ${course.code}`,
+      title: course.title || course.courseName || course.course_name || "Course Practice",
       detail: `${visibleModuleCount} module(s)`,
       quizzes,
     });

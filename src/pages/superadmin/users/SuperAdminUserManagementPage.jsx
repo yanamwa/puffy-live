@@ -16,7 +16,6 @@ import {
   FiRefreshCw,
   FiSearch,
   FiShield,
-  FiTrash2,
   FiUpload,
   FiUser,
   FiUserPlus,
@@ -38,6 +37,12 @@ const USER_TABS = [
 ];
 
 const VALID_USER_TAB_IDS = USER_TABS.map((tab) => tab.id);
+const STUDENT_YEAR_LEVELS = [
+  { value: "1", label: "1st Year" },
+  { value: "2", label: "2nd Year" },
+  { value: "3", label: "3rd Year" },
+  { value: "4", label: "4th Year" },
+];
 
 const initialStudentForm = {
   name: "",
@@ -69,6 +74,10 @@ const initialStudentImportStatus = {
 function getRoleGroup(role) {
   const value = String(role || "").toLowerCase();
   return value === "super_admin" || value === "admin" ? "admin" : value;
+}
+
+function getStudentYearFilterValue(yearLevel) {
+  return String(yearLevel || "").trim().match(/[1-4]/)?.[0] || "";
 }
 
 function isTemporaryExpired(user) {
@@ -403,6 +412,8 @@ export default function SuperAdminUserManagementPage() {
     return VALID_USER_TAB_IDS.includes(requestedTab) ? requestedTab : "all";
   });
   const [query, setQuery] = useState("");
+  const [studentYearFilter, setStudentYearFilter] = useState("all");
+  const [studentSectionFilter, setStudentSectionFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
@@ -567,11 +578,42 @@ export default function SuperAdminUserManagementPage() {
     (user) => String(user.id) === adminProfessorId,
   );
 
+  const studentSectionOptions = useMemo(() => {
+    const sections = userGroups.students
+      .filter(
+        (user) =>
+          studentYearFilter === "all" ||
+          getStudentYearFilterValue(user.yearLevel) === studentYearFilter,
+      )
+      .map((user) => String(user.sectionName || "").trim().toUpperCase())
+      .filter(Boolean);
+
+    return [...new Set(sections)].sort((first, second) =>
+      first.localeCompare(second, undefined, { numeric: true }),
+    );
+  }, [studentYearFilter, userGroups.students]);
+
   const filteredUsers = useMemo(() => {
     const search = query.trim().toLowerCase();
     const tabUsers = userGroups[activeTab] || userGroups.all;
 
     return tabUsers.filter((user) => {
+      if (activeTab === "students") {
+        if (
+          studentYearFilter !== "all" &&
+          getStudentYearFilterValue(user.yearLevel) !== studentYearFilter
+        ) {
+          return false;
+        }
+        if (
+          studentSectionFilter !== "all" &&
+          String(user.sectionName || "").trim().toUpperCase() !==
+            studentSectionFilter
+        ) {
+          return false;
+        }
+      }
+
       if (!search) return true;
 
       return [
@@ -586,7 +628,7 @@ export default function SuperAdminUserManagementPage() {
         .map((value) => String(value || "").toLowerCase())
         .some((value) => value.includes(search));
     });
-  }, [activeTab, query, userGroups]);
+  }, [activeTab, query, studentSectionFilter, studentYearFilter, userGroups]);
   const pagination = useUserPagination(filteredUsers, activeTab, query);
   const visibleUsers = pagination.rows;
 
@@ -620,13 +662,6 @@ export default function SuperAdminUserManagementPage() {
         ? normalized
         : currentUser,
     );
-  };
-
-  const removeUserFromList = (userId) => {
-    setUsers((currentUsers) =>
-      currentUsers.filter((user) => Number(user.id) !== Number(userId)),
-    );
-    setSelectedUser(null);
   };
 
   const resetProfessorForm = () => {
@@ -752,6 +787,18 @@ export default function SuperAdminUserManagementPage() {
 
   const handleArchiveToggle = async (user) => {
     const archive = !user.isArchived;
+    const confirmation = await Swal.fire({
+      icon: "warning",
+      title: `${archive ? "Archive" : "Restore"} account?`,
+      text: `Are you sure you want to ${archive ? "archive" : "restore"} ${user.name}'s account?`,
+      showCancelButton: true,
+      confirmButtonText: archive ? "Yes, archive" : "Yes, restore",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: true,
+    });
+
+    if (!confirmation.isConfirmed) return;
 
     try {
       setBusyUserId(`${user.id}-archive`);
@@ -818,46 +865,6 @@ export default function SuperAdminUserManagementPage() {
           ? "Could not reach the server. Check that the backend is running, then refresh the user list before retrying."
           : error.message || "Could not generate credentials.",
       );
-    } finally {
-      setBusyUserId("");
-    }
-  };
-
-  const handlePermanentRemove = async (user) => {
-    const result = await Swal.fire({
-      icon: "warning",
-      title: "Permanently Delete Account?",
-      text: `${user.name} will be permanently removed. This action cannot be undone.`,
-      showCancelButton: true,
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
-      reverseButtons: true,
-      focusCancel: true,
-    });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      setBusyUserId(`${user.id}-delete`);
-
-      const response = await fetch(`${API_BASE}/users/${user.id}/archived`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not remove account.");
-      }
-
-      removeUserFromList(user.id);
-      showSuccess(
-        data.message || "The account was permanently removed.",
-        "Account Deleted",
-      );
-    } catch (error) {
-      showError(error.message || "Could not remove account.", "Delete Failed");
     } finally {
       setBusyUserId("");
     }
@@ -1603,7 +1610,7 @@ export default function SuperAdminUserManagementPage() {
         showSuccess(
           `${createdUsers.length} student account${
             createdUsers.length === 1 ? "" : "s"
-          } successfully imported.`,
+          } successfully imported. Their email includes the temporary password and verification code; students must verify before signing in to start the tutorial.`,
           "Import Complete",
         );
       }
@@ -1630,7 +1637,7 @@ export default function SuperAdminUserManagementPage() {
           ? `expires ${formatDate(item.temporaryExpiresAt)}`
           : "permanent account";
 
-        return `${item.name}, ${item.email}, ${item.temporaryPassword}, ${expiry}`;
+        return `${item.name}, ${item.email}, ${item.temporaryPassword}, ${expiry}. Student accounts must verify their email before first sign-in; they can request a fresh code from the login page if needed.`;
       })
       .join("\n");
 
@@ -1732,16 +1739,6 @@ export default function SuperAdminUserManagementPage() {
             </span>
           </button>
 
-          <button
-            className="users-icon-btn users-archive-btn"
-            type="button"
-            onClick={() => handleArchiveToggle(user)}
-            disabled={busyUserId === `${user.id}-archive`}
-            title={user.isArchived ? "Restore account" : "Archive account"}
-          >
-            <FiArchive />
-            <span>{user.isArchived ? "Restore" : "Archive"}</span>
-          </button>
         </>
       )}
       </div>
@@ -1964,19 +1961,24 @@ export default function SuperAdminUserManagementPage() {
                     className="users-icon-btn users-archive-btn"
                     type="button"
                     onClick={() => handleArchiveToggle(user)}
+                    disabled={busyUserId === `${user.id}-archive`}
                     title="Restore account"
                   >
                     <FiArchive />
-                    <span>Restore</span>
+                    <span>
+                      {busyUserId === `${user.id}-archive`
+                        ? "Restoring..."
+                        : "Restore"}
+                    </span>
                   </button>
                   <button
-                    className="users-icon-btn users-decline-btn"
+                    className="users-icon-btn users-view-btn"
                     type="button"
-                    onClick={() => handlePermanentRemove(user)}
-                    title="Permanently remove"
+                    onClick={() => setSelectedUser(user)}
+                    title="View account details"
                   >
-                    <FiTrash2 />
-                    <span>Delete</span>
+                    <FiEye />
+                    <span>View</span>
                   </button>
                 </div>
               </td>
@@ -2143,15 +2145,54 @@ export default function SuperAdminUserManagementPage() {
             </p>
           </div>
 
-          <label className="users-search">
-            <FiSearch />
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
+          <div className="users-controls users-student-controls">
+            {activeTab === "students" && (
+              <>
+                <label className="users-student-filter">
+                  Year Level
+                  <select
+                    value={studentYearFilter}
+                    onChange={(event) => {
+                      setStudentYearFilter(event.target.value);
+                      setStudentSectionFilter("all");
+                    }}
+                  >
+                    <option value="all">All Year Levels</option>
+                    {STUDENT_YEAR_LEVELS.map((year) => (
+                      <option key={year.value} value={year.value}>
+                        {year.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="users-student-filter">
+                  Section
+                  <select
+                    value={studentSectionFilter}
+                    onChange={(event) =>
+                      setStudentSectionFilter(event.target.value)
+                    }
+                  >
+                    <option value="all">All Sections</option>
+                    {studentSectionOptions.map((section) => (
+                      <option key={section} value={section}>
+                        {section}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
+            <label className="users-search">
+              <FiSearch />
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+          </div>
         </div>
 
         <div className="users-table-wrap">
@@ -2195,7 +2236,8 @@ export default function SuperAdminUserManagementPage() {
                 <h2>Temporary Credentials</h2>
                 <p>
                   Share these with users. Temporary accounts stop working after
-                  their expiry date.
+                  their expiry date. Student accounts also need the email
+                  verification code before their first sign-in and tutorial.
                 </p>
               </div>
             </div>
@@ -2213,8 +2255,8 @@ export default function SuperAdminUserManagementPage() {
                   {typeof item.credentialsEmailed === "boolean" && (
                     <span>
                       {item.credentialsEmailed
-                        ? "Mail server accepted the credentials email."
-                        : "Email delivery is unconfirmed. Copy the password to share it securely."}
+                        ? "The email includes the temporary password and verification code."
+                        : "Email delivery is unconfirmed. Share the password securely; the student can request a new code from sign-in."}
                     </span>
                   )}
                   <span>

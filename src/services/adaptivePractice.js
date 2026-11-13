@@ -2,25 +2,55 @@ import { API_BASE } from "../config.js";
 import { readAccountQuizResult } from "../utils/quizStorage.js";
 import { lessonAuthHeaders } from "./lessonAuth.js";
 
-function normalizePracticeAnswer(value, loose) {
-  const normalized = String(value ?? "")
+function normalizePracticeAnswer(value) {
+  return String(value ?? "")
     .normalize("NFKC")
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase();
-  return loose
-    ? normalized
-        .replace(/[‘’]/g, "'")
-        .replace(/[“”]/g, '"')
-        .replace(/^[a-z][.)]\s+/i, "")
-        .replace(/[.!?]+$/, "")
-    : normalized;
 }
 
-export function practiceAnswersMatch(answer, key, loose = false) {
-  return (
-    normalizePracticeAnswer(answer, loose) ===
-    normalizePracticeAnswer(key, loose)
+export function getPracticeAcceptedAnswers(item) {
+  const questionType = String(item?.type || "").toLowerCase();
+  if (
+    questionType &&
+    !["identification", "qna", "qa", "short_answer"].includes(questionType)
+  )
+    return [];
+  const fields = [
+    "accepted_answers",
+    "acceptedAnswers",
+    "acceptable_answers",
+    "acceptableAnswers",
+    "answer_aliases",
+    "answerAliases",
+    "alternatives",
+  ];
+  const candidates = fields.flatMap((field) => {
+    const value = item?.[field];
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") return value.split(/\r?\n/);
+    return [];
+  });
+  const unique = new Map();
+  candidates.forEach((candidate) => {
+    if (typeof candidate !== "string") return;
+    const value = candidate.trim();
+    const normalized = normalizePracticeAnswer(value);
+    if (normalized && !unique.has(normalized)) unique.set(normalized, value);
+  });
+  return [...unique.values()];
+}
+
+export function practiceAnswersMatch(answer, key, acceptedAnswers = []) {
+  const normalizedAnswer = normalizePracticeAnswer(answer);
+  if (!normalizedAnswer) return false;
+  const keys = [
+    ...(Array.isArray(key) ? key : [key]),
+    ...(Array.isArray(acceptedAnswers) ? acceptedAnswers : []),
+  ];
+  return keys.some(
+    (candidate) => normalizePracticeAnswer(candidate) === normalizedAnswer,
   );
 }
 

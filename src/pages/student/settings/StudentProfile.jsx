@@ -11,10 +11,11 @@ import StudentIdentityCard from "../../../components/students/StudentIdentityCar
 import JoinCourseModal from "../courses/JoinCourseModal";
 
 import { requestCourseEnrollmentByCode } from "../courses/courseEnrollment.js";
+import { API_BASE } from "../../../config.js";
 
 import "./StudentProfile.css";
 
-import { API_BASE as API_BASE_URL } from "../../../config.js";
+const API_BASE_URL = API_BASE;
 
 const DEFAULT_PROFILE_IMAGE = "/images/temporary profile.jpg";
 

@@ -70,8 +70,25 @@ function createEmptyQuizItem() {
     question: "",
     options: ["", "", "", ""],
     correct_answer: "",
+    accepted_answers: [],
     explanation: "",
   };
+}
+
+function normalizeAcceptedAnswers(value) {
+  const candidates = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/\r?\n/)
+      : [];
+  const unique = new Map();
+  candidates.forEach((candidate) => {
+    if (typeof candidate !== "string") return;
+    const answer = candidate.trim();
+    const key = answer.normalize("NFKC").replace(/\s+/g, " ").toLowerCase();
+    if (key && !unique.has(key)) unique.set(key, answer);
+  });
+  return [...unique.values()];
 }
 
 function parseList(value) {
@@ -156,6 +173,16 @@ function normalizeQuizItem(item) {
     question: String(item?.question || ""),
     options,
     correct_answer: String(item?.correct_answer || item?.answer || ""),
+    accepted_answers:
+      type === "identification"
+        ? normalizeAcceptedAnswers(
+            item?.accepted_answers ??
+              item?.acceptedAnswers ??
+              item?.acceptable_answers ??
+              item?.answer_aliases ??
+              item?.alternatives,
+          )
+        : [],
     explanation: String(item?.explanation || ""),
   };
 }
@@ -694,6 +721,26 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
   const lessonCount = moduleDraft?.lessonPages?.length || 0;
   const quizCount = assessmentItems.length;
+  const printableQuestionGroups = [
+    { type: "multiple_choice", title: "Test 1: Multiple Choice" },
+    { type: "identification", title: "Test 2: Identification" },
+    { type: "true_false", title: "Test 3: True or False" },
+  ]
+    .map((group) => ({
+      ...group,
+      questions: assessmentItems.filter((item) => item.type === group.type),
+    }))
+    .filter((group) => group.questions.length > 0);
+  let printQuestionNumber = 0;
+  const numberedPrintableQuestionGroups = printableQuestionGroups.map(
+    (group) => ({
+      ...group,
+      questions: group.questions.map((question) => ({
+        question,
+        number: ++printQuestionNumber,
+      })),
+    }),
+  );
   useEffect(() => {
     setSelectedQuestionIndexes([]);
   }, [
@@ -1377,6 +1424,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
         const text = String(question.question || "").trim();
         const options = question.options || [];
         const answer = String(question.correct_answer || "").trim();
+        const acceptedAnswers = normalizeAcceptedAnswers(
+          question.accepted_answers,
+        );
         let title = "Required Fields";
         let message = "";
 
@@ -1404,6 +1454,19 @@ export default function CourseModuleEditor({ quizManagement = false }) {
             !options.includes(question.correct_answer))
         ) {
           message = "Please enter or select the correct answer.";
+        } else if (
+          question.type === "identification" &&
+          (acceptedAnswers.length > 20 ||
+            acceptedAnswers.some((accepted) => accepted.length > 150) ||
+            acceptedAnswers.some(
+              (accepted) =>
+                accepted.normalize("NFKC").replace(/\s+/g, " ").toLowerCase() ===
+                answer.normalize("NFKC").replace(/\s+/g, " ").toLowerCase(),
+            ))
+        ) {
+          title = "Invalid Alternative Answers";
+          message =
+            "Use up to 20 distinct alternatives, each 150 characters or fewer, and keep them different from the correct answer.";
         }
 
         if (message) {
@@ -1602,14 +1665,24 @@ export default function CourseModuleEditor({ quizManagement = false }) {
           </p>
         )}
         {isMainAssessment && (
-          <button
-            className={styles.assessmentSettingsButton}
-            type="button"
-            data-tutorial="main-quiz-settings"
-            onClick={() => mainQuizSettingsDialog.current?.showModal()}
-          >
-            Main Quiz Settings
-          </button>
+          <div className={styles.assessmentHeaderActions}>
+            <button
+              className={styles.assessmentPrintButton}
+              type="button"
+              aria-label="Print main quiz"
+              onClick={() => window.print()}
+            >
+              Print
+            </button>
+            <button
+              className={styles.assessmentSettingsButton}
+              type="button"
+              data-tutorial="main-quiz-settings"
+              onClick={() => mainQuizSettingsDialog.current?.showModal()}
+            >
+              Main Quiz Settings
+            </button>
+          </div>
         )}
         {!isQuizWorkspace && (
           <button
@@ -2393,6 +2466,13 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                               onChange={(event) => {
                                 const type = event.target.value;
                                 updateQuizItem(activeQuizIndex, "type", type);
+                                if (type !== "identification") {
+                                  updateQuizItem(
+                                    activeQuizIndex,
+                                    "accepted_answers",
+                                    [],
+                                  );
+                                }
                                 updateQuizItem(
                                   activeQuizIndex,
                                   "options",
@@ -2501,6 +2581,37 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                             </select>
                           )}
 
+                          {!viewingGeneratedMain &&
+                            activeQuiz.type === "identification" && (
+                              <>
+                                <label
+                                  className={styles.popupLabel}
+                                  htmlFor="quiz-accepted-answers"
+                                >
+                                  Other accepted answers (optional)
+                                </label>
+                                <textarea
+                                  id="quiz-accepted-answers"
+                                  className={styles.popupTextarea}
+                                  value={(activeQuiz.accepted_answers || []).join(
+                                    "\n",
+                                  )}
+                                  onChange={(event) =>
+                                    updateQuizItem(
+                                      activeQuizIndex,
+                                      "accepted_answers",
+                                      normalizeAcceptedAnswers(
+                                        event.target.value,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="Enter one approved alternative per line"
+                                  aria-label="Other accepted identification answers, one per line"
+                                  maxLength={3039}
+                                />
+                              </>
+                            )}
+
                           <label
                             className={styles.popupLabel}
                             htmlFor="quiz-answer-explanation"
@@ -2554,6 +2665,70 @@ export default function CourseModuleEditor({ quizManagement = false }) {
           )}
         </div>
       </main>
+      {isMainAssessment && (
+        <section
+          className={styles.quizPrintSheet}
+          aria-label="Printable main quiz"
+        >
+          <header className={styles.printExamHeader}>
+            {moduleDraft.title && <p>{moduleDraft.title}</p>}
+            <div className={styles.printStudentFields}>
+              <div>
+                <strong>Name:</strong>
+                <span className={styles.printAnswerLine} />
+              </div>
+              <div>
+                <strong>Date:</strong>
+                <span className={styles.printAnswerLine} />
+              </div>
+              <div>
+                <strong>Section:</strong>
+                <span className={styles.printAnswerLine} />
+              </div>
+              <div>
+                <strong>Score:</strong>
+                <span className={styles.printAnswerLine} />
+              </div>
+            </div>
+          </header>
+          {numberedPrintableQuestionGroups.length ? (
+            numberedPrintableQuestionGroups.map((group) => (
+              <section className={styles.printTestSection} key={group.type}>
+                <h2>{group.title}</h2>
+                <ol className={styles.printQuestionList}>
+                  {group.questions.map(({ question, number }, index) => (
+                    <li
+                      className={styles.printQuestion}
+                      key={question.id || `${group.type}-${index}`}
+                    >
+                      <p>
+                        <span>{number}.</span> {" "}
+                        {question.question || "Untitled question"}
+                      </p>
+                      {question.type === "identification" ? (
+                        <span
+                          className={styles.printIdentificationLine}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <ol className={styles.printChoices} type="A">
+                          {(question.options || [])
+                            .filter((option) => String(option || "").trim())
+                            .map((option, optionIndex) => (
+                              <li key={optionIndex}>{option}</li>
+                            ))}
+                        </ol>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))
+          ) : (
+            <p>No questions have been added yet.</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

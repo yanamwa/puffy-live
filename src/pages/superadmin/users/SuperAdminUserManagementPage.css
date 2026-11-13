@@ -216,6 +216,28 @@
   padding: 0 13px;
 }
 
+.users-student-controls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.users-student-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #777777;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.users-student-filter select {
+  min-width: 138px;
+}
+
+.users-student-controls .users-search {
+  flex: 0 1 260px;
+}
+
 .users-notice {
   background: #f3f3f3;
   border: 1px solid #e5e5e5;
@@ -974,6 +996,20 @@
   .users-controls {
     align-items: stretch;
     flex-direction: column;
+    width: 100%;
+  }
+
+  .users-student-controls {
+    justify-content: stretch;
+  }
+
+  .users-student-filter select {
+    width: 100%;
+  }
+
+  .users-student-filter,
+  .users-student-controls .users-search {
+    flex-basis: auto;
     width: 100%;
   }
 

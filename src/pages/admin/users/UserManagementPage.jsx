@@ -233,7 +233,7 @@ export default function UserManagementPage() {
       setUsers(current => [normalizeUser(data.user), ...current]);
       setActiveTab("students"); setQuery("");
       closeModal(); setStudentModalOpen(false); setStudentForm({ ...EMPTY_FORM });
-      await showCredentialResult({ title: "Student Created", password: data.temporaryPassword, message: data.credentialsEmailed === true ? "The mail server accepted the credentials email. You can also copy the temporary password below." : "Email delivery is not confirmed. Copy the temporary password and share it securely." });
+      await showCredentialResult({ title: "Student Created", password: data.temporaryPassword, message: data.credentialsEmailed === true ? "The email includes the temporary password and a verification code. The student must verify their email before signing in and starting the tutorial." : "Email delivery is not confirmed. Share the temporary password securely. The student can request a new verification code after attempting to sign in." });
     } catch (error) { showError(error.message || "Could not create student account.", "Create Failed"); }
     finally { setCreatingStudent(false); }
   };
@@ -276,7 +276,7 @@ export default function UserManagementPage() {
         setUsers(current => [...created, ...current]);
         setActiveTab("students"); setQuery("");
       }
-      const emailSummary = created.length ? ` Mail server accepted ${created.length - unconfirmedEmails.length} of ${created.length} credentials emails.` : "";
+      const emailSummary = created.length ? ` Mail server accepted ${created.length - unconfirmedEmails.length} of ${created.length} credential emails, each with the temporary password and verification code.` : "";
       const message = `${created.length} imported, ${failures.length} failed.${emailSummary}`;
       const issues = [...failures, ...unconfirmedEmails].slice(0, 5);
       setStudentImportStatus({ ...EMPTY_IMPORT, ...base, state: issues.length ? (created.length ? "partial" : "error") : "success", message, detail: issues.join("\n") });
@@ -292,7 +292,15 @@ export default function UserManagementPage() {
   };
   const handleArchiveToggle = async user => {
     const archive = !user.isArchived;
-    const confirmation = await Swal.fire({ icon: "warning", title: `${archive ? "Archive" : "Restore"} Account?`, text: `${archive ? "Archive" : "Restore"} ${user.name}?`, showCancelButton: true, confirmButtonText: archive ? "Archive" : "Restore", reverseButtons: true });
+    const confirmation = await Swal.fire({
+      icon: "warning",
+      title: `${archive ? "Archive" : "Restore"} account?`,
+      text: `Are you sure you want to ${archive ? "archive" : "restore"} ${user.name}'s account?`,
+      showCancelButton: true,
+      confirmButtonText: archive ? "Yes, archive" : "Yes, restore",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+    });
     if (!confirmation.isConfirmed) return;
     setBusyUserId(user.id); setNotice("");
     try {

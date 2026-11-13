@@ -216,6 +216,7 @@ function Signup() {
         return;
       }
 
+      sessionStorage.removeItem("otp_role");
       sessionStorage.setItem("otp_email", cleanEmail);
 
       const otpSecondsRemaining = Number(data.otpSecondsRemaining || 300);

@@ -5756,6 +5756,213 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   .generatorOverlay .generatorDialogFooter { padding: 14px 18px; }
 }
 
+/* Keep print beside the quiz settings in the assessment header. */
+.courseModuleEditorPage.assessmentPage .pageHeader {
+  padding-right: 320px;
+}
+.courseModuleEditorPage.assessmentPage .assessmentHeaderActions {
+  position: absolute;
+  top: 50%;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transform: translateY(-50%);
+}
+.courseModuleEditorPage.assessmentPage .assessmentHeaderActions .assessmentSettingsButton {
+  position: static;
+  margin: 0;
+  transform: none;
+}
+.courseModuleEditorPage.assessmentPage .assessmentPrintButton {
+  padding: 11px 18px;
+  border: 1px solid #6f98c7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #4f6174;
+  font: inherit;
+  cursor: pointer;
+}
+.courseModuleEditorPage.assessmentPage .assessmentPrintButton:hover {
+  background: #edf4fc;
+}
+.courseModuleEditorPage.assessmentPage .assessmentPrintButton:focus-visible {
+  outline: 3px solid #7fa8d6;
+  outline-offset: 3px;
+}
+@media (max-width: 760px) {
+  .courseModuleEditorPage.assessmentPage .pageHeader {
+    padding-right: 20px;
+  }
+  .courseModuleEditorPage.assessmentPage .assessmentHeaderActions {
+    position: static;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    transform: none;
+  }
+}
+
+.quizPrintSheet {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm;
+  }
+
+  :global(body) {
+    margin: 0 !important;
+    background: #ffffff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  :global(html),
+  :global(body),
+  :global(#root),
+  :global(.professor-layout),
+  :global(.professor-main),
+  :global(.professor-content) {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  :global(#root),
+  :global(.professor-layout),
+  :global(.professor-main),
+  :global(.professor-content) {
+    display: block !important;
+    width: auto !important;
+    padding: 0 !important;
+  }
+
+  :global(.professor-sidebar),
+  :global(.professor-header) {
+    display: none !important;
+  }
+
+  .courseModuleEditorPage {
+    display: block !important;
+    width: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  .courseModuleEditorPage > :not(.quizPrintSheet) {
+    display: none !important;
+  }
+
+  .courseModuleEditorPage .quizPrintSheet {
+    display: block !important;
+    width: 100%;
+    color: #111111;
+    font: 10pt/1.32 Arial, Helvetica, sans-serif;
+  }
+
+  .printExamHeader {
+    margin-bottom: 18pt;
+  }
+
+  .printExamHeader h1 {
+    margin: 0;
+    font: 700 16pt/1.2 Arial, Helvetica, sans-serif;
+    text-align: center;
+  }
+
+  .printExamHeader > p {
+    margin: 3pt 0 14pt;
+    color: #333333;
+    font-size: 10pt;
+    text-align: center;
+  }
+
+  .printStudentFields {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 12pt 20pt;
+    margin-top: 18pt;
+  }
+
+  .printStudentFields > div {
+    display: flex;
+    align-items: baseline;
+    gap: 5pt;
+    white-space: nowrap;
+  }
+
+  .printStudentFields strong {
+    font-weight: 600;
+  }
+
+  .printAnswerLine {
+    height: 1em;
+    flex: 1 1 auto;
+    border-bottom: 1px solid #222222;
+  }
+
+  .printTestSection {
+    margin-top: 14pt;
+  }
+
+  .printTestSection h2 {
+    margin: 0 0 9pt;
+    font: 700 11pt/1.2 Arial, Helvetica, sans-serif;
+    break-after: avoid;
+  }
+
+  .printQuestionList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .quizPrintColumns .printQuestionList {
+    columns: 2;
+    column-gap: 0.32in;
+  }
+
+  .printQuestion {
+    margin: 0 0 10pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .printQuestion > p {
+    margin: 0 0 3pt;
+    overflow-wrap: anywhere;
+  }
+
+  .printQuestion > p > span {
+    font-weight: 600;
+  }
+
+  .printChoices {
+    margin: 3pt 0 0;
+    padding-left: 19pt;
+    list-style-type: upper-alpha;
+  }
+
+  .printChoices li {
+    padding-left: 2pt;
+    overflow-wrap: anywhere;
+  }
+
+  .printIdentificationLine {
+    display: block;
+    width: 78%;
+    height: 1em;
+    margin: 5pt 0 2pt;
+    border-bottom: 1px solid #333333;
+  }
+}
+
 /* Place class status directly under its join code in the course header. */
 .addModulePage.courseBuilderPage .popupInfoGrid > .courseStatusField {
   grid-column: 2;

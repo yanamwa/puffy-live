@@ -93,6 +93,77 @@
   padding: 0 32px 56px;
 }
 
+.studentFilters {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 24px;
+  padding: 18px 20px;
+  border: 1px solid #d0d6df;
+  border-bottom: 0;
+  background: #ededed;
+  color: #526f91;
+  font: 16px Arial, sans-serif;
+}
+
+.filterCaption {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #334961;
+  font-weight: 600;
+}
+
+.filterCaption button {
+  border: 0;
+  padding: 4px;
+  background: transparent;
+  color: #527eaf;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 400;
+  text-decoration: underline;
+}
+
+.filterCaption button:disabled {
+  color: #8794a3;
+  cursor: default;
+  text-decoration: none;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
+  color: #526f91;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.filterField select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid #c4c4c4;
+  border-radius: 8px;
+  background: #fff;
+  color: #526f91;
+  font: inherit;
+}
+
+.filterField select:focus-visible {
+  outline: 2px solid #7fa8d6;
+  outline-offset: 2px;
+}
+
+.filterCaption button:focus-visible {
+  outline: 2px solid #7fa8d6;
+  outline-offset: 2px;
+}
+
 .tabs {
   display: flex;
   align-items: flex-end;
@@ -138,6 +209,8 @@
 }
 
 .tableWrapper {
+  position: relative;
+  z-index: 1;
   width: 100%;
   overflow-x: auto;
   border: 1px solid #c7c7c7;
@@ -155,7 +228,7 @@
 .studentTable th {
   padding: 18px 20px;
   border-bottom: 1px solid #d0d0d0;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 500;
   color: #353535;
   text-align: left;
@@ -165,7 +238,7 @@
   padding: 18px 20px;
   overflow-wrap: anywhere;
   border-bottom: 1px solid #d3d3d3;
-  font-size: 20px;
+  font-size: 22px;
   color: #666;
   vertical-align: middle;
 }
@@ -524,6 +597,10 @@
     padding: 0 20px;
   }
 
+  .studentFilters {
+    gap: 14px 18px;
+  }
+
   .tableWrapper {
     overflow-x: auto;
   }
@@ -582,6 +659,11 @@
     align-items: stretch;
   }
 
+  .studentFilters {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+
   .tabButton {
     min-width: 0;
     flex: 1;
@@ -605,7 +687,7 @@
   gap: 12px;
   padding: 16px 0;
   color: #4f6174;
-  font-size: 14px;
+  font-size: 16px;
 }
 .studentPagination > div {
   display: flex;
@@ -708,57 +790,6 @@
     margin-right: 16px;
   }
 }
-@media print {
-  @page {
-    size: A4 landscape;
-    margin: 12mm;
-  }
-  :global(
-    body:has(.course-enrollment-print)
-      *:not(:has(.course-enrollment-print)):not(.course-enrollment-print):not(
-        .course-enrollment-print *
-      )
-  ) {
-    display: none !important;
-  }
-  :global(body:has(.course-enrollment-print)),
-  :global(body:has(.course-enrollment-print) *:has(.course-enrollment-print)),
-  :global(.course-enrollment-print) {
-    display: block !important;
-    position: static !important;
-    width: auto !important;
-    max-width: none !important;
-    height: auto !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    background: white !important;
-    box-shadow: none !important;
-  }
-  :global(.course-enrollment-print table) {
-    width: 100%;
-    border-collapse: collapse;
-    font:
-      11pt Arial,
-      sans-serif;
-    color: #000;
-  }
-  :global(.course-enrollment-print thead) {
-    display: table-header-group;
-  }
-  :global(.course-enrollment-print tr) {
-    break-inside: avoid;
-  }
-  :global(.course-enrollment-print th),
-  :global(.course-enrollment-print td) {
-    border: 1px solid #aaa;
-    padding: 8px;
-    text-align: left;
-    overflow-wrap: anywhere;
-  }
-}
-
 .printActions {
   display: flex;
   align-items: center;
@@ -943,36 +974,157 @@
 }
 
 @media print {
-  @page { size: A4 landscape; margin: 14mm; }
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  :global(
+    body:has(.course-enrollment-print)
+      *:not(:has(.course-enrollment-print)):not(.course-enrollment-print):not(
+        .course-enrollment-print *
+      )
+  ) {
+    display: none !important;
+  }
+
+  :global(body:has(.course-enrollment-print)),
+  :global(body:has(.course-enrollment-print) *:has(.course-enrollment-print)) {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
   :global(.course-enrollment-print) {
-    font: 10pt/1.45 Arial, sans-serif;
-    color: #294765;
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 16mm 15mm !important;
+    overflow: visible !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    color: #111 !important;
+    font: 9pt/1.45 Arial, sans-serif !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-  :global(.course-enrollment-print .enrollment-report-brand) {
-    display: flex; align-items: center; gap: 14px;
-    padding-bottom: 20px; border-bottom: 1px solid #cbd9e8; margin-bottom: 22px;
+
+  :global(.course-enrollment-print h1) {
+    margin: 0 0 2mm;
+    color: #111;
+    font-size: 18pt;
+    line-height: 1.2;
   }
-  :global(.course-enrollment-print .enrollment-report-brand img) {
-    width: 70px; height: 65px; object-fit: contain;
-    border: 1px solid #dce6f1; border-radius: 14px;
+
+  :global(.course-enrollment-print p) {
+    margin: 0;
   }
-  :global(.course-enrollment-print .enrollment-report-brand strong) { font-size: 18pt; color: #527eaf; }
-  :global(.course-enrollment-print p) { margin: 4px 0; }
-  :global(.course-enrollment-print .enrollment-report-brand p) { font-size: 9pt; color: #64748b; }
-  :global(.course-enrollment-print .enrollment-report-date) { margin-left: auto; text-align: right; }
-  :global(.course-enrollment-print .enrollment-report-date span) { font-size: 8pt; color: #64748b; }
-  :global(.course-enrollment-print h1) { margin: 0 0 4px; font-size: 20pt; color: #294765; }
-  :global(.course-enrollment-print .enrollment-report-subtitle) { color: #64748b; font-size: 9pt; }
-  :global(.course-enrollment-print .enrollment-report-details) { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 32px; margin: 20px 0; }
-  :global(.course-enrollment-print .enrollment-report-details span) { display: block; color: #64748b; font-size: 9pt; }
-  :global(.course-enrollment-print .enrollment-report-details strong) { font-weight: 500; }
-  :global(.course-enrollment-print h2) { font-size: 13pt; margin: 18px 0 12px; }
-  :global(.course-enrollment-print table) { font: 10pt/1.45 Arial, sans-serif; color: #294765; }
-  :global(.course-enrollment-print th), :global(.course-enrollment-print td) { border: 0; border-bottom: 1px solid #e2e8f0; padding: 10px 8px; }
-  :global(.course-enrollment-print th) { background: #edf4fc; color: #406b9b; font-weight: 600; }
-  :global(.course-enrollment-print .enrollment-report-footer) { margin-top: 42px; padding-top: 18px; border-top: 1px solid #cbd9e8; color: #64748b; font-size: 8pt; }
+
+  :global(.course-enrollment-print .enrollment-report-subtitle) {
+    color: #555;
+    font-size: 9pt;
+  }
+
+  :global(.course-enrollment-print .enrollment-report-details) {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 8mm;
+    margin: 8mm 0;
+    padding: 4mm 0;
+    border-top: 1px solid #999;
+    border-bottom: 1px solid #999;
+  }
+
+  :global(.course-enrollment-print .enrollment-report-details div) {
+    min-width: 0;
+  }
+
+  :global(.course-enrollment-print .enrollment-report-details dt) {
+    margin-bottom: 1mm;
+    color: #555;
+    font-size: 8pt;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  :global(.course-enrollment-print .enrollment-report-details dd) {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  :global(.course-enrollment-print h2) {
+    margin: 7mm 0 2mm;
+    color: #111;
+    font-size: 10pt;
+  }
+
+  :global(.course-enrollment-print table) {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    color: #111;
+    font: 8.5pt/1.35 Arial, sans-serif;
+  }
+
+  :global(.course-enrollment-print thead) {
+    display: table-header-group;
+  }
+
+  :global(.course-enrollment-print tr) {
+    break-inside: avoid;
+  }
+
+  :global(.course-enrollment-print th),
+  :global(.course-enrollment-print td) {
+    padding: 2.2mm 1.5mm;
+    border: 0;
+    border-bottom: 1px solid #d4d4d4;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  :global(.course-enrollment-print th) {
+    border-bottom: 1px solid #555;
+    font-weight: 600;
+  }
+
+  :global(.course-enrollment-print th:nth-child(1)),
+  :global(.course-enrollment-print td:nth-child(1)) {
+    width: 17%;
+  }
+
+  :global(.course-enrollment-print th:nth-child(2)),
+  :global(.course-enrollment-print td:nth-child(2)) {
+    width: 21%;
+  }
+
+  :global(.course-enrollment-print th:nth-child(3)),
+  :global(.course-enrollment-print td:nth-child(3)) {
+    width: 34%;
+  }
+
+  :global(.course-enrollment-print th:nth-child(4)),
+  :global(.course-enrollment-print td:nth-child(4)) {
+    width: 17%;
+  }
+
+  :global(.course-enrollment-print th:nth-child(5)),
+  :global(.course-enrollment-print td:nth-child(5)) {
+    width: 11%;
+  }
 }
 
 :global(body) .approveDialog :global(.swal2-html-container) { font-size: 20px !important; padding-bottom: 20px !important; }

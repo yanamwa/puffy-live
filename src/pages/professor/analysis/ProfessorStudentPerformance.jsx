@@ -9,16 +9,50 @@ const percentage = (value) =>
     ? "N/A"
     : `${Number(value).toFixed(1).replace(/\.0$/, "")}%`;
 
-function yearAndSection({ yearLevel, section }) {
+function yearAndSection(student = {}) {
+  const yearLevel =
+    student.yearLevel ?? student.year_level ?? student.student_year_level;
+  const section =
+    student.section ?? student.sectionName ?? student.section_name;
   const year = String(yearLevel ?? "").match(/[1-4]/)?.[0];
-  const sectionName = section?.trim();
-  if (!sectionName) return yearLevel || "Unavailable";
+  const sectionName = String(section ?? "").trim();
+  if (!sectionName) return String(yearLevel ?? "").trim() || "Unavailable";
   return year && !/^\d/.test(sectionName)
     ? `${year}${sectionName}`
     : sectionName;
 }
 
 const practiceAttemptsLabel = "Scored Attempts (Practice Quiz)";
+const YEAR_OPTIONS = [
+  ["1", "1st Year"],
+  ["2", "2nd Year"],
+  ["3", "3rd Year"],
+  ["4", "4th Year"],
+];
+const SECTION_OPTIONS = Array.from("ABCDEF");
+
+function getStudentYearNumber(student = {}) {
+  const yearLevel =
+    student.yearLevel ?? student.year_level ?? student.student_year_level;
+  const year = String(yearLevel ?? "").match(/[1-4]/)?.[0];
+  if (year) return year;
+
+  const section = String(
+    student.section ?? student.sectionName ?? student.section_name ?? "",
+  )
+    .trim()
+    .match(/^([1-4])[A-F]$/i);
+  return section?.[1] || "";
+}
+
+function getStudentSectionLetter(student = {}) {
+  const section = String(
+    student.section ?? student.sectionName ?? student.section_name ?? "",
+  )
+    .trim()
+    .toUpperCase();
+  return section.match(/^(?:[1-4])?([A-F])$/)?.[1] || "";
+}
 const practiceCount = (student) =>
   student.practiceAttempts?.length ??
   (student.scoredAttempts === 0 ? 0 : "Unavailable");
@@ -144,6 +178,11 @@ export default function ProfessorStudentPerformance() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [yearFilter, setYearFilter] = useState("all");
+  const [sectionFilter, setSectionFilter] = useState("all");
+  const [attentionYearFilter, setAttentionYearFilter] = useState("all");
+  const [attentionSectionFilter, setAttentionSectionFilter] = useState("all");
+  const [attentionSearch, setAttentionSearch] = useState("");
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
@@ -165,18 +204,39 @@ export default function ProfessorStudentPerformance() {
   }, []);
 
   const query = search.trim().toLowerCase();
+  const attentionQuery = attentionSearch.trim().toLowerCase();
   const students = report?.students || [];
   const matching = useMemo(
     () =>
-      students.filter((student) =>
-        [student.name, student.course, student.courseCode]
-          .join(" ")
-          .toLowerCase()
-          .includes(query),
+      students.filter(
+        (student) =>
+          (yearFilter === "all" ||
+            getStudentYearNumber(student) === yearFilter) &&
+          (sectionFilter === "all" ||
+            getStudentSectionLetter(student) === sectionFilter) &&
+          [student.name, student.course, student.courseCode]
+            .join(" ")
+            .toLowerCase()
+            .includes(query),
       ),
-    [students, query],
+    [students, query, yearFilter, sectionFilter],
   );
-  const attention = students.filter((student) => student.needsAttention);
+  const attention = useMemo(
+    () => students.filter((student) => student.needsAttention),
+    [students],
+  );
+  const filteredAttention = useMemo(
+    () =>
+      attention.filter(
+        (student) =>
+          (attentionYearFilter === "all" ||
+            getStudentYearNumber(student) === attentionYearFilter) &&
+          (attentionSectionFilter === "all" ||
+            getStudentSectionLetter(student) === attentionSectionFilter) &&
+          String(student.name || "").toLowerCase().includes(attentionQuery),
+      ),
+    [attention, attentionYearFilter, attentionSectionFilter, attentionQuery],
+  );
   const passing = report?.passingPercentage;
 
   if (error)
@@ -206,19 +266,51 @@ export default function ProfessorStudentPerformance() {
               enrolled in your courses. Select a row to view student details.
             </p>
           </div>
-          <label className={styles.searchBox}>
-            <FiSearch aria-hidden="true" />
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search students or courses…"
-              aria-label="Search students or courses"
-            />
-          </label>
+          <div className={styles.performanceFilters}>
+            <label className={styles.yearSectionFilter}>
+              <span>Year Level</span>
+              <select
+                value={yearFilter}
+                onChange={(event) => setYearFilter(event.target.value)}
+                aria-label="Filter by year"
+              >
+                <option value="all">All Years</option>
+                {YEAR_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.yearSectionFilter}>
+              <span>Section</span>
+              <select
+                value={sectionFilter}
+                onChange={(event) => setSectionFilter(event.target.value)}
+                aria-label="Filter by section"
+              >
+                <option value="all">All Sections</option>
+                {SECTION_OPTIONS.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.searchBox}>
+              <FiSearch aria-hidden="true" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search students or courses…"
+                aria-label="Search students or courses"
+              />
+            </label>
+          </div>
         </div>
         <AssessmentReportTable
-          pageKey={query}
+          pageKey={`${query}:${yearFilter}:${sectionFilter}`}
           columns={[
             "Student",
             "Course",
@@ -351,15 +443,62 @@ export default function ProfessorStudentPerformance() {
                 : `Students with a recorded course quiz average below the configured ${percentage(passing)} reporting threshold. This is an advisory flag, not a final grade.`}
             </p>
           </div>
+          <div className={styles.performanceFilters}>
+            <label className={styles.yearSectionFilter}>
+              <span>Year Level</span>
+              <select
+                value={attentionYearFilter}
+                onChange={(event) =>
+                  setAttentionYearFilter(event.target.value)
+                }
+                aria-label="Filter students needing attention by year"
+              >
+                <option value="all">All Years</option>
+                {YEAR_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.yearSectionFilter}>
+              <span>Section</span>
+              <select
+                value={attentionSectionFilter}
+                onChange={(event) =>
+                  setAttentionSectionFilter(event.target.value)
+                }
+                aria-label="Filter students needing attention by section"
+              >
+                <option value="all">All Sections</option>
+                {SECTION_OPTIONS.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.searchBox}>
+              <FiSearch aria-hidden="true" />
+              <input
+                type="search"
+                value={attentionSearch}
+                onChange={(event) => setAttentionSearch(event.target.value)}
+                placeholder="Search students…"
+                aria-label="Search students needing attention"
+              />
+            </label>
+          </div>
         </div>
         <AssessmentReportTable
+          pageKey={`${attentionQuery}:${attentionYearFilter}:${attentionSectionFilter}`}
           columns={[
             "Student",
             "Course",
             "Average Score",
             practiceAttemptsLabel,
           ]}
-          rows={attention.map((student) => ({
+          rows={filteredAttention.map((student) => ({
             key: student.key,
             cells: [
               <strong>{student.name}</strong>,
@@ -371,7 +510,9 @@ export default function ProfessorStudentPerformance() {
           empty={
             passing == null
               ? "Reporting threshold is not configured."
-              : "No enrolled students currently meet the attention criteria."
+              : attention.length > 0
+                ? "No students match your search and filters."
+                : "No enrolled students currently meet the attention criteria."
           }
         />
       </section>

@@ -304,6 +304,46 @@ function Login() {
           showLoginError(data.message);
           return;
         }
+
+        if (
+          data.code === "EMAIL_NOT_VERIFIED" &&
+          normalizeRole(data.role) === APP_ROLES.STUDENT
+        ) {
+          const otpEmail = String(data.email || email).trim().toLowerCase();
+          const secondsRemaining = Number(data.otpSecondsRemaining);
+          const otpExpiresAt =
+            Date.now() +
+            Math.max(0, Number.isFinite(secondsRemaining) ? secondsRemaining : 0) *
+              1000;
+
+          sessionStorage.setItem("otp_email", otpEmail);
+          sessionStorage.setItem("otp_role", APP_ROLES.STUDENT);
+          sessionStorage.setItem("otp_expires_at", String(otpExpiresAt));
+
+          await Swal.fire({
+            imageUrl: "/images/emailsent.png",
+            imageWidth: 270,
+            imageHeight: 180,
+            imageAlt: "Email verification required",
+            customClass: {
+              popup: "login-feedback-popup",
+              container: "login-feedback-overlay",
+            },
+            title: "Verify Your Email",
+            text: "Enter the 4-digit code sent with your temporary password. After verification, sign in again to begin the student tutorial.",
+            confirmButtonText: "Continue",
+          });
+
+          navigate("/otp", {
+            state: {
+              email: otpEmail,
+              otpExpiresAt,
+              role: APP_ROLES.STUDENT,
+            },
+          });
+          return;
+        }
+
         const accountDeleted =
           data.account_deleted === true ||
           data.account_deleted === 1 ||

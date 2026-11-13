@@ -362,7 +362,7 @@ export default function MatchingType({ adaptivePractice } = {}) {
     const answerCard = side === "right" ? card : firstCard;
     const expected = roundPairs.find((item) => item.id === questionCard.id);
     const isCorrect = adaptivePractice
-      ? practiceAnswersMatch(expected.answer, answerCard.text, true)
+      ? practiceAnswersMatch(expected.answer, answerCard.text)
       : questionCard.id === answerCard.id;
     playPracticeFeedbackSound(isCorrect);
     setFirstAttempts((prev) =>

@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { API_BASE } from "../config.js";
 import {
   APP_ROLES,
@@ -8,6 +16,9 @@ import {
 } from "../utils/roles.js";
 
 const AuthContext = createContext(null);
+const SESSION_IDLE_TIMEOUT_MS = 20 * 60 * 1000;
+const ACTIVITY_STORAGE_KEY = "puffy-last-activity";
+const ACTIVITY_WRITE_INTERVAL_MS = 30 * 1000;
 
 const sessionStorageKeys = [
   "puffy-token",
@@ -28,9 +39,24 @@ const sessionStorageKeys = [
   "admin_email",
   "admin_username",
   "school_name",
+  ACTIVITY_STORAGE_KEY,
 ];
 
+function isSessionIdleExpired() {
+  const lastActivity = Number(localStorage.getItem(ACTIVITY_STORAGE_KEY));
+  return (
+    Number.isFinite(lastActivity) &&
+    lastActivity > 0 &&
+    Date.now() - lastActivity >= SESSION_IDLE_TIMEOUT_MS
+  );
+}
+
 function readStoredUser() {
+  if (isSessionIdleExpired()) {
+    clearStoredSession();
+    return null;
+  }
+
   try {
     const storedUser = JSON.parse(localStorage.getItem("puffy-user") || "null");
     return storedUser ? withNormalizedRole(storedUser) : null;
@@ -129,6 +155,7 @@ export function AuthProvider({ children }) {
 
     clearStoredSession();
     const normalizedUser = writeUserSession(sessionUser, token);
+    localStorage.setItem(ACTIVITY_STORAGE_KEY, String(Date.now()));
     setUser(normalizedUser);
 
     return normalizedUser;
@@ -286,7 +313,7 @@ export function AuthProvider({ children }) {
     return saveSession(data);
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     const token = readStoredToken();
     clearStoredSession();
     setUser(null);
@@ -304,7 +331,103 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.warn("Unable to record logout.", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!user || !readStoredToken()) return undefined;
+
+    const storedActivity = Number(localStorage.getItem(ACTIVITY_STORAGE_KEY));
+    if (!Number.isFinite(storedActivity) || storedActivity <= 0) {
+      localStorage.setItem(ACTIVITY_STORAGE_KEY, String(Date.now()));
+    }
+    let activityRequestInFlight = false;
+
+    const expireIfIdle = () => {
+      if (!readStoredToken()) {
+        setUser(null);
+        return;
+      }
+
+      if (isSessionIdleExpired()) {
+        void logout();
+      }
+    };
+
+    const recordActivity = () => {
+      if (!readStoredToken()) return;
+      if (isSessionIdleExpired()) {
+        void logout();
+        return;
+      }
+
+      const now = Date.now();
+      const lastActivity = Number(localStorage.getItem(ACTIVITY_STORAGE_KEY));
+      if (
+        Number.isFinite(lastActivity) &&
+        now - lastActivity < ACTIVITY_WRITE_INTERVAL_MS
+      ) {
+        return;
+      }
+
+      localStorage.setItem(ACTIVITY_STORAGE_KEY, String(now));
+
+      const token = readStoredToken();
+      if (!token || activityRequestInFlight) return;
+
+      activityRequestInFlight = true;
+      fetch(`${API_BASE}/activity`, {
+        method: "POST",
+        credentials: "include",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((response) => {
+          if (response.status === 401 && readStoredToken() === token) {
+            clearStoredSession();
+            setUser(null);
+          }
+        })
+        .catch((error) => {
+          console.warn("Unable to update session activity.", error);
+        })
+        .finally(() => {
+          activityRequestInFlight = false;
+        });
+    };
+
+    const handleStorageChange = (event) => {
+      if (
+        event.key === ACTIVITY_STORAGE_KEY ||
+        event.key === "puffy-token" ||
+        event.key === "token" ||
+        event.key === "authToken"
+      ) {
+        expireIfIdle();
+      }
+    };
+
+    const activityEvents = [
+      "pointerdown",
+      "keydown",
+      "mousemove",
+      "scroll",
+      "touchstart",
+    ];
+    activityEvents.forEach((eventName) =>
+      window.addEventListener(eventName, recordActivity, { passive: true }),
+    );
+    window.addEventListener("storage", handleStorageChange);
+
+    const timeoutId = window.setInterval(expireIfIdle, 15 * 1000);
+    expireIfIdle();
+
+    return () => {
+      activityEvents.forEach((eventName) =>
+        window.removeEventListener(eventName, recordActivity),
+      );
+      window.removeEventListener("storage", handleStorageChange);
+      window.clearInterval(timeoutId);
+    };
+  }, [user, logout]);
 
   const value = useMemo(
     () => ({ user, checkingStudentSession, login, logout, saveSession, switchRole, updateUser }),

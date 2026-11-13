@@ -6,6 +6,7 @@ import {
   FiMail,
   FiUser,
 } from "react-icons/fi";
+import { API_BASE } from "../../../config.js";
 import Swal from "sweetalert2";
 import "./ProfessorProfile.css";
 
@@ -13,7 +14,7 @@ import "./ProfessorProfile.css";
    API CONFIG
 ===================================================== */
 
-import { API_BASE as API_BASE_URL } from "../../../config.js";
+const API_BASE_URL = API_BASE;
 
 const SERVER_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 
@@ -58,28 +59,36 @@ function resolveProfessorImage(imagePath) {
    NORMALIZE PROFESSOR DATA
 ===================================================== */
 
+function getProfileValue(...values) {
+  const value = values.find((candidate) => {
+    if (candidate == null) return false;
+
+    const normalized = String(candidate).trim();
+    return normalized && normalized.toLowerCase() !== "not set";
+  });
+
+  return value == null ? "" : String(value).trim();
+}
+
 function getProfessorProfileData(user) {
   return {
-    name: user?.displayName || user?.display_name || user?.name || "Not set",
+    name:
+      getProfileValue(user?.displayName, user?.display_name, user?.name) ||
+      "Professor",
 
-    employeeId:
-      user?.professorFacultyId ||
-      user?.professor_faculty_id ||
-      user?.professorId ||
-      user?.professor_id ||
-      "Not set",
+    employeeId: getProfileValue(
+      user?.professorFacultyId,
+      user?.professor_faculty_id,
+      user?.professorId,
+      user?.professor_id,
+    ),
 
-    department:
-      user?.professorDepartment || user?.professor_department || "Not set",
+    department: getProfileValue(
+      user?.professorDepartment,
+      user?.professor_department,
+    ),
 
-    position: user?.professorPosition || user?.professor_position || "Not set",
-
-    email: user?.email || "Not set",
-
-    specialization:
-      user?.professorSpecialization ||
-      user?.professor_specialization ||
-      "Not set",
+    email: getProfileValue(user?.email),
 
     role: user?.role || "professor",
 
@@ -566,15 +575,13 @@ export default function ProfessorProfile() {
 
                 <h2>{professorData.name}</h2>
 
-                <strong className="professor-identity-number">
-                  {professorData.employeeId}
-                </strong>
+                {professorData.employeeId && (
+                  <strong className="professor-identity-number">
+                    {professorData.employeeId}
+                  </strong>
+                )}
 
-                <p>{professorData.department}</p>
-
-                <div className="professor-identity-professional-row">
-                  <span>{professorData.position}</span>
-                </div>
+                {professorData.department && <p>{professorData.department}</p>}
               </div>
             </div>
 
@@ -620,27 +627,33 @@ export default function ProfessorProfile() {
               </div>
 
               <div className="professor-info-grid">
-                <div className="professor-info-item">
-                  <span className="professor-info-label">Full Name</span>
+                {professorData.name && (
+                  <div className="professor-info-item">
+                    <span className="professor-info-label">Full Name</span>
 
-                  <strong>{professorData.name}</strong>
-                </div>
-
-                <div className="professor-info-item">
-                  <span className="professor-info-label">Employee ID</span>
-
-                  <strong>{professorData.employeeId}</strong>
-                </div>
-
-                <div className="professor-info-item professor-info-item-wide">
-                  <span className="professor-info-label">Email Address</span>
-
-                  <div className="professor-info-value-row">
-                    <FiMail aria-hidden="true" />
-
-                    <strong>{professorData.email}</strong>
+                    <strong>{professorData.name}</strong>
                   </div>
-                </div>
+                )}
+
+                {professorData.employeeId && (
+                  <div className="professor-info-item">
+                    <span className="professor-info-label">Employee ID</span>
+
+                    <strong>{professorData.employeeId}</strong>
+                  </div>
+                )}
+
+                {professorData.email && (
+                  <div className="professor-info-item professor-info-item-wide">
+                    <span className="professor-info-label">Email Address</span>
+
+                    <div className="professor-info-value-row">
+                      <FiMail aria-hidden="true" />
+
+                      <strong>{professorData.email}</strong>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -660,32 +673,22 @@ export default function ProfessorProfile() {
               </div>
 
               <div className="professor-info-grid">
-                <div className="professor-info-item professor-info-item-wide">
-                  <span className="professor-info-label">Department</span>
+                {professorData.department && (
+                  <div className="professor-info-item professor-info-item-wide">
+                    <span className="professor-info-label">Department</span>
 
-                  <div className="professor-info-value-row">
-                    <FiBookOpen aria-hidden="true" />
+                    <div className="professor-info-value-row">
+                      <FiBookOpen aria-hidden="true" />
 
-                    <strong>{professorData.department}</strong>
+                      <strong>{professorData.department}</strong>
+                    </div>
                   </div>
-                </div>
-
-                <div className="professor-info-item">
-                  <span className="professor-info-label">Position</span>
-
-                  <strong>{professorData.position}</strong>
-                </div>
+                )}
 
                 <div className="professor-info-item">
                   <span className="professor-info-label">Role</span>
 
                   <strong>{formatRole(professorData.role)}</strong>
-                </div>
-
-                <div className="professor-info-item professor-info-item-wide">
-                  <span className="professor-info-label">Specialization</span>
-
-                  <strong>{professorData.specialization}</strong>
                 </div>
               </div>
             </section>

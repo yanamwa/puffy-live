@@ -37,6 +37,7 @@ import {
 import RoleNotificationMenu from "../../../components/rolenotif/RoleNotificationMenu";
 
 import HeaderProfileChip from "../../../components/HeaderProfileChip";
+import { confirmLogout } from "../../../utils/confirmLogout.js";
 
 import "./ProfessorLayout.css";
 
@@ -401,7 +402,9 @@ export default function ProfessorLayout() {
      LOGOUT
   =================================================== */
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirmLogout())) return;
+
     void logout();
 
     navigate("/login", {

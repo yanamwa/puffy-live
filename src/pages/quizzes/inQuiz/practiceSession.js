@@ -53,7 +53,18 @@ export function getStoredPracticeSession({ lessonId, deckId } = {}) {
 }
 
 export function getPracticeTitle(session, fallback) {
-  return String(session?.title || fallback || "Practice").trim();
+  const scope = session?.scope || {};
+  const title =
+    scope.moduleTitle ||
+    (scope.scopeType === "course"
+      ? scope.courseTitle || scope.courseName
+      : "") ||
+    scope.scopeTitle ||
+    session?.title ||
+    fallback ||
+    "Practice";
+
+  return String(title).replace(/\s+main\s+quiz$/i, "").trim();
 }
 
 export function getPracticeResultMetadata(session, fallbackSource) {

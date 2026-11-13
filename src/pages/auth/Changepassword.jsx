@@ -4,6 +4,31 @@ import Swal from "sweetalert2";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { API_BASE } from "../../config.js";
+
+const resetFeedbackClasses = {
+  container: "reset-password-feedback-overlay",
+  popup: "reset-password-feedback-popup",
+  title: "reset-password-feedback-title",
+  image: "reset-password-feedback-image",
+  htmlContainer: "reset-password-feedback-message",
+  confirmButton: "reset-password-feedback-button",
+};
+
+function showResetPasswordFeedback(title, text, success = false) {
+  return Swal.fire({
+    title,
+    text,
+    imageUrl: success ? "/images/complete.png" : "/images/mismatch.png",
+    imageWidth: 300,
+    imageAlt: success
+      ? "Password updated successfully"
+      : "Password update needs attention",
+    customClass: resetFeedbackClasses,
+    buttonsStyling: false,
+    confirmButtonText: "OK",
+  });
+}
+
 function ChangePassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -49,46 +74,34 @@ function ChangePassword() {
     e.preventDefault();
 
     if (!token) {
-      Swal.fire({
-        title: "Invalid Link",
-        text: "Please request a new password reset link.",
-        imageUrl: "/images/error.png",
-        imageWidth: 200,
-        imageHeight: 200,
-      });
+      showResetPasswordFeedback(
+        "Invalid Link",
+        "Please request a new password reset link.",
+      );
       return;
     }
 
     if (!isPasswordValid) {
-      Swal.fire({
-        title: "Weak Password",
-        text: "Password must contain 12 characters, uppercase, lowercase, number, and symbol.",
-        imageUrl: "/images/error.png",
-        imageWidth: 200,
-        imageHeight: 200,
-      });
+      showResetPasswordFeedback(
+        "Weak Password",
+        "Password must contain 12 characters, uppercase, lowercase, number, and symbol.",
+      );
       return;
     }
 
     if (!confirmPassword) {
-      Swal.fire({
-        title: "Missing Field",
-        text: "Please confirm your password.",
-        imageUrl: "/images/error.png",
-        imageWidth: 200,
-        imageHeight: 200,
-      });
+      showResetPasswordFeedback(
+        "Missing Field",
+        "Please confirm your password.",
+      );
       return;
     }
 
     if (!doPasswordsMatch) {
-      Swal.fire({
-        title: "Password Mismatch",
-        text: "Passwords do not match.",
-        imageUrl: "/images/error.png",
-        imageWidth: 200,
-        imageHeight: 200,
-      });
+      showResetPasswordFeedback(
+        "Password Mismatch",
+        "Passwords do not match.",
+      );
       return;
     }
 
@@ -106,29 +119,25 @@ function ChangePassword() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        Swal.fire({
-          title: "Error",
-          text:
-            data.message ||
-            "This password reset link is invalid or has expired.",
-          imageUrl: "/images/error.png",
-          imageWidth: 200,
-          imageHeight: 200,
-        });
+        await showResetPasswordFeedback(
+          "Error",
+          data.message || "This password reset link is invalid or has expired.",
+        );
         return;
       }
 
-      await Swal.fire({
-        title: "Success!",
-        text: "Your password has been updated.",
-        imageUrl: "/images/3.png",
-        imageWidth: 200,
-        imageHeight: 200,
-      });
+      await showResetPasswordFeedback(
+        "Password Updated",
+        "Your password has been updated.",
+        true,
+      );
 
       navigate("/login");
-    } catch (error) {
-      Swal.fire("Server Error", "Please try again later.", "error");
+    } catch {
+      await showResetPasswordFeedback(
+        "Server Error",
+        "Please try again later.",
+      );
     } finally {
       setIsSubmitting(false);
     }

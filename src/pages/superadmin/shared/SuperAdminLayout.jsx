@@ -6,6 +6,7 @@ import { useAuth } from "../../../context/AuthContext";
 
 import SuperAdminSidebar from "../../../components/superadmin/SuperAdminSidebar.jsx";
 import SuperAdminHeader from "../../../components/superadmin/SuperAdminHeader.jsx";
+import { confirmLogout } from "../../../utils/confirmLogout.js";
 
 import "../../admin/shared/AdminLayout.css";
 import "./SuperAdminLayout.css";
@@ -102,7 +103,9 @@ export default function SuperAdminLayout({ children }) {
      LOGOUT
   =================================================== */
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirmLogout())) return;
+
     void logout();
 
     navigate("/login", {

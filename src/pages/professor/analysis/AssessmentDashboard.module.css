@@ -175,6 +175,39 @@
   width: min(300px, 100%);
   box-sizing: border-box;
 }
+.performanceFilters {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+.yearSectionFilter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 112px;
+  color: #718096;
+  font-size: 11px;
+}
+.performanceFilters .searchBox {
+  width: 250px;
+}
+.yearSectionFilter select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 30px 8px 10px;
+  border: 1px solid #dce4ec;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #4f6174;
+  font: inherit;
+  font-size: 12px;
+}
+.yearSectionFilter select:focus-visible {
+  outline: 2px solid #80a9d5;
+  outline-offset: 2px;
+}
 .searchBox svg {
   color: #8c9aab;
   flex-shrink: 0;
@@ -454,6 +487,21 @@
   .searchBox {
     width: 100%;
   }
+  .performanceFilters {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .yearSectionFilter {
+    flex: 0 1 180px;
+  }
+  .searchBox {
+    flex: 1 1 240px;
+    width: auto;
+  }
+  .performanceFilters .searchBox {
+    width: auto;
+  }
   .panel {
     padding: 18px;
   }
@@ -472,7 +520,10 @@
 .courseTitle,.courseCode { white-space:normal; overflow-wrap:anywhere; }
 @media(max-width:700px) {
  .tableHeading { flex-direction:column; align-items:stretch; gap:14px; }
+ .performanceFilters { flex-direction:column; align-items:stretch; }
+ .yearSectionFilter { flex-basis:auto; }
  .searchBox { width:100%; min-width:0; box-sizing:border-box; }
+ .performanceFilters .searchBox { width:100%; }
  .searchBox input { width:100%; min-width:0; }
  .panel { min-width:0; }
  .tableWrap table { display:block; min-width:0; width:100%; }

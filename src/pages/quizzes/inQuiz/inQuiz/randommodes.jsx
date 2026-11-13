@@ -1,6 +1,10 @@
 import PracticeSpeakerIcon from "../../../../components/quizmodes/PracticeSpeakerIcon.jsx";
 import TutorialBackButton from "../TutorialBackButton.jsx";
-import { buildPracticeChoiceOptions, practiceAnswersMatch } from "../../../../services/adaptivePractice.js";
+import {
+  buildPracticeChoiceOptions,
+  getPracticeAcceptedAnswers,
+  practiceAnswersMatch,
+} from "../../../../services/adaptivePractice.js";
 import { usePracticeState, usePracticeItems, clearPracticeProgress } from "../../../../utils/practiceResume.js";
 import PracticeSoundControl from "../../../../components/quizmodes/PracticeSoundControl.jsx";
 import PracticeAnswerFeedback from "../../../../components/quizmodes/PracticeAnswerFeedback.jsx";
@@ -75,68 +79,6 @@ function cleanAnswerText(text = "") {
     .replace(/^Correct Answer:\s*/i, "")
     .replace(/^[A-D]\.\s*/i, "")
     .trim();
-}
-
-function cleanTypingAnswer(text = "") {
-  return String(text)
-    .toLowerCase()
-    .replace(/`/g, "")
-    .replace(/\bcant\b/g, "cannot")
-    .replace(/\bcan't\b/g, "cannot")
-    .replace(/\ba\b/g, "")
-    .replace(/\ban\b/g, "")
-    .replace(/\bthe\b/g, "")
-    .replace(/[^\w\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function levenshtein(a, b) {
-  const dp = Array.from({ length: a.length + 1 }, () =>
-    Array(b.length + 1).fill(0),
-  );
-
-  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
-  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
-
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      dp[i][j] =
-        a[i - 1] === b[j - 1]
-          ? dp[i - 1][j - 1]
-          : Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]) + 1;
-    }
-  }
-
-  return dp[a.length][b.length];
-}
-
-function isCloseEnough(userAnswer, correctAnswer) {
-  const userClean = cleanTypingAnswer(userAnswer);
-  const correctClean = cleanTypingAnswer(correctAnswer);
-
-  if (!userClean || !correctClean) return false;
-  if (userClean === correctClean) return true;
-
-  if (correctClean.includes(userClean) && userClean.length >= 8) {
-    return true;
-  }
-
-  const userWords = userClean.split(" ").filter(Boolean);
-  const correctWords = correctClean.split(" ").filter(Boolean);
-  const matchingWords = userWords.filter((word) => correctWords.includes(word));
-  const wordRatio =
-    matchingWords.length / Math.max(userWords.length, correctWords.length);
-
-  if (matchingWords.length >= 3 && wordRatio >= 0.35) {
-    return true;
-  }
-
-  const distance = levenshtein(userClean, correctClean);
-  const maxLength = Math.max(userClean.length, correctClean.length);
-  const similarity = 1 - distance / maxLength;
-
-  return similarity >= 0.75;
 }
 
 function parseJsonOptions(value) {
@@ -216,6 +158,7 @@ function normalizeBaseMixedItem(item, index) {
     answer,
     answerKey,
     options,
+    acceptedAnswers: getPracticeAcceptedAnswers(item),
     explanation: item.explanation || answer,
   };
 }
@@ -263,6 +206,7 @@ function buildQandARound(item) {
     type: "qna",
     question: item.question,
     answer: item.answer,
+    acceptedAnswers: item.acceptedAnswers || [],
     explanation: item.explanation,
   };
 }
@@ -306,12 +250,13 @@ function buildAdaptiveMixedQuestions(questions) {
     ...item,
     answer: item.correct_answer,
     answerKey: cleanChoiceText(item.correct_answer),
+    acceptedAnswers: getPracticeAcceptedAnswers(item),
     options: buildPracticeChoiceOptions(item, questions),
   }));
   const choices = items.filter((item) => item.type === "multiple_choice");
   const matching = [];
   for (const item of choices) {
-    if (!matching.some((pair) => practiceAnswersMatch(pair.answer, item.answer, true)))
+    if (!matching.some((pair) => practiceAnswersMatch(pair.answer, item.answer)))
       matching.push(item);
     if (matching.length === 4) break;
   }
@@ -718,7 +663,7 @@ export default function MixedMode({ adaptivePractice } = {}) {
     const selected = question.options[index];
     setSelectedAnswer(selected);
     recordSingleAnswer(selected, adaptivePractice
-      ? practiceAnswersMatch(selected, question.answer, true)
+      ? practiceAnswersMatch(selected, question.answer)
       : index === question.correct);
     if (isMainQuiz && !mainSubmitting && current < questions.length - 1) {
       setCurrent(value => value + 1);
@@ -730,9 +675,11 @@ export default function MixedMode({ adaptivePractice } = {}) {
 
     recordSingleAnswer(
       typingAnswer,
-      adaptivePractice
-        ? practiceAnswersMatch(typingAnswer, question.answer, true)
-        : isCloseEnough(typingAnswer, question.answer),
+      practiceAnswersMatch(
+        typingAnswer,
+        question.answer,
+        question.acceptedAnswers,
+      ),
     );
   }
 

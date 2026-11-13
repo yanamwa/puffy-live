@@ -6,13 +6,19 @@ import Swal from "sweetalert2";
 import styles from "./courseview.module.css";
 import StudentIdentityCard from "../../../components/students/StudentIdentityCard";
 import { API_BASE } from "../../../config.js";
-import { downloadEnrollmentPdf } from "../../../services/pdfDownload.js";
 
 const API_BASE_URL = API_BASE;
 
 const SERVER_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 
 const DEFAULT_PROFILE_IMAGE = "/images/temporaryimg.png";
+const YEAR_LEVEL_OPTIONS = [
+  { value: "1", label: "1st Year" },
+  { value: "2", label: "2nd Year" },
+  { value: "3", label: "3rd Year" },
+  { value: "4", label: "4th Year" },
+];
+const SECTION_OPTIONS = ["A", "B", "C", "D", "E", "F"];
 
 /* =====================================================
    TOKEN
@@ -80,6 +86,45 @@ function formatDate(value) {
   return date.toLocaleDateString();
 }
 
+function getStudentYearLevel(student) {
+  return String(
+    student?.yearLevel ??
+      student?.year_level ??
+      student?.student_year_level ??
+      student?.year ??
+      student?.student?.year_level ??
+      "",
+  ).trim();
+}
+
+function getStudentSection(student) {
+  return String(
+    student?.sectionName ??
+      student?.section_name ??
+      student?.student_section ??
+      student?.section ??
+      student?.student?.section ??
+      "",
+  ).trim();
+}
+
+function getStudentYearFilterValue(student) {
+  const yearLevel = getStudentYearLevel(student).toLowerCase();
+  const yearMatch = yearLevel.match(/(?:^|\D)([1-4])(?:st|nd|rd|th)?\b/);
+  if (yearMatch) return yearMatch[1];
+
+  const sectionYearMatch = getStudentSection(student).match(
+    /^\s*([1-4])\s*[A-F]/i,
+  );
+  return sectionYearMatch?.[1] ?? "";
+}
+
+function getStudentSectionFilterValue(student) {
+  return (
+    getStudentSection(student).match(/([A-F])\s*$/i)?.[1]?.toUpperCase() ?? ""
+  );
+}
+
 /* =====================================================
    COMPONENT
 ===================================================== */
@@ -91,24 +136,8 @@ export default function CourseView() {
 
   const [activeTab, setActiveTab] = useState("enrolled");
   const [studentPage, setStudentPage] = useState(1);
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const savePdf = async () => {
-    setDownloadingPdf(true);
-    try {
-      await downloadEnrollmentPdf(
-        enrolledStudents,
-        `enrolled-students-${courseId}`,
-      );
-    } catch (error) {
-      await Swal.fire({
-        icon: "error",
-        title: "PDF download failed",
-        text: error.message,
-      });
-    } finally {
-      setDownloadingPdf(false);
-    }
-  };
+  const [yearFilter, setYearFilter] = useState("all");
+  const [sectionFilter, setSectionFilter] = useState("all");
 
   const [course, setCourse] = useState(null);
 
@@ -250,9 +279,31 @@ export default function CourseView() {
      DISPLAYED STUDENTS
   =================================================== */
 
-  const displayedStudents = useMemo(
+  const studentsInActiveTab = useMemo(
     () => (activeTab === "requests" ? requests : enrolledStudents),
     [activeTab, requests, enrolledStudents],
+  );
+  const displayedStudents = useMemo(
+    () =>
+      studentsInActiveTab.filter(
+        (student) =>
+          (yearFilter === "all" ||
+            getStudentYearFilterValue(student) === yearFilter) &&
+          (sectionFilter === "all" ||
+            getStudentSectionFilterValue(student) === sectionFilter),
+      ),
+    [studentsInActiveTab, yearFilter, sectionFilter],
+  );
+  const filteredEnrolledStudents = useMemo(
+    () =>
+      enrolledStudents.filter(
+        (student) =>
+          (yearFilter === "all" ||
+            getStudentYearFilterValue(student) === yearFilter) &&
+          (sectionFilter === "all" ||
+            getStudentSectionFilterValue(student) === sectionFilter),
+      ),
+    [enrolledStudents, yearFilter, sectionFilter],
   );
   const studentPageCount = Math.max(1, Math.ceil(displayedStudents.length / 5));
   const currentStudentPage = Math.min(studentPage, studentPageCount);
@@ -262,7 +313,7 @@ export default function CourseView() {
   );
   useEffect(() => {
     setStudentPage(1);
-  }, [activeTab, courseId]);
+  }, [activeTab, courseId, yearFilter, sectionFilter]);
 
   const getStudentName = (student) =>
     student?.displayName || student?.name || "Student";
@@ -706,6 +757,15 @@ export default function CourseView() {
     course.course_name ||
     "Untitled Course";
 
+  const professorName =
+    course.professorDisplayName ||
+    course.professor_display_name ||
+    course.professorName ||
+    course.professor_name ||
+    course.instructorName ||
+    course.instructor_name ||
+    "Course instructor";
+
   const courseDescription = course.summary || course.description || "";
 
   const moduleCount =
@@ -750,15 +810,6 @@ export default function CourseView() {
             onClick={() => window.print()}
           >
             Print
-          </button>
-          <button
-            type="button"
-            className={styles.printButton}
-            onClick={savePdf}
-            disabled={downloadingPdf}
-            title="Download enrolled students as a PDF"
-          >
-            {downloadingPdf ? "Downloading…" : "Save as PDF"}
           </button>
         </div>
       </div>
@@ -834,6 +885,50 @@ export default function CourseView() {
           </button>
         </div>
 
+        <div className={styles.studentFilters}>
+          <div className={styles.filterCaption}>
+            Filter Students
+            <button
+              type="button"
+              onClick={() => {
+                setYearFilter("all");
+                setSectionFilter("all");
+              }}
+              disabled={yearFilter === "all" && sectionFilter === "all"}
+            >
+              Clear all
+            </button>
+          </div>
+          <label className={styles.filterField}>
+            Year Level
+            <select
+              value={yearFilter}
+              onChange={(event) => setYearFilter(event.target.value)}
+            >
+              <option value="all">All Year Levels</option>
+              {YEAR_LEVEL_OPTIONS.map((year) => (
+                <option key={year.value} value={year.value}>
+                  {year.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.filterField}>
+            Section
+            <select
+              value={sectionFilter}
+              onChange={(event) => setSectionFilter(event.target.value)}
+            >
+              <option value="all">All Sections</option>
+              {SECTION_OPTIONS.map((section) => (
+                <option key={section} value={section}>
+                  {section}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
         {/* =============================================
             TABLE
         ============================================== */}
@@ -860,9 +955,11 @@ export default function CourseView() {
               {displayedStudents.length === 0 ? (
                 <tr>
                   <td colSpan="6" className={styles.emptyTable}>
-                    {activeTab === "requests"
-                      ? "No enrollment requests."
-                      : "No enrolled students yet."}
+                    {studentsInActiveTab.length > 0
+                      ? "No students match these filters."
+                      : activeTab === "requests"
+                        ? "No enrollment requests."
+                        : "No enrolled students yet."}
                   </td>
                 </tr>
               ) : (
@@ -896,9 +993,9 @@ export default function CourseView() {
 
                       <td>{student.email || "N/A"}</td>
 
-                      <td>{student.yearLevel || "N/A"}</td>
+                      <td>{getStudentYearLevel(student) || "N/A"}</td>
 
-                      <td>{student.sectionName || student.section_name || student.section || "N/A"}</td>
+                      <td>{getStudentSectionFilterValue(student) || "N/A"}</td>
 
                       <td>
                         {activeTab === "requests" ? (
@@ -982,19 +1079,27 @@ export default function CourseView() {
         )}
       </div>
       <div className="course-enrollment-print">
-        <header className="enrollment-report-brand">
-          <img src="/images/puffybrain.png" alt="PuffyBrain" />
-          <div><strong>PuffyBrain</strong><p>Adaptive Quiz System with Learning Feedback<br />Department of Computer Studies</p></div>
-          <div className="enrollment-report-date"><span>ACADEMIC REPORT</span><p>{new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p></div>
-        </header>
         <h1>Student Enrollment Report</h1>
-        <p className="enrollment-report-subtitle">Official list of students enrolled in the selected course</p>
-        <div className="enrollment-report-details">
-          <div><span>Course</span><strong>{courseTitle}</strong></div>
-          <div><span>Total Students</span><strong>{studentCount} {studentCount === 1 ? "Student" : "Students"}</strong></div>
-          <div><span>Course Code</span><strong>{courseCode}</strong></div>
-          <div><span>Professor</span><strong>{course.professorName || course.professor_name || course.instructorName || course.instructor_name || "Course instructor"}</strong></div>
-        </div>
+        <p className="enrollment-report-subtitle">
+          Official list of students enrolled
+        </p>
+        <dl className="enrollment-report-details">
+          <div>
+            <dt>Course</dt>
+            <dd>{courseTitle}</dd>
+          </div>
+          <div>
+            <dt>Total Students</dt>
+            <dd>
+              {filteredEnrolledStudents.length}{" "}
+              {filteredEnrolledStudents.length === 1 ? "Student" : "Students"}
+            </dd>
+          </div>
+          <div>
+            <dt>Professor</dt>
+            <dd>{professorName}</dd>
+          </div>
+        </dl>
         <h2>Enrolled Students</h2>
         <table>
           <thead>
@@ -1007,24 +1112,27 @@ export default function CourseView() {
             </tr>
           </thead>
           <tbody>
-            {enrolledStudents.length ? (
-              enrolledStudents.map((student) => (
+            {filteredEnrolledStudents.length ? (
+              filteredEnrolledStudents.map((student) => (
                 <tr key={getStudentKey(student)}>
                   <td>{student.studentId || "N/A"}</td>
                   <td>{getStudentName(student)}</td>
                   <td>{student.email || "N/A"}</td>
-                  <td>{student.yearLevel || "N/A"}</td>
-                  <td>{student.sectionName || student.section_name || student.section || "N/A"}</td>
+                  <td>{getStudentYearLevel(student) || "N/A"}</td>
+                  <td>{getStudentSectionFilterValue(student) || "N/A"}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={5}>No enrolled students.</td>
+                <td colSpan={5}>
+                  {enrolledStudents.length
+                    ? "No enrolled students match these filters."
+                    : "No enrolled students."}
+                </td>
               </tr>
             )}
           </tbody>
         </table>
-        <footer className="enrollment-report-footer">Generated by PuffyBrain · {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</footer>
       </div>
       {selectedStudent && createPortal(
         <div

@@ -305,27 +305,6 @@
   line-height: 1.5;
 }
 
-.professor-identity-professional-row {
-  min-height: 29px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  margin-top: 15px;
-  padding: 0 13px;
-
-  border: 1px solid #d5ddd8;
-  border-radius: 999px;
-
-  background: #f5f8f6;
-  color: #59656a;
-
-  font-family: system-ui, sans-serif;
-  font-size: 10px;
-  font-weight: 750;
-}
-
 .professor-identity-footer {
   min-height: 84px;
 

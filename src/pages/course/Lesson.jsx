@@ -39,18 +39,21 @@ const saveAccountLessonProgress = (baseKey, record) => {
 
 const LESSON_QUIZ_LIMIT = 5;
 
-// Compare answer text and letter-based multiple-choice keys consistently.
-const normalizeRecapAnswer = (value) => String(value ?? "")
-  .normalize("NFKC").replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
-  .replace(/^\s*[A-Z][.)]\s+/i, "").trim().toLowerCase()
-  .replace(/[.!?]+$/, "").replace(/\s+/g, " ");
+// Compare selected answers case-insensitively while preserving meaningful characters.
+const normalizeRecapAnswer = (value) =>
+  String(value ?? "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
 
 const resolveRecapAnswer = (quiz) => {
   const raw = quiz?.correct_answer ?? quiz?.correctAnswer ?? quiz?.answer ?? "";
   const options = quiz?.options || [];
   const letter = /^\s*([a-z])[.)]?\s*$/i.exec(String(raw));
-  if (letter && options.length) return options[letter[1].toUpperCase().charCodeAt(0) - 65] ?? raw;
-  return raw;
+  if (letter && options.length)
+    return options[letter[1].toUpperCase().charCodeAt(0) - 65] ?? raw;
+  return String(raw).replace(/^\s*[A-D][.)]\s+/i, "");
 };
 
 const getLessonPageMedia = (page) => {

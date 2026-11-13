@@ -1975,7 +1975,7 @@ export default function MainQuizAnalysis({
               className="qa-print-button"
               onClick={() => window.print()}
             >
-              Print / Save as PDF
+              Print
             </button>
             <div
               className={styles.viewSwitch}

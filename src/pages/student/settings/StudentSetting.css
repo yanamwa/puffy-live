@@ -72,3 +72,108 @@
     margin-left: 0;
   }
 }
+
+body .swal2-container.student-password-success-overlay {
+  z-index: 999999 !important;
+  padding: 16px !important;
+  background: rgba(38, 60, 82, 0.6) !important;
+  backdrop-filter: blur(4px);
+}
+
+body .swal2-popup.student-password-success-popup {
+  display: grid !important;
+  grid-template-rows: auto auto 1fr auto;
+  width: 460px !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100dvh - 32px);
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid #cbd9e8 !important;
+  border-radius: 14px !important;
+  font-family: Arial, sans-serif !important;
+}
+
+body .student-password-success-popup .student-password-success-title {
+  grid-row: 1;
+  margin: 0 !important;
+  padding: 18px 24px !important;
+  background: #7fa8d6 !important;
+  color: #fff !important;
+  font: 600 22px/1.4 Arial, sans-serif !important;
+}
+
+body .student-password-success-popup .student-password-success-image {
+  grid-row: 2;
+  width: 300px !important;
+  max-width: calc(100% - 40px) !important;
+  height: auto !important;
+  margin: 12px auto 0 !important;
+  object-fit: contain;
+}
+
+body .student-password-success-popup .student-password-success-message {
+  grid-row: 3;
+  margin: 0 !important;
+  padding: 12px 24px 20px !important;
+  color: #64748b !important;
+  font: 400 16px/1.6 Arial, sans-serif !important;
+}
+
+body .student-password-success-popup .swal2-actions {
+  grid-row: 4;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #e6e9ed;
+}
+
+body .student-password-success-popup .student-password-success-button {
+  width: 100%;
+  min-height: 46px !important;
+  margin: 0 !important;
+  border: 1px solid #7fa8d6 !important;
+  border-radius: 7px !important;
+  background: #7fa8d6 !important;
+  color: #fff !important;
+  font: 600 16px/1.4 Arial, sans-serif !important;
+}
+
+body .student-password-success-popup .student-password-success-button:hover,
+body .student-password-success-popup .student-password-success-button:focus-visible {
+  border-color: #608cbd !important;
+  background: #608cbd !important;
+  color: #fff !important;
+}
+
+@media (max-width: 480px) {
+  body .swal2-container.student-password-success-overlay {
+    padding: 12px !important;
+  }
+
+  body .swal2-popup.student-password-success-popup {
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px);
+    border-radius: 12px !important;
+  }
+
+  body .student-password-success-popup .student-password-success-title {
+    padding: 14px 18px !important;
+    font-size: 19px !important;
+  }
+
+  body .student-password-success-popup .student-password-success-image {
+    width: 210px !important;
+    max-height: 32dvh;
+    margin-top: 8px !important;
+  }
+
+  body .student-password-success-popup .student-password-success-message {
+    padding: 8px 18px 14px !important;
+    font-size: 15px !important;
+  }
+
+  body .student-password-success-popup .swal2-actions {
+    padding: 12px 18px 16px !important;
+  }
+}

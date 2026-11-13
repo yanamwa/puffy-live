@@ -309,7 +309,7 @@ export default function QuizAssessmentDashboard({
               onClick={() => window.print()}
               disabled={Boolean(status)}
             >
-              Print / Save as PDF
+              Print
             </button>
 
           </div>

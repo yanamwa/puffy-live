@@ -233,11 +233,21 @@ export default function StudentSettings() {
       });
 
       await Swal.fire({
-        icon: "success",
+        imageUrl: "/images/complete.png",
+        imageWidth: 300,
+        imageAlt: "Password updated successfully",
         title: "Password Updated",
         text: data.message || "Your password was changed successfully.",
         confirmButtonText: "OK",
-        confirmButtonColor: "#2f855a",
+        buttonsStyling: false,
+        customClass: {
+          container: "student-password-success-overlay",
+          popup: "student-password-success-popup",
+          title: "student-password-success-title",
+          image: "student-password-success-image",
+          htmlContainer: "student-password-success-message",
+          confirmButton: "student-password-success-button",
+        },
         allowOutsideClick: false,
         allowEscapeKey: false,
       });
