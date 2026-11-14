@@ -270,16 +270,6 @@ export default function QuizAssessmentDashboard({
     return studentMatches({ ...a, ...student });
   });
   const summary = useMemo(
-<<<<<<< HEAD
-    () =>
-      summarizeAssessment(
-        filterModuleAttempts(filteredAttempts, moduleIndex, modules).filter(
-          (a) => a.assessment_type === type,
-        ),
-        filteredStudents,
-        scopedItems,
-      ),
-=======
     () => {
       const attempts = filterModuleAttempts(
         filteredAttempts,
@@ -288,7 +278,6 @@ export default function QuizAssessmentDashboard({
       ).filter((attempt) => attempt.assessment_type === type);
       return summarizeAssessment(attempts, filteredStudents, scopedItems);
     },
->>>>>>> dd10fefdad912201417d04f42587c23c84090b11
     [data, type, scopedItems, moduleIndex, modules, yearFilter, sectionFilter, enrolledStudents],
   );
   const cognitiveRows = ["LOTS", "HOTS"].map((label) => ({
@@ -360,44 +349,13 @@ export default function QuizAssessmentDashboard({
     setType(next);
     setResponseView(false);
   };
-<<<<<<< HEAD
-  const coverage = new Map();
-  for (const question of summary.questions) {
-    const key = JSON.stringify([question.topic, question.skill, question.level]);
-    if (!coverage.has(key)) {
-      coverage.set(key, {
-        key,
-        topic: question.topic,
-        skill: question.skill,
-        level: question.level || "Unclassified",
-        questions: 0,
-        responses: 0,
-        correct: 0,
-      });
-    }
-    const row = coverage.get(key);
-    row.questions++;
-    row.responses += question.responses;
-    row.correct += question.correct;
-  }
-=======
   const { coverage, studentPerformance, studentsNeedingAttention } =
     summarizePracticeReport(summary, passing);
->>>>>>> dd10fefdad912201417d04f42587c23c84090b11
   const studentColumns = ["Student", "Scored Practice Attempts", "Average Score"];
   const studentRow = (student) => ({
     key: student.id,
     cells: [student.name, student.attempts, student.average == null ? "N/A" : pct(student.average)],
   });
-<<<<<<< HEAD
-  const studentPerformance = [...summary.students].sort(
-    (a, b) => b.attempts - a.attempts || a.name.localeCompare(b.name),
-  );
-  const studentsNeedingAttention = passing == null ? [] : studentPerformance
-    .filter(({ average }) => average != null && average < passing)
-    .sort((a, b) => a.average - b.average);
-=======
->>>>>>> dd10fefdad912201417d04f42587c23c84090b11
   const metrics = [
     ["Students", summary.assessedStudents],
     ["Attempts", summary.attempts],
@@ -677,38 +635,13 @@ export default function QuizAssessmentDashboard({
 
               {type === "practice" ? (
                 <>
-<<<<<<< HEAD
-                  <div className={styles.analysisSectionTitle}>Practice Table of Specifications</div>
-                  <p className="qa-topic-intro">
-                    Coverage from recorded practice responses by topic, thinking skill, and cognitive level.
-                  </p>
-                  <AssessmentReportTable
-                    columns={["Topic", "Thinking Skill", "Cognitive Level", "Questions", "Responses", "Accuracy"]}
-                    rows={[...coverage.values()].map((row) => ({
-                      key: row.key,
-                      cells: [row.topic, row.skill, row.level, row.questions, row.responses, pct(100 * row.correct / row.responses)],
-                    }))}
-                    empty="Coverage appears after students submit practice responses."
-                  />
                   <div className={styles.analysisSectionTitle}>Student Practice Performance</div>
-                  <p className="qa-topic-intro">Ordered by the number of scored practice attempts.</p>
-=======
-                  <div className={styles.analysisSectionTitle}>Student Practice Performance</div>
->>>>>>> dd10fefdad912201417d04f42587c23c84090b11
                   <AssessmentReportTable
                     columns={studentColumns}
                     rows={studentPerformance.map(studentRow)}
                     empty="No students match these filters."
                   />
                   <div className={styles.analysisSectionTitle}>Students Needing Attention</div>
-<<<<<<< HEAD
-                  {passing != null && (
-                    <p className="qa-topic-intro">
-                      Students with an average practice score below the {passing}% reporting threshold.
-                    </p>
-                  )}
-=======
->>>>>>> dd10fefdad912201417d04f42587c23c84090b11
                   <AssessmentReportTable
                     columns={studentColumns}
                     rows={studentsNeedingAttention.map(studentRow)}
