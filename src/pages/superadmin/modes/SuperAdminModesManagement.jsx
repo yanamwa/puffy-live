@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import {
   deleteQuizModeById,
   fetchQuizModes,
+  quizModeSeeds,
   saveQuizMode,
 } from "../../../services/quizModeApi.js";
 
@@ -19,7 +20,7 @@ const emptyForm = {
 function ModeImagePreview({ source, title }) {
   const [failedSource, setFailedSource] = useState("");
   if (!source) return <p className="mode-image-placeholder">No image selected.</p>;
-  if (failedSource === source) return <p className="mode-image-placeholder">Image unavailable. Check the image path.</p>;
+  if (failedSource === source) return <p className="mode-image-placeholder">Image unavailable.</p>;
   return (
     <figure className="mode-image-card">
       <img src={source} alt={`${title || "Mode"} preview`} onError={() => setFailedSource(source)} />
@@ -202,7 +203,7 @@ export default function SuperAdminModesManagement() {
   ===================================================== */
 
   const closeForm = () => {
-    if (saving) {
+    if (saving || readingImage) {
       return;
     }
 
@@ -215,10 +216,34 @@ export default function SuperAdminModesManagement() {
      SAVE MODE
   ===================================================== */
 
+  const [readingImage, setReadingImage] = useState(false);
+
+  const selectImage = (event) => {
+    const input = event.currentTarget;
+    const file = input.files[0];
+    if (!file) return;
+
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 512 * 1024) {
+      input.value = "";
+      showWarning("Choose a PNG, JPEG, or WebP image up to 512 KB.", "Invalid Image");
+      return;
+    }
+
+    const reader = new FileReader();
+    setReadingImage(true);
+    reader.onload = () => setForm((current) => ({ ...current, image: reader.result }));
+    reader.onerror = () => {
+      input.value = "";
+      showWarning("The image could not be read. Choose the file again.", "Upload Image");
+    };
+    reader.onloadend = () => setReadingImage(false);
+    reader.readAsDataURL(file);
+  };
+
   const saveMode = async (event) => {
     event.preventDefault();
 
-    if (saving) {
+    if (saving || readingImage) {
       return;
     }
 
@@ -588,36 +613,33 @@ export default function SuperAdminModesManagement() {
             <label className="feature-field">
               <span>Route</span>
 
-              <input
-                value={form.route}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    route: event.target.value,
-                  }))
-                }
-                placeholder="/flashcards-tutorial"
-                required
-                disabled={saving}
-              />
+              {editingMode ? (
+                <input value={form.route} readOnly />
+              ) : (
+                <select
+                  value={form.route}
+                  onChange={(event) => setForm({ ...form, route: event.target.value })}
+                  required
+                  disabled={saving}
+                >
+                  <option value="">Select a tutorial route</option>
+                  {quizModeSeeds.map((mode) => (
+                    <option key={mode.route} value={mode.route}>{mode.title}</option>
+                  ))}
+                </select>
+              )}
             </label>
 
-            {/* IMAGE */}
-
             <label className="feature-field">
-              <span>Image Path</span>
-
+              <span>Upload Image</span>
               <input
-                value={form.image}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    image: event.target.value,
-                  }))
-                }
-                placeholder="/images/flashcard.png"
-                disabled={saving}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                disabled={saving || readingImage}
+                onChange={selectImage}
+                aria-describedby="mode-image-formats"
               />
+              <small id="mode-image-formats">PNG, JPEG, or WebP up to 512 KB.</small>
             </label>
 
             {/* ACTIONS */}
@@ -637,7 +659,7 @@ export default function SuperAdminModesManagement() {
               <button
                 type="submit"
                 className="primary-feature-btn"
-                disabled={saving}
+                disabled={saving || readingImage}
               >
                 {saving
                   ? "Saving..."

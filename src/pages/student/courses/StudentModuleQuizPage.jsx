@@ -22,6 +22,8 @@ const PROFESSOR_COURSES_KEY = "professor-courses";
 function resolveModeImage(mode) {
   const image = String(mode.image || "").trim();
 
+  if (image.startsWith("data:image/")) return image;
+  if (!image && getModeKind(mode) === "mixed") return "/images/mixed_match.png";
   if (!image) return "/images/flashcard.png";
   if (/^https?:\/\//i.test(image)) return image;
   if (image.startsWith("/")) return image;

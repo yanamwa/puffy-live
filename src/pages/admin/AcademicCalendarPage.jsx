@@ -1,3 +1,4 @@
+import { successDialog } from "../../utils/successDialog.js";
 import { FiCalendar, FiFileText, FiBookOpen } from "react-icons/fi";
 import { useEffect, useRef, useState } from "react";
 import { useSystemStatus } from "../../context/SystemStatusContext.jsx";
@@ -63,7 +64,6 @@ export default function AcademicCalendarPage() {
   const [files, setFiles] = useState([]);
   const [fileKey, setFileKey] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
   const [saveError, setSaveError] = useState("");
   const [importReview, setImportReview] = useState(null);
   const initialized = useRef(false);
@@ -104,7 +104,6 @@ export default function AcademicCalendarPage() {
     setImporting(true);
     setBusy(true);
     setSaveError("");
-    setMessage("");
     try {
       let path = `/${sourceCalendar.calendar_id}/extract`;
       let body;
@@ -118,6 +117,13 @@ export default function AcademicCalendarPage() {
         method: "POST",
         body,
       });
+      if (!data.events.length) {
+        setSaveError(
+          "No dates detected. The upload was canceled. Choose a calendar document with readable dates.",
+        );
+        return;
+      }
+      if (sourceFiles.length) setFiles(sourceFiles);
       setValue((current) => {
         const key = (event) =>
           [
@@ -166,7 +172,6 @@ export default function AcademicCalendarPage() {
       files,
       importReview,
       saveError,
-      message,
     };
     setSaveError("");
     documentDialog.current.showModal();
@@ -177,14 +182,12 @@ export default function AcademicCalendarPage() {
     setFiles(previous.files);
     setImportReview(previous.importReview);
     setSaveError(previous.saveError);
-    setMessage(previous.message);
     setFileKey((key) => key + 1);
     documentDialog.current.close();
   };
   const save = async (event) => {
     event.preventDefault();
     setSaveError("");
-    setMessage("");
     if (importReview && !importReview.reviewed) {
       setSaveError(
         "Review the imported event dates and tick the confirmation before saving.",
@@ -213,12 +216,13 @@ export default function AcademicCalendarPage() {
         value.calendar_id ? `/${value.calendar_id}` : "",
         { method: value.calendar_id ? "PUT" : "POST", body },
       );
-      setMessage(
-        value.published
-          ? "Academic calendar published. Students can now view events and descriptions on their calendar."
-          : "Calendar saved as a draft. It is hidden from students.",
-      );
       documentDialog.current?.close();
+      successDialog.fire({
+        title: value.published ? "Academic Calendar Published" : "Draft Saved",
+        text: value.published
+          ? "Students can now view events and descriptions on their calendar."
+          : "This calendar is hidden from students.",
+      });
       initialized.current = false;
       reload();
     } catch (e) {
@@ -270,11 +274,6 @@ export default function AcademicCalendarPage() {
           </span>
         </div>
       </header>
-      {message && (
-        <p className="academic-success" role="status">
-          {message}
-        </p>
-      )}
       {loading && <p role="status">Loading saved calendar and event dates…</p>}
       {error && (
         <p className="academic-error" role="alert">
@@ -786,7 +785,7 @@ export default function AcademicCalendarPage() {
                       e.target.value = "";
                       return;
                     }
-                    setFiles(selected);
+                    e.target.value = "";
                     importEvents(selected);
                   }}
                 />

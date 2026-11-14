@@ -629,3 +629,22 @@
     width: 100%;
   }
 }
+
+.mode-management-page .feature-modal h2 {
+  padding-inline: 60px;
+  text-align: center;
+}
+
+.mode-management-page .feature-field select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--feature-line);
+  border-radius: 10px;
+  background: white;
+  color: inherit;
+  font: inherit;
+}
+
+.mode-management-page .feature-field input[readonly] {
+  background: #edf3fa;
+}

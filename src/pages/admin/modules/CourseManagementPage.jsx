@@ -4,6 +4,7 @@ import { findCatalogCodeMatches } from "../../../services/catalogDuplicates.js";
 import { readCoverage } from "../../../components/catalog/CoverageModules.jsx";
 import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import "../../../utils/successDialog.css";
 import { FiUpload } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getUserRole } from "../../../utils/roles.js";
@@ -25,8 +26,11 @@ import "../../superadmin/SuperAdminDashboard.css";
 import "../../../components/catalog/catalog.css";
 
 const date = (value) => (value ? new Date(value).toLocaleString() : "—");
-const period = (row) =>
-  [row.academic_year, row.semester].filter(Boolean).join(" / ") || "Not set";
+const classSection = (row) =>
+  row.enrolled_sections?.join(", ") ||
+  row.class_name ||
+  [row.program, row.year_level, row.section_name].filter(Boolean).join(" / ") ||
+  "Not set";
 const classStatus = (row) =>
   row.archived
     ? "Archived"
@@ -66,7 +70,6 @@ function ClassesTable({ records, onView, onArchive, busy }) {
             <th>Course code and title</th>
             <th>Professor</th>
             <th>Class / section</th>
-            <th>Class period</th>
             <th>Students</th>
             <th>Status</th>
             <th>Actions</th>
@@ -80,14 +83,7 @@ function ClassesTable({ records, onView, onArchive, busy }) {
                 {!row.catalog_id && <div>Not linked to catalog</div>}
               </td>
               <td>{row.professor || "Not set"}</td>
-              <td>
-                {row.class_name ||
-                  [row.program, row.year_level, row.section_name]
-                    .filter(Boolean)
-                    .join(" / ") ||
-                  "Not set"}
-              </td>
-              <td>{period(row)}</td>
+              <td>{classSection(row)}</td>
               <td>{row.student_count}</td>
               <td>
                 <span
@@ -125,7 +121,7 @@ function ClassesTable({ records, onView, onArchive, busy }) {
           ))}
           {!records.length && (
             <tr>
-              <td colSpan={7} className="admin-modules-empty">
+              <td colSpan={6} className="admin-modules-empty">
                 No professor classes found.
               </td>
             </tr>
@@ -235,7 +231,7 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
                   <tr key={row.course_id}>
                     <td>{row.professor || "Unavailable"}</td>
                     <td>{date(row.created_at)}</td>
-                    <td>{row.class_name || [row.program, row.year_level, row.section_name].filter(Boolean).join(" / ") || "Not set"}</td>
+                    <td>{classSection(row)}</td>
                     <td>{classStatus(row)}</td>
                   </tr>
                 ))}
@@ -543,6 +539,12 @@ export default function CourseManagementPage() {
   const action = async (course, action) => {
     const activation = action === "activate";
     const answer = await Swal.fire({
+      ...(!activation && {
+        position: "center",
+        icon: "question",
+        iconColor: "#7fa8d6",
+        customClass: { popup: "puffy-success-dialog" },
+      }),
       confirmButtonColor: "#7fa8d6",
       cancelButtonColor: "#7d8798",
       title: activation

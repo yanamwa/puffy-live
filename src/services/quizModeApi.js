@@ -376,9 +376,13 @@ export function readLocalQuizModes() {
 export function saveLocalQuizModes(modes) {
   const normalized = modes.map(normalizeQuizMode);
 
-  localStorage.setItem(ADMIN_MODES_KEY, JSON.stringify(normalized));
-
-  localStorage.setItem(ADMIN_MODES_SEED_VERSION_KEY, ADMIN_MODES_SEED_VERSION);
+  try {
+    localStorage.setItem(ADMIN_MODES_KEY, JSON.stringify(normalized));
+    localStorage.setItem(ADMIN_MODES_SEED_VERSION_KEY, ADMIN_MODES_SEED_VERSION);
+  } catch (error) {
+    if (error.name !== "QuotaExceededError") throw error;
+    localStorage.removeItem(ADMIN_MODES_KEY);
+  }
 
   dispatchModesUpdate(normalized);
 
