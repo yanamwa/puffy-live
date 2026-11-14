@@ -430,6 +430,7 @@ export default function SuperAdminUserManagementPage() {
   });
   const [query, setQuery] = useState("");
   const [studentYearFilter, setStudentYearFilter] = useState("all");
+  const [studentCourseFilter, setStudentCourseFilter] = useState("all");
   const [studentSectionFilter, setStudentSectionFilter] = useState("all");
   const [professorDepartmentFilter, setProfessorDepartmentFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -550,6 +551,9 @@ export default function SuperAdminUserManagementPage() {
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
+    setStudentYearFilter("all");
+    setStudentCourseFilter("all");
+    setStudentSectionFilter("all");
   };
 
   const userGroups = useMemo(() => {
@@ -596,8 +600,12 @@ export default function SuperAdminUserManagementPage() {
     (user) => String(user.id) === adminProfessorId,
   );
 
+  const showStudentFilters = ["students", "archived"].includes(activeTab);
+  const studentFilterUsers = activeTab === "archived" ? userGroups.archived : userGroups.students;
+  const studentCourseOptions = [...new Set(studentFilterUsers.map((user) => user.course.trim().toUpperCase()).filter(Boolean))].sort();
+
   const studentSectionOptions = useMemo(() => {
-    const sections = userGroups.students
+    const sections = studentFilterUsers
       .filter(
         (user) =>
           studentYearFilter === "all" ||
@@ -609,14 +617,15 @@ export default function SuperAdminUserManagementPage() {
     return [...new Set(sections)].sort((first, second) =>
       first.localeCompare(second, undefined, { numeric: true }),
     );
-  }, [studentYearFilter, userGroups.students]);
+  }, [studentYearFilter, studentFilterUsers]);
 
   const filteredUsers = useMemo(() => {
     const search = query.trim().toLowerCase();
     const tabUsers = userGroups[activeTab] || userGroups.all;
 
     return tabUsers.filter((user) => {
-      if (activeTab === "students") {
+      if (showStudentFilters) {
+        if (studentCourseFilter !== "all" && user.course.trim().toUpperCase() !== studentCourseFilter) return false;
         if (
           studentYearFilter !== "all" &&
           getStudentYearFilterValue(user.yearLevel) !== studentYearFilter
@@ -659,19 +668,21 @@ export default function SuperAdminUserManagementPage() {
     activeTab,
     professorDepartmentFilter,
     query,
+    showStudentFilters,
+    studentCourseFilter,
     studentSectionFilter,
     studentYearFilter,
     userGroups,
   ]);
-  const pagination = useUserPagination(filteredUsers, activeTab, query);
+  const pagination = useUserPagination(filteredUsers, activeTab, JSON.stringify([query, studentYearFilter, studentCourseFilter, studentSectionFilter, professorDepartmentFilter]));
   const visibleUsers = pagination.rows;
 
   const stats = useMemo(
     () => [
       { label: "All Users", value: users.length, icon: FiUsers },
       {
-        label: "Temporary Accounts",
-        value: users.filter((user) => user.isTemporary).length,
+        label: "Pending Approval",
+        value: userGroups.approvals.length,
         icon: FiClock,
       },
       { label: "Students", value: userGroups.students.length, icon: FiUser },
@@ -2192,7 +2203,7 @@ export default function SuperAdminUserManagementPage() {
           </div>
 
           <div className="users-controls users-student-controls">
-            {activeTab === "students" && (
+            {showStudentFilters && (
               <>
                 <label className="users-student-filter">
                   Year Level
@@ -2209,6 +2220,13 @@ export default function SuperAdminUserManagementPage() {
                         {year.label}
                       </option>
                     ))}
+                  </select>
+                </label>
+                <label className="users-student-filter">
+                  Course / Program
+                  <select value={studentCourseFilter} onChange={(event) => setStudentCourseFilter(event.target.value)}>
+                    <option value="all">All Programs</option>
+                    {studentCourseOptions.map((course) => <option key={course}>{course}</option>)}
                   </select>
                 </label>
                 <label className="users-student-filter">

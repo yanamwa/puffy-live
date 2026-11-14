@@ -214,6 +214,10 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+  const [yearFilter, setYearFilter] = useState("");
+  const [courseFilter, setCourseFilter] = useState("");
+  const [sectionFilter, setSectionFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
@@ -231,9 +235,12 @@ export default function UserManagementPage() {
     try {
       const data = await apiRequest("/users");
       if (!Array.isArray(data.users)) throw new Error("Invalid users response from server.");
-      setUsers(data.users.map(normalizeUser).filter(managedUser));
+      const accounts = data.users.map(normalizeUser);
+      setPendingApprovalCount(accounts.filter(user => user.role === "professor" && user.verificationStatus === "pending" && !user.isArchived).length);
+      setUsers(accounts.filter(managedUser));
     } catch (error) {
       setUsers([]);
+      setPendingApprovalCount(0);
       setLoadError(error.message || "Could not load users.");
     } finally { setLoading(false); }
   }, []);
@@ -394,17 +401,22 @@ export default function UserManagementPage() {
   const departmentOf = (user) => (user.professorDepartment || user.department || "").trim();
   const departments = [...new Set(tabUsers.map(departmentOf).filter(Boolean))].sort();
   const department = activeTab !== "students" && departments.includes(departmentFilter) ? departmentFilter : "";
+  const showStudentFilters = ["students", "archived"].includes(activeTab);
+  const courseOptions = [...new Set(tabUsers.map(user => user.course.trim().toUpperCase()).filter(Boolean))].sort();
+  const sectionOptions = [...new Set(tabUsers.filter(user => !yearFilter || user.yearLevel === yearFilter).map(user => user.sectionName).filter(Boolean))].sort();
   const filteredUsers = useMemo(() => {
     const search = query.trim().toLowerCase();
     return tabUsers.filter(user =>
+      (!showStudentFilters || ((!yearFilter || user.yearLevel === yearFilter) && (!courseFilter || user.course.trim().toUpperCase() === courseFilter) && (!sectionFilter || user.sectionName === sectionFilter))) &&
       (!department || (user.professorDepartment || user.department || "").trim() === department) &&
       (!search || [user.name, user.email, user.id, formatUserDisplayId(user), user.studentId, user.professorDepartment, user.department]
         .some(value => String(value ?? "").toLowerCase().includes(search))));
-  }, [tabUsers, query, department]);
-  const pagination = useUserPagination(filteredUsers, activeTab, JSON.stringify([query, department]));
+  }, [tabUsers, query, department, showStudentFilters, yearFilter, courseFilter, sectionFilter]);
+  const pagination = useUserPagination(filteredUsers, activeTab, JSON.stringify([query, department, yearFilter, courseFilter, sectionFilter]));
   const securityLabel = user => user.isTemporary ? `Temporary until ${formatDate(user.temporaryExpiresAt)}` : user.mustChangePassword ? "Temporary password" : user.verified ? "Email verified" : "Email pending";
   const stats = [
     { label: "Managed Users", value: users.length, icon: FiUsers },
+    { label: "Pending Approval", value: pendingApprovalCount, icon: FiClock },
     { label: "Students", value: users.filter(u => u.role === "student").length, icon: FiUser },
     { label: "Approved Professors", value: users.filter(u => u.role === "professor").length, icon: FiMail },
     { label: "Archived", value: users.filter(u => u.isArchived).length, icon: FiArchive },
@@ -424,7 +436,7 @@ export default function UserManagementPage() {
     </div>
     <div className="users-stat-grid">{stats.map(stat => { const Icon = stat.icon; return <div className="users-stat-card" key={stat.label}><div className="users-stat-icon"><Icon /></div><span>{stat.label}</span><strong>{stat.value}</strong></div>; })}</div>
     <nav className="user-management-tabs" aria-label="User management sections">
-      {USER_TABS.map(tab => <button key={tab.id} type="button" className={activeTab === tab.id ? "active" : ""} aria-pressed={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{tab.label}</button>)}
+      {USER_TABS.map(tab => <button key={tab.id} type="button" className={activeTab === tab.id ? "active" : ""} aria-pressed={activeTab === tab.id} onClick={() => { setActiveTab(tab.id); setYearFilter(""); setCourseFilter(""); setSectionFilter(""); }}>{tab.label}</button>)}
     </nav>
     <section className="users-panel">
       <div className="users-panel-top">
@@ -433,6 +445,31 @@ export default function UserManagementPage() {
           <p>{pagination.range} user records shown</p>
         </div>
         <div className="admin-user-filters">
+          {showStudentFilters && (
+            <>
+              <label className="admin-user-department">
+                Year Level
+                <select value={yearFilter} onChange={event => { setYearFilter(event.target.value); setSectionFilter(""); }}>
+                  <option value="">All Year Levels</option>
+                  {YEARS.map(value => <option key={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="admin-user-department">
+                Course / Program
+                <select value={courseFilter} onChange={event => setCourseFilter(event.target.value)}>
+                  <option value="">All Programs</option>
+                  {courseOptions.map(value => <option key={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="admin-user-department">
+                Section
+                <select value={sectionFilter} onChange={event => setSectionFilter(event.target.value)}>
+                  <option value="">All Sections</option>
+                  {sectionOptions.map(value => <option key={value}>{value}</option>)}
+                </select>
+              </label>
+            </>
+          )}
           {activeTab !== "students" && (
             <label className="admin-user-department">
               Department
