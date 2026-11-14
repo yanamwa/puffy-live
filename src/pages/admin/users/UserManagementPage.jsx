@@ -11,6 +11,7 @@ import { API_BASE } from "../../../config";
 import { formatUserDisplayId } from "../../../utils/userDisplayId.js";
 import "./Users.css";
 import Swal from "sweetalert2";
+import { successDialog } from "../../../utils/successDialog.js";
 
 const USER_TABS = [
   { id: "all", label: "All Users" },
@@ -293,8 +294,12 @@ export default function UserManagementPage() {
       const message = `${created.length} imported, ${failures.length} failed.${emailSummary}`;
       const issues = [...failures, ...unconfirmedEmails].slice(0, 5);
       setStudentImportStatus({ ...EMPTY_IMPORT, ...base, state: issues.length ? (created.length ? "partial" : "error") : "success", message, detail: issues.join("\n") });
-      if (!issues.length) showSuccess(message, "Import Complete");
-      else showStudentImportIssue("Import Results", [message, ...failures, ...unconfirmedEmails]);
+      if (!issues.length) {
+        const count = created.length;
+        const summary = `${count} student account${count === 1 ? "" : "s"} successfully imported.`;
+        const credentials = "Students receive a temporary password by email and a separate verification code at sign-in.";
+        successDialog.fire({ title: "Import Complete", text: `${summary}\n${credentials}` });
+      } else showStudentImportIssue("Import Results", [message, ...failures, ...unconfirmedEmails]);
       try {
         await apiRequest("/users/student/bulk-import-audit", { method: "POST", body: JSON.stringify({ fileName: file.name, importedCount: created.length, failedCount: failures.length, totalCount: students.length }) });
       } catch (auditError) { setNotice(`${message} Audit log could not be saved: ${auditError.message}`); }

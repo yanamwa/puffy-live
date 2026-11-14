@@ -1571,3 +1571,83 @@ main.academic-management .academic-overview {
   color: #70569e;
   border: 1px solid #d9cdef;
 }
+
+.academic-add-dialog[open] header {
+  position: relative;
+  justify-content: center;
+  min-height: 44px;
+  padding-inline: 68px;
+}
+
+.academic-add-dialog[open] header .academic-button {
+  position: absolute;
+  inset-inline-end: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  line-height: 1;
+}
+
+.academic-add-dialog[open] header .academic-button:hover {
+  background: #ffffff40;
+}
+
+.academic-document-dialog-content {
+  display: grid;
+  gap: 16px;
+  overflow-wrap: anywhere;
+}
+
+.academic-document-dialog-content > p {
+  margin: 0;
+}
+
+.academic-editor .academic-publication-choice {
+  padding: 12px 16px;
+  border: 1px solid #b5c5d6;
+  border-radius: 10px;
+  background: #edf3fa;
+  color: #263e5b;
+  cursor: pointer;
+}
+
+.academic-editor .academic-publication-choice[data-published="true"] {
+  border-color: #81bca3;
+  background: #e7f5ed;
+  color: #18583d;
+}
+
+.academic-editor .academic-publish input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #18764f;
+}
+
+.academic-publication-choice small {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.85em;
+}
+
+.academic-document-dialog[open] footer .academic-cancel-button {
+  background: #fff;
+  border-color: #b5c5d6;
+  color: #354b62;
+}
+
+.academic-document-dialog[open] footer .academic-save-button {
+  background: #355a80;
+  border-color: #355a80;
+}
+
+.academic-document-dialog[open][data-published="true"] footer .academic-save-button {
+  background: #18764f;
+  border-color: #18764f;
+}
+
+.academic-document-dialog[open] footer .academic-save-button:hover:not(:disabled) {
+  filter: brightness(0.9);
+}

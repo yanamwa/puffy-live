@@ -28,6 +28,7 @@ import { API_BASE } from "../../../config";
 import { formatUserDisplayId } from "../../../utils/userDisplayId.js";
 import "./SuperAdminUserManagementPage.css";
 import Swal from "sweetalert2";
+import { successDialog } from "../../../utils/successDialog.js";
 
 const USER_TABS = [
   { id: "all", label: "All Users" },
@@ -1663,12 +1664,11 @@ export default function SuperAdminUserManagementPage() {
       ------------------------- */
 
       if (failures.length === 0 && emailFailures.length === 0) {
-        showSuccess(
-          `${createdUsers.length} student account${
-            createdUsers.length === 1 ? "" : "s"
-          } successfully imported. Students receive their temporary password first and a separate verification code at sign-in.`,
-          "Import Complete",
-        );
+        const count = createdUsers.length;
+        successDialog.fire({
+          title: "Import Complete",
+          text: `${count} student account${count === 1 ? "" : "s"} successfully imported.\nStudents receive a temporary password by email and a separate verification code at sign-in.`,
+        });
       } else {
         showStudentImportIssue("Import Results", [`${createdUsers.length} students imported.`, ...failures, ...emailFailures.map((row) => `Password email failed for ${row}`)]);
       }

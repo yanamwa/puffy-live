@@ -12,6 +12,7 @@ import LessonSourceEvidence from "../../../components/lesson/LessonSourceEvidenc
 import LessonSourceManager from "../../../components/lesson/LessonSourceManager.jsx";
 import LessonFilePicker from "../../../components/lesson/LessonFilePicker.jsx";
 import Swal from "sweetalert2";
+import { successDialog } from "../../../utils/successDialog.js";
 
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { fetchCourse, saveCourse } from "../../../services/courseApi.js";
@@ -1135,13 +1136,12 @@ export default function AddModule() {
       setForm(next);
       writeCourseBuilderDraft(id, next);
       writeCourseBuilderDraft(next.id, next);
-      await Swal.fire({
-        icon: "success",
+      await successDialog.fire({
         title: publishing ? "Module uploaded" : "Module removed from students",
         text: publishing
           ? recap.error
             ? "Students can access the lessons. Quick Recap could not be generated, so their first practice will cover the module broadly."
-            : "This module is available to enrolled students. Other modules keep their upload status."
+            : "This module is available to enrolled students."
           : "Student access is off for this module. Its lessons and quizzes are still saved.",
       });
     } catch (error) {
@@ -1342,22 +1342,20 @@ export default function AddModule() {
         writeCourseBuilderDraft(savedId, persistedDraft);
       }
 
-      await Swal.fire({
+      await successDialog.fire({
         icon: "success",
 
         title: isEditing ? "Course Updated" : "Course Added",
 
         customClass: {
-          popup: styles.courseSavePopup,
-          title: styles.courseSaveTitle,
+          popup: "puffy-success-dialog",
           htmlContainer: styles.courseSaveDetails,
-          confirmButton: styles.courseSaveConfirm,
         },
 
         html:
           (saveAsDraft
             ? `<p>Saved as a draft. Students cannot access it until it is published.</p>${form.status !== "published" ? "<p>Status is set to Draft.</p>" : ""}${missingDetails.length ? `<section><h3>Required before publishing</h3>${detailsList(missingDetails)}</section>` : "<p>The required details are complete. Select Publish to make the course available.</p>"}`
-            : "<p>The course is available to students. Empty modules can be completed later. Save this published course after adding lessons to make them available to students.</p>"),
+            : "<p>The course is available to students.</p><p>Empty modules can be completed later. Save this published course after adding lessons to make them available to students.</p>"),
 
         confirmButtonText: "Done",
       });

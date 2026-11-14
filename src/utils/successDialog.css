@@ -1,0 +1,35 @@
+.swal2-popup.puffy-success-dialog {
+  width: min(560px, calc(100vw - 32px));
+  padding: 28px 24px;
+  border-radius: 16px;
+  font-family: inherit;
+}
+
+.puffy-success-dialog .swal2-title {
+  padding: 0;
+  color: #294765;
+  font-size: 24px;
+  text-align: center;
+}
+
+.puffy-success-dialog .swal2-icon {
+  margin: 8px auto 24px;
+}
+
+.puffy-success-dialog .swal2-html-container {
+  margin: 16px auto 0;
+  max-width: 450px;
+  padding: 0;
+  color: #526273;
+  font-size: 16px;
+  line-height: 1.5;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.puffy-success-dialog .swal2-confirm {
+  min-width: 84px;
+  background: #7fa8d6;
+  border-radius: 6px;
+  font: inherit;
+}

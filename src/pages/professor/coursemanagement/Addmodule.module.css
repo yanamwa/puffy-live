@@ -5279,33 +5279,8 @@
   font-size: 14px;
   line-height: 1.5;
 }
-.courseSavePopup:global(.swal2-popup) {
-  width: min(560px, calc(100vw - 32px)) !important;
-  padding: 24px !important;
-  font-family: Arial, sans-serif !important;
-}
-
-.courseSavePopup :global(.swal2-icon) {
-  margin: 4px auto 16px !important;
-  transform: scale(0.75);
-  height: 64px;
-}
-
-.courseSavePopup .courseSaveTitle {
-  padding: 0 !important;
-  font-size: 24px !important;
-  font-weight: 600 !important;
-  color: #294765 !important;
-}
-
-.courseSavePopup .courseSaveDetails {
-  margin: 16px 0 0 !important;
-  max-height: 48vh;
-  overflow-y: auto;
+.courseSaveDetails section {
   text-align: left;
-  font-size: 14px !important;
-  line-height: 1.6 !important;
-  color: #526273 !important;
 }
 
 .courseSaveDetails p {
@@ -5344,14 +5319,6 @@
   margin: 10px 0 0;
   font-size: 12px;
 }
-.courseSavePopup .courseSaveConfirm {
-  min-width: 110px !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 14px !important;
-  background: #7fa8d6 !important;
-  box-shadow: none !important;
-}
-
 .questionSelectionRow {
   display: flex;
   align-items: center;
