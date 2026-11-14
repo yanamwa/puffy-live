@@ -144,3 +144,30 @@
 .student-import-error {
   color: #a32121;
 }
+
+.student-import-dialog {
+  width: min(860px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  box-sizing: border-box;
+  margin: auto;
+  padding: 22px;
+  overflow: auto;
+  border: 1px solid #cbdced;
+  border-radius: 12px;
+  background: #fff;
+  color: #263e5b;
+  box-shadow: 0 16px 48px #142b4540;
+}
+
+.student-import-dialog::backdrop {
+  background: #172c4966;
+}
+
+.student-import-dialog h3 {
+  margin: 0 0 12px;
+}
+
+.student-import-dialog > .student-import-mapping {
+  border: 0;
+  padding: 0;
+}
