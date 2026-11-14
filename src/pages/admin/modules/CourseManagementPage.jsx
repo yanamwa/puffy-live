@@ -28,15 +28,47 @@ const date = (value) => (value ? new Date(value).toLocaleString() : "—");
 const syllabusPeriod = (version) =>
   [version.academic_year, version.semester].filter(Boolean).join(" / ") ||
   "Not set";
-const classSection = (row) =>
-  row.enrolled_sections?.join(", ") ||
-  row.class_name ||
-  [row.program, row.year_level, row.section_name].filter(Boolean).join(" / ") ||
-  (Number(row.student_count) > 0
-    ? Array.isArray(row.enrolled_sections)
-      ? "No sections recorded"
-      : "Enrollment sections unavailable"
-    : "Not set");
+
+const classSection = (row) => {
+  const sections =
+    row.enrollment_sections ?? row.enrolled_sections;
+
+  const labels = Array.isArray(sections)
+    ? sections
+        .map((section) => {
+          if (typeof section === "string") {
+            return section.trim();
+          }
+
+          if (!section || typeof section !== "object") {
+            return "";
+          }
+
+          return [
+            section.program,
+            section.year_level,
+            section.section_name,
+          ]
+            .filter(Boolean)
+            .join(" ");
+        })
+        .filter(Boolean)
+    : [];
+
+  return (
+    [...new Set(labels)].join(", ") ||
+    row.class_name ||
+    [row.program, row.year_level, row.section_name]
+      .filter(Boolean)
+      .join(" / ") ||
+    (Number(row.student_count) > 0
+      ? Array.isArray(sections)
+        ? "No sections recorded"
+        : "Enrollment sections unavailable"
+      : "Not set")
+  );
+};
+
 const classStatus = (row) =>
   row.archived
     ? "Archived"
