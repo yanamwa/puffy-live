@@ -5,6 +5,7 @@ import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
 import { API_BASE } from "../../../config.js";
 import { FaInstagram, FaFacebookF, FaEnvelope } from "react-icons/fa";
+import "../../auth/LoginFeedback.css";
 
 function ContactUs() {
   const [sending, setSending] = useState(false);
@@ -18,10 +19,15 @@ function ContactUs() {
       title,
       text,
       imageUrl: image,
-      imageWidth: 200,
-      imageHeight: 200,
+      imageWidth: 360,
+      imageHeight: 240,
+      imageAlt: title,
       confirmButtonText: "Okay",
       confirmButtonColor: "#7fa8d6",
+      customClass: {
+        popup: "login-feedback-popup",
+        container: "login-feedback-overlay",
+      },
     });
   };
 
@@ -47,16 +53,19 @@ function ContactUs() {
 
     setSending(true);
 
-    fetch(`${API_BASE}/sendContactMessage.php`, {
+    fetch(`${API_BASE}/contact`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ name, email, message }),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
+      .then(async (response) => ({
+        response,
+        data: await response.json().catch(() => ({})),
+      }))
+      .then(({ response, data }) => {
+        if (response.ok && data.success) {
           showAlert({
             title: "Message Sent!",
             text:
@@ -67,21 +76,21 @@ function ContactUs() {
 
           form.reset();
         } else {
+          const isLimitReached =
+            response.status === 429 ||
+            data.message === "You can only send 3 messages.";
           showAlert({
-            title:
-              data.message === "You can only send 3 messages."
-                ? "Message Limit Reached"
-                : "Message Failed",
+            title: isLimitReached ? "Message Limit Reached" : "Message Failed",
             text: data.message || "Please try again.",
-            image: "/images/think.png",
+            image: "/images/tryagain.png",
           });
         }
       })
       .catch(() => {
         showAlert({
           title: "Server Error",
-          text: "Could not send your message.",
-          image: "/images/error.png",
+          text: "Could not send your message. Please try again.",
+          image: "/images/tryagain.png",
         });
       })
       .finally(() => {
@@ -135,6 +144,7 @@ function ContactUs() {
               <input
                 name="name"
                 type="text"
+                maxLength={120}
                 placeholder="Enter your name"
                 required
               />
@@ -145,6 +155,7 @@ function ContactUs() {
               <input
                 name="email"
                 type="email"
+                maxLength={254}
                 placeholder="Enter your email"
                 required
               />
@@ -155,6 +166,7 @@ function ContactUs() {
             <label>Message:</label>
             <textarea
               name="message"
+              maxLength={5000}
               placeholder="Enter your message"
               required
             ></textarea>

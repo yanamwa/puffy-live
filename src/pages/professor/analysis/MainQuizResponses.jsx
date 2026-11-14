@@ -6,18 +6,31 @@ import {
   FiArrowLeft,
   FiChevronLeft,
   FiChevronRight,
-  FiPrinter,
   FiMail,
   FiDownload,
+  FiPrinter,
 } from "react-icons/fi";
 import "./MainQuizResponses.css";
 
 import { readMainQuizResponseAnswer } from "../../../services/mainQuizResponse.js";
 
+function formatReportDate(value) {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? String(value)
+    : new Intl.DateTimeFormat(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }).format(date);
+}
+
 export default function MainQuizResponses({
   courseId,
   courseTitle,
   quizTitle,
+  assessmentTitle,
   attempts,
   onBack,
   embedded = false,
@@ -28,7 +41,7 @@ export default function MainQuizResponses({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const percentOf = (a) => a.earnedScore != null && Number.isFinite(Number(a.earnedScore)) && Number(a.total) > 0 ? Math.round(Number(a.earnedScore) / Number(a.total) * 100) : null;
   const passed = (a) => percentOf(a) !== null && Number(a.earnedScore) >= (Number.isFinite(passScore) ? passScore : Math.max(1, Math.ceil(Number(a.total || 0) * 0.7)));
-  const visibleResponses = attempts.filter(a => `${a.name || ""} ${a.section || ""} ${a.email || ""}`.toLowerCase().includes(search.toLowerCase()) && (resultFilter === "all" || (percentOf(a) === null ? "ungraded" : passed(a) ? "passed" : "failed") === resultFilter));
+  const visibleResponses = attempts.filter(a => `${a.name || ""} ${a.section || ""} ${a.email || ""} ${a.moduleTitle || ""}`.toLowerCase().includes(search.toLowerCase()) && (resultFilter === "all" || (percentOf(a) === null ? "ungraded" : passed(a) ? "passed" : "failed") === resultFilter));
   const [selectedId, setSelectedId] = useState(null);
   const [includeKey, setIncludeKey] = useState(true);
   const [sending, setSending] = useState(false);
@@ -38,10 +51,59 @@ export default function MainQuizResponses({
   );
   const index = foundIndex < 0 ? 0 : foundIndex;
   const attempt = attempts[index];
+  const responseCourseBase = String(courseTitle || "").replace(
+    /\s-\sAll Modules$/i,
+    "",
+  );
+  const selectedCourseTitle =
+    detailsOpen && attempt?.moduleTitle
+      ? [responseCourseBase, attempt.moduleTitle].filter(Boolean).join(" - ")
+      : courseTitle;
   const answers = (attempt?.answers || []).map(readMainQuizResponseAnswer);
+  const typedAnswers = answers.map((answer, questionIndex) => {
+    const rawType = String(
+      answer.questionType ||
+        attempt?.answers?.[questionIndex]?.type ||
+        attempt?.answers?.[questionIndex]?.question_type ||
+        "",
+    )
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+    const type = /multiple.?choice|mcq/.test(rawType)
+      ? "multiple_choice"
+      : /identification|short.?answer|fill.?in/.test(rawType)
+        ? "identification"
+        : /true.?false|boolean/.test(rawType)
+          ? "true_false"
+          : "other";
+    return { ...answer, questionIndex, type };
+  });
+  const responseTestGroups = [
+    { type: "multiple_choice", title: "Multiple Choice" },
+    { type: "identification", title: "Identification" },
+    { type: "true_false", title: "True or False" },
+    { type: "other", title: "Assessment Questions" },
+  ]
+    .map((group) => ({
+      ...group,
+      answers: typedAnswers.filter((answer) => answer.type === group.type),
+    }))
+    .filter((group) => group.answers.length)
+    .map((group, groupIndex) => ({
+      ...group,
+      heading: `Test ${groupIndex + 1}: ${group.title}`,
+    }));
+  const reportPrintedAt = new Intl.DateTimeFormat(undefined, {
+    year: "2-digit",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date());
   const reportText = attempt
     ? [
-        courseTitle,
+        selectedCourseTitle,
         quizTitle,
         `Student: ${attempt.name}`,
         `Email: ${attempt.email || "Unavailable"}`,
@@ -107,7 +169,12 @@ export default function MainQuizResponses({
       confirmButtonText: "Send emails",
       cancelButtonText: "Cancel",
       confirmButtonColor: "#7fa8d6",
-      customClass: { popup: "quiz-email-popup" },
+      buttonsStyling: false,
+      customClass: {
+        popup: "quiz-email-popup",
+        confirmButton: "quiz-email-confirm",
+        cancelButton: "quiz-email-cancel",
+      },
       didOpen: (popup) => {
         const all = popup.querySelector("#quiz-email-all");
         const boxes = [
@@ -212,6 +279,59 @@ export default function MainQuizResponses({
     anchor.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  const renderResponseQuestion = (answer, print = false) => (
+    <article
+      className={`main-response-card main-response-question ${answer.isCorrect === true ? "response-correct" : answer.isCorrect === false ? "response-incorrect" : ""}`}
+      key={answer.questionIndex}
+    >
+      <div className="main-response-question-heading">
+        <div>
+          <span className="main-response-question-number">
+            Question {answer.questionIndex + 1}
+          </span>
+          <h3>{answer.question}</h3>
+        </div>
+        <span>
+          {answer.isCorrect === true
+            ? "✓ Correct"
+            : answer.isCorrect === false
+              ? "✕ Incorrect"
+              : "Not graded"}
+        </span>
+      </div>
+      {answer.options.length > 0 && (
+        <ul>
+          {answer.options.map((option, j) => (
+            <li
+              key={j}
+              className={option === answer.selected ? "response-selected" : ""}
+            >
+              <span aria-hidden="true">
+                {print
+                  ? `${String.fromCharCode(65 + j)}.`
+                  : option === answer.selected
+                    ? "◉"
+                    : "○"}
+              </span>{" "}
+              {option}
+              {option === answer.selected && <small>Student answer</small>}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p>
+        <strong>Student answer:</strong> {answer.selected || "No answer"}
+      </p>
+      {includeKey && (
+        <div className="main-response-answer-key">
+          <p>
+            <strong>Correct answer:</strong> {answer.correct || "Not recorded"}
+          </p>
+          {answer.explanation && <p>{answer.explanation}</p>}
+        </div>
+      )}
+    </article>
+  );
   return (
     <section
       className={`main-response-page ${embedded ? "main-response-embedded" : ""}`}
@@ -227,7 +347,7 @@ export default function MainQuizResponses({
             <span className="main-response-eyebrow">MAIN QUIZ RESPONSES</span>
 
             <p>
-              {courseTitle} · {quizTitle}
+              {selectedCourseTitle} · {quizTitle}
             </p>
           </div>
         </div>
@@ -318,22 +438,147 @@ export default function MainQuizResponses({
           </p>
         )}
       </div>
-      {!detailsOpen && <section className="response-directory">
-        <div className="response-directory-heading"><label htmlFor="response-search">Student responses</label><span>{visibleResponses.length} responses</span></div>
-        <input id="response-search" type="search" placeholder="Search student name, section, or email" value={search} onChange={e => setSearch(e.target.value)} />
-        <nav className="response-result-tabs" aria-label="Filter results">{["all", "passed", "failed"].map(value => <button type="button" key={value} aria-pressed={resultFilter === value} onClick={() => setResultFilter(value)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</nav>
-        {visibleResponses.map((student, i) => <article className="response-student-card" key={student.id ?? i}>
-          <div><h3>{student.name}</h3><p className="response-student-meta"><span>{student.section || "Section unavailable"}</span><span>{student.email || "Email not recorded"}</span></p><span className={`response-outcome ${passed(student) ? "passed" : "failed"}`}>{percentOf(student) === null ? "Not graded" : passed(student) ? "Passed" : "Failed"}</span></div>
-          <div className="response-card-actions"><strong className={passed(student) ? "passed" : "failed"}>{percentOf(student) === null ? "Not graded" : `${percentOf(student)}%`}</strong><button type="button" onClick={() => { setSelectedId(student.id); setDetailsOpen(true); }}>View Details</button></div>
-        </article>)}
-        {!visibleResponses.length && <p>No responses match these filters.</p>}
-        {detailsOpen && <button type="button" className="response-close-details" onClick={() => setDetailsOpen(false)}>Close details</button>}
-      </section>}
+      {!detailsOpen && (
+        <section className="response-directory qa-print-report">
+          <header className="response-print-heading">
+            <span>ACADEMIC REPORT</span>
+            <h2>Student Response Summary</h2>
+            <p>{courseTitle}</p>
+            <p>{quizTitle}</p>
+          </header>
+          <div className="response-directory-heading">
+            <label htmlFor="response-search">Student responses</label>
+            <span>{visibleResponses.length} responses</span>
+          </div>
+          <input
+            id="response-search"
+            type="search"
+            placeholder="Search student name, section, or email"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          <nav className="response-result-tabs" aria-label="Filter results">
+            {["all", "passed", "failed"].map((value) => (
+              <button
+                type="button"
+                key={value}
+                aria-pressed={resultFilter === value}
+                onClick={() => setResultFilter(value)}
+              >
+                {value[0].toUpperCase() + value.slice(1)}
+              </button>
+            ))}
+          </nav>
+          {visibleResponses.map((student, i) => (
+            <article
+              className="response-student-card"
+              key={student.id ?? i}
+            >
+              <div>
+                <h3>{student.name}</h3>
+                <p className="response-student-meta">
+                  <span>{student.section || "Section unavailable"}</span>
+                  <span>{student.email || "Email not recorded"}</span>
+                </p>
+                <div className="response-outcome-line">
+                  <span
+                    className={`response-outcome ${passed(student) ? "passed" : "failed"}`}
+                  >
+                    {percentOf(student) === null
+                      ? "Not graded"
+                      : passed(student)
+                        ? "Passed"
+                        : "Failed"}
+                  </span>
+                  <span className="response-module-name">
+                    Module: {student.moduleTitle || "Unavailable"}
+                  </span>
+                </div>
+              </div>
+              <div className="response-card-actions">
+                <strong className={passed(student) ? "passed" : "failed"}>
+                  {percentOf(student) === null
+                    ? "Not graded"
+                    : `${percentOf(student)}%`}
+                </strong>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedId(student.id);
+                    setDetailsOpen(true);
+                  }}
+                >
+                  View Details
+                </button>
+              </div>
+            </article>
+          ))}
+          {!visibleResponses.length && (
+            <p className="response-directory-empty">
+              No responses match these filters.
+            </p>
+          )}
+          {visibleResponses.length > 0 && (
+            <table className="response-summary-print" aria-label="Student score summary">
+              <thead>
+                <tr>
+                  <th scope="col">Student Name</th>
+                  <th scope="col">Year Level</th>
+                  <th scope="col">Section</th>
+                  <th scope="col">Score</th>
+                  <th scope="col">Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleResponses.map((student, i) => (
+                  <tr key={student.id ?? i}>
+                    <td>{student.name || "Name unavailable"}</td>
+                    <td>{student.yearLevel || "N/A"}</td>
+                    <td>{student.section || "Section unavailable"}</td>
+                    <td>
+                      {percentOf(student) === null ? (
+                        "Not graded"
+                      ) : (
+                        <>
+                          <strong>{percentOf(student)}%</strong>
+                          <small>
+                            {student.earnedScore} / {student.total}
+                          </small>
+                        </>
+                      )}
+                    </td>
+                    <td>
+                      {percentOf(student) === null
+                        ? "Not graded"
+                        : passed(student)
+                          ? "Passed"
+                          : "Failed"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
       {detailsOpen && attempt ? (
         <div className="main-response-report qa-print-report">
+          <header className="response-print-heading response-individual-print-heading">
+            <div className="response-paper-brand-row">
+              <span>{reportPrintedAt}</span>
+              <strong>PuffyBrain</strong>
+            </div>
+            <h2>{attempt.moduleTitle || "Module unavailable"}</h2>
+            <div className="response-paper-student-fields">
+              <div><span>Name:</span><strong>{attempt.name || ""}</strong></div>
+              <div><span>Date:</span><strong>{formatReportDate(attempt.submittedAt)}</strong></div>
+              <div><span>Section:</span><strong>{attempt.section || ""}</strong></div>
+              <div><span>Score:</span><strong>{percentOf(attempt) === null ? "Not graded" : `${attempt.earnedScore} / ${attempt.total} (${percentOf(attempt)}%)`}</strong></div>
+            </div>
+          </header>
           <nav className="response-detail-back"><button type="button" onClick={() => setDetailsOpen(false)}>‹ Back to students</button></nav>
           <section className="response-detail-summary main-response-card">
-            <header><h2>{attempt.name}</h2><p>{attempt.section || "Section unavailable"} · {quizTitle}</p><span className={`response-outcome ${passed(attempt) ? "passed" : "failed"}`}>{passed(attempt) ? "Passed" : "Failed"}</span></header>
+            <header><h2>{attempt.name}</h2><p>{attempt.section || "Section unavailable"} · {quizTitle}</p><div className="response-outcome-line"><span className={`response-outcome ${passed(attempt) ? "passed" : "failed"}`}>{passed(attempt) ? "Passed" : "Failed"}</span><span className="response-module-name">Module: {attempt.moduleTitle || "Unavailable"}</span></div></header>
             <div className="response-detail-metrics">
               <div><span>Score</span><strong>{percentOf(attempt)}%</strong></div>
               {["LOTS", "HOTS"].map(skill => {
@@ -343,68 +588,30 @@ export default function MainQuizResponses({
               })}
             </div>
             <h3>Quiz Details</h3>
-            <dl className="response-quiz-facts"><dt>Assessment</dt><dd>{quizTitle || "Main Quiz"}</dd><dt>Attempt</dt><dd>{attempt.attempt_number ?? attempt.attemptNumber ?? "Not recorded"}</dd><dt>Passing Score</dt><dd>{Number(attempt.total) > 0 ? `${Math.round((Number.isFinite(passScore) ? passScore : Math.max(1, Math.ceil(Number(attempt.total) * 0.7))) / Number(attempt.total) * 100)}%` : "N/A"}</dd></dl>
+            <dl className="response-quiz-facts"><dt>Assessment</dt><dd>{assessmentTitle || `${courseTitle} - ${quizTitle || "Main Quiz"}`}</dd><dt>Module</dt><dd>{attempt.moduleTitle || "Module unavailable"}</dd><dt>Passing Score</dt><dd>{Number(attempt.total) > 0 ? `${Math.round((Number.isFinite(passScore) ? passScore : Math.max(1, Math.ceil(Number(attempt.total) * 0.7))) / Number(attempt.total) * 100)}%` : "N/A"}</dd></dl>
           </section>
-          <section className="response-student-answers"><h2>Student Answers</h2>          {answers.map((answer, i) => (
-            <article
-              className={`main-response-card main-response-question ${answer.isCorrect === true ? "response-correct" : answer.isCorrect === false ? "response-incorrect" : ""}`}
-              key={i}
-            >
-              <div className="main-response-question-heading">
-                <div>
-                  <span className="main-response-question-number">
-                    Question {i + 1}
-                  </span>
-                  <h3>{answer.question}</h3>
-                </div>
-                <span>
-                  {answer.isCorrect === true
-                    ? "✓ Correct"
-                    : answer.isCorrect === false
-                      ? "✕ Incorrect"
-                      : "Not graded"}
-                </span>
-              </div>
-              {answer.options.length > 0 && (
-                <ul>
-                  {answer.options.map((option, j) => (
-                    <li
-                      key={j}
-                      className={
-                        option === answer.selected ? "response-selected" : ""
-                      }
-                    >
-                      <span aria-hidden="true">
-                        {option === answer.selected ? "◉" : "○"}
-                      </span>{" "}
-                      {option}
-                      {option === answer.selected && (
-                        <small>Student answer</small>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p>
-                <strong>Student answer:</strong>{" "}
-                {answer.selected || "No answer"}
+          <section className="response-student-answers response-student-answers-screen">
+            <h2>Student Answers</h2>
+            {typedAnswers.map((answer) => renderResponseQuestion(answer))}
+            {!answers.length && (
+              <p className="main-response-card">
+                Question-level answers were not recorded for this response.
               </p>
-              {includeKey && (
-                <div className="main-response-answer-key">
-                  <p>
-                    <strong>Correct answer:</strong>{" "}
-                    {answer.correct || "Not recorded"}
-                  </p>
-                  {answer.explanation && <p>{answer.explanation}</p>}
-                </div>
-              )}
-            </article>
-          ))}
-          {!answers.length && (
-            <p className="main-response-card">
-              Question-level answers were not recorded for this response.
-            </p>
-          )}</section>
+            )}
+          </section>
+          <section className="response-student-answers response-student-answers-print">
+            {responseTestGroups.map((group) => (
+              <div className="response-test-section" key={group.type}>
+                <h3>{group.heading}</h3>
+                {group.answers.map((answer) => renderResponseQuestion(answer, true))}
+              </div>
+            ))}
+            {!answers.length && (
+              <p className="main-response-card">
+                Question-level answers were not recorded for this response.
+              </p>
+            )}
+          </section>
         </div>
       ) : (
         !attempt && <p className="main-response-card">No responses yet.</p>

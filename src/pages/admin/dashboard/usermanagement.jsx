@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "./user.module.css";
 import "boxicons/css/boxicons.min.css";
 import Swal from "sweetalert2";
+import confirmLogout from "../../../utils/confirmLogout.js";
 import { API_BASE } from "../../config.js";
 import AHeader from "../../components/AHeader";
 import ASidebar from "../../components/ASidebar";
@@ -159,17 +160,7 @@ export default function UserManagement() {
   const handleLogout = async (e) => {
     e.preventDefault();
 
-    const result = await Swal.fire({
-      title: "Logout?",
-      text: "Are you sure you want to logout?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#7b5cff",
-    });
-
-    if (!result.isConfirmed) return;
+    if (!(await confirmLogout())) return;
 
     try {
       await fetch(`${API_BASE}/adminLogout.php`, {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import confirmLogout from "../../utils/confirmLogout.js";
 import styles from "./notification.module.css";
 import "boxicons/css/boxicons.min.css";
 import { API_BASE } from "../../config.js";
@@ -354,17 +355,7 @@ export default function NotificationManagement() {
   const handleLogout = async (e) => {
     e.preventDefault();
 
-    const result = await Swal.fire({
-      title: "Logout?",
-      text: "Are you sure you want to logout?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#7b5cff",
-    });
-
-    if (!result.isConfirmed) return;
+    if (!(await confirmLogout())) return;
 
     try {
       await fetch(`${API_BASE}/adminLogout.php`, {

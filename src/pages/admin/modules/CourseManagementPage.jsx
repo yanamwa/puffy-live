@@ -539,7 +539,7 @@ export default function CourseManagementPage() {
       text: activation
         ? "Review the course details and syllabus before confirming activation."
         : action === "archive"
-          ? "This archives the catalog course and its active professor classes. Professors will be notified, and class records will remain available under Archived."
+          ? "This archives the catalog course and its active professor classes. Professors will receive in-app and email notifications. Only an administrator can restore these classes; records remain available under Archived."
           : "The course will retain its previous draft or active status.",
       showCancelButton: true,
       confirmButtonText: activation
@@ -560,19 +560,31 @@ export default function CourseManagementPage() {
     if (!answer.isConfirmed) return;
     setBusy(true);
     try {
-      await catalogRequest("/" + course.catalog_id, {
+      const updateResult = await catalogRequest("/" + course.catalog_id, {
         method: "PATCH",
         body: JSON.stringify({ action, reviewed: activation }),
       });
       notifyCatalogChanged();
       refresh();
+      const emailSent = Number(updateResult.emailNotificationsSent || 0);
+      const emailFailed = Number(updateResult.emailNotificationsFailed || 0);
       Swal.fire({
         confirmButtonColor: "#7fa8d6",
         cancelButtonColor: "#7d8798",
-        icon: "success",
-        title: "Course updated",
-        timer: 1500,
-        showConfirmButton: false,
+        icon: emailFailed ? "warning" : "success",
+        title: action === "archive" ? "Catalog course archived" : "Course updated",
+        text:
+          action === "archive"
+            ? emailFailed
+              ? `${emailSent} professor email${emailSent === 1 ? " was" : "s were"} sent; ${emailFailed} could not be sent. The in-app notifications are still available.`
+              : emailSent
+                ? `${emailSent} professor notification email${emailSent === 1 ? " was" : "s were"} sent.`
+                : Number(updateResult.archivedClassCount) === 0
+                  ? "The catalog course was archived. There were no active professor classes to notify."
+                  : "The course was archived, but no professor email addresses were available for notification."
+            : "The course status was updated.",
+        timer: emailFailed ? undefined : 2200,
+        showConfirmButton: Boolean(emailFailed),
       });
     } catch (e) {
       Swal.fire({

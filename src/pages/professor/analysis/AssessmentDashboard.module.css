@@ -430,23 +430,26 @@
   outline-offset: -5px;
 }
 .reportPagination,
-.reportPaginationControls,
-.reportPaginationControls label {
+.reportPaginationControls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 .reportPagination {
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
   padding-top: 18px;
+  margin-bottom: 20px;
   border-top: 1px solid #dce4ec;
   color: #6d8095;
   font-size: 13px;
 }
-.reportPaginationControls button,
-.reportPaginationControls select {
+.reportPaginationControls {
+  justify-content: center;
+  gap: 16px;
+}
+.reportPaginationControls button {
   min-height: 36px;
   padding: 7px 10px;
   border: 1px solid #c9d9eb;
@@ -462,12 +465,20 @@
   background: #edf4fc;
   border-color: #7fa8d6;
 }
+.reportPaginationControls button[aria-current="page"] {
+  background: #7fa8d6;
+  border-color: #7fa8d6;
+  color: #ffffff;
+}
+.reportPaginationControls button[aria-current="page"]:hover {
+  background: #6f9bc9;
+  border-color: #6f9bc9;
+}
 .reportPaginationControls button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.reportPaginationControls button:focus-visible,
-.reportPaginationControls select:focus-visible {
+.reportPaginationControls button:focus-visible {
   outline: 2px solid #7fa8d6;
   outline-offset: 2px;
 }
@@ -509,6 +520,13 @@
 @media (max-width: 420px) {
   .metrics {
     grid-template-columns: 1fr;
+  }
+  .reportPaginationControls {
+    gap: 12px;
+  }
+  .reportPaginationControls button {
+    min-width: 36px;
+    padding-inline: 8px;
   }
 }
 

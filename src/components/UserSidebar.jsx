@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
 import styles from "../pages/course/Learning_Module.module.css";
+import confirmLogout from "../utils/confirmLogout.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useNavigate } from "react-router-dom";
 
 function SidebarItem({ children, icon, onClick, to, active = false }) {
   const className = `${styles.menuItem} ${active ? styles.active : ""}`;
@@ -29,6 +32,14 @@ export default function UserSidebar({
   openCourse,
   getDeckId,
 }) {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const confirmAndLogout = async () => {
+    if (!(await confirmLogout())) return;
+    await logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <aside
       className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""}`}
@@ -117,7 +128,7 @@ export default function UserSidebar({
       </div>
 
       <div className={styles.logout}>
-        <SidebarItem icon="L" to="/login">
+        <SidebarItem icon="L" onClick={confirmAndLogout}>
           Log out
         </SidebarItem>
       </div>

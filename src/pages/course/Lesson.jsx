@@ -652,11 +652,9 @@ function Lesson() {
                     ) : (
                       <img
                         src={currentLessonMedia.url}
-                        alt={currentLessonMedia.name}
+                        alt="Lesson image"
                       />
                     )}
-
-                    <figcaption>{currentLessonMedia.name}</figcaption>
                   </figure>
                 )}
 

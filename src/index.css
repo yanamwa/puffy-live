@@ -110,6 +110,84 @@ body .swal2-container .swal2-popup * {
   font-family: "Merriweather", Georgia, serif !important;
 }
 
+/* Shared logout confirmation styled to match the Generate Module dialog. */
+body .swal2-popup.logout-confirm-dialog {
+  width: min(480px, calc(100vw - 32px)) !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid #b7cbe0 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  color: #4f6174 !important;
+  box-shadow: 0 20px 70px #263c5238 !important;
+}
+
+body .logout-confirm-dialog .logout-confirm-title {
+  margin: 0 !important;
+  padding: 24px 28px 8px !important;
+  color: #365a7d !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+}
+
+body .logout-confirm-dialog .logout-confirm-text {
+  margin: 0 !important;
+  padding: 8px 28px 24px !important;
+  color: #64748b !important;
+  font-size: 15px !important;
+}
+
+body .logout-confirm-dialog .logout-confirm-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  width: 100%;
+  margin: 0 !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #e6e9ed;
+}
+
+body .logout-confirm-dialog .logout-confirm-accept,
+body .logout-confirm-dialog .logout-confirm-cancel {
+  min-height: 44px;
+  margin: 0 !important;
+  padding: 0 22px !important;
+  border: 1px solid #7fa8d6 !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+}
+
+body .logout-confirm-dialog .logout-confirm-accept {
+  background: #7fa8d6 !important;
+  color: #fff !important;
+}
+
+body .logout-confirm-dialog .logout-confirm-accept:hover {
+  background: #608cbd !important;
+}
+
+body .logout-confirm-dialog .logout-confirm-cancel {
+  background: #fff !important;
+  color: #52718f !important;
+}
+
+body .logout-confirm-dialog .logout-confirm-cancel:hover {
+  background: #edf4fc !important;
+}
+
+@media (max-width: 480px) {
+  body .logout-confirm-dialog .logout-confirm-actions {
+    flex-direction: column-reverse !important;
+  }
+
+  body .logout-confirm-dialog .logout-confirm-accept,
+  body .logout-confirm-dialog .logout-confirm-cancel {
+    width: 100%;
+  }
+}
+
 /* Keep popup cancellation actions neutral across page themes. */
 body .swal2-popup .swal2-actions .swal2-cancel,
 body .swal2-popup .swal2-actions .enroll-cancel-btn,

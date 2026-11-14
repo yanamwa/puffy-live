@@ -8,7 +8,7 @@ export default function Layout() {
   const { user, checkingStudentSession } = useAuth();
 
   if (checkingStudentSession) {
-    return <LoadingState message="Checking your session…" />;
+    return <LoadingState message="" />;
   }
 
   const setupRedirect = getStudentSetupRedirect(user, location);

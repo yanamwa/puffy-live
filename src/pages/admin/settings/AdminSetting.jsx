@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import confirmLogout from "../../../utils/confirmLogout.js";
 import AdminLayout from "../shared/AdminLayout";
 import styles from "./AdminSettings.module.css";
 import "boxicons/css/boxicons.min.css";
@@ -153,6 +154,8 @@ export default function AdminSettings() {
   }, [imagePreview]);
 
   const handleLogout = async () => {
+    if (!(await confirmLogout())) return;
+
     localStorage.clear();
     sessionStorage.clear();
     navigate("/pb-admin-access");

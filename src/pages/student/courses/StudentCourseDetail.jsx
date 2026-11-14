@@ -3,6 +3,7 @@ import { mainQuizScheduleState } from "../../../utils/mainQuizSchedule.js";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
+import confirmLogout from "../../../utils/confirmLogout.js";
 
 import {
   getCourseContentModules,
@@ -1174,7 +1175,9 @@ export default function StudentCourseDetail() {
   const profileHandle = getStudentProfileHandle(studentProfile);
   const accountLabel = getStudentAccountLabel(studentProfile);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!(await confirmLogout())) return;
+
     setProfileMenuOpen(false);
     setNotificationMenuOpen(false);
     clearStudentSession();

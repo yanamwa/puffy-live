@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { FiBell, FiCheckCircle } from "react-icons/fi";
 import styles from "../pages/course/Learning_Module.module.css";
 import { fetchManagedNotificationsFromServer } from "../utils/notifications";
+import confirmLogout from "../utils/confirmLogout.js";
 
 export default function UserHeader({
   searchQuery,
@@ -17,6 +18,11 @@ export default function UserHeader({
   setProfileDropdownOpen,
   handleLogout,
 }) {
+  const confirmAndLogout = async () => {
+    if (!(await confirmLogout())) return;
+    handleLogout?.();
+  };
+
   useEffect(() => {
     fetchManagedNotificationsFromServer().catch(() => {});
   }, []);
@@ -170,7 +176,7 @@ export default function UserHeader({
               profileDropdownOpen ? styles.show : ""
             }`}
           >
-            <button type="button" onClick={handleLogout}>
+            <button type="button" onClick={confirmAndLogout}>
               Log out
             </button>
           </div>

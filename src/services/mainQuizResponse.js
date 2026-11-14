@@ -7,7 +7,12 @@ export function readMainQuizResponseAnswer(answer, index) {
       answer.selectedAnswer ??
       answer.user_answer ??
       answer.userAnswer ??
+      answer.selected ??
+      answer.choice ??
+      answer.student_answer ??
+      answer.studentAnswer ??
       answer.response ??
+      answer.value ??
       answer.answer,
   );
   const correct = text(
@@ -24,6 +29,9 @@ export function readMainQuizResponseAnswer(answer, index) {
           : null;
   return {
     question: text(answer.question || answer.prompt || `Question ${index + 1}`),
+    questionType: text(
+      answer.type || answer.question_type || answer.questionType || "",
+    ),
     selected,
     correct,
     isCorrect,

@@ -28,6 +28,7 @@ import Swal from "sweetalert2";
 import styles from "./editmodule.module.css";
 import "boxicons/css/boxicons.min.css";
 import { API_BASE } from "../../../config.js";
+import confirmLogout from "../../../utils/confirmLogout.js";
 import LoadingState from "../../../components/LoadingState.jsx";
 import AdminSidebar from "../../components/ASidebar";
 import AdminHeader from "../../components/AHeader";
@@ -399,8 +400,10 @@ export default function EditModule() {
     },
   ];
 
-  const handleLogout = (e) => {
+  const handleLogout = async (e) => {
     e.preventDefault();
+    if (!(await confirmLogout())) return;
+
     localStorage.clear();
     sessionStorage.clear();
     window.location.href = "/admin/login";

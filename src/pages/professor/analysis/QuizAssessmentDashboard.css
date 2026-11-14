@@ -108,6 +108,49 @@
   align-items: center;
   gap: 16px;
 }
+.qa-bar-detail {
+  display: block;
+  margin-top: 3px;
+  color: #65788b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.qa-bars-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 24px;
+}
+.qa-bars-pagination button {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid #c9d9eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #375a7f;
+  font: inherit;
+  cursor: pointer;
+}
+.qa-bars-pagination button:hover:not(:disabled) {
+  background: #edf4fc;
+  border-color: #7fa8d6;
+}
+.qa-bars-pagination button[aria-current="page"] {
+  border-color: #7fa8d6;
+  background: #7fa8d6;
+  color: #fff;
+}
+.qa-bars-pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.qa-bars-pagination button:focus-visible {
+  outline: 2px solid #7fa8d6;
+  outline-offset: 2px;
+}
 .qa-bars meter {
   width: 100%;
   height: 22px;
@@ -341,8 +384,16 @@
   line-height: 1.6;
 }
 .qa-cognitive-card .qa-bars > div {
-  grid-template-columns: 100px minmax(0, 1fr) 45px;
+  grid-template-columns: minmax(82px, 100px) minmax(0, 1fr) 120px;
   gap: 12px;
+}
+.qa-cognitive-card .qa-bars > div > strong {
+  text-align: right;
+}
+.qa-cognitive-card .qa-bars > div > .qa-bars-unassessed {
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 1.2;
 }
 .qa-donut {
   width: 180px;
@@ -1184,9 +1235,16 @@
   }
 
   .qa-print-report .qa-bars > div {
-    grid-template-columns: minmax(70px, 0.8fr) minmax(0, 2fr) 34px !important;
+    grid-template-columns: minmax(70px, 0.8fr) minmax(0, 2fr) 60px !important;
     gap: 6pt !important;
     font-size: 7.5pt !important;
+  }
+  .qa-print-report .qa-cognitive-card .qa-bars > div > strong {
+    white-space: normal !important;
+  }
+  .qa-print-report .qa-cognitive-card .qa-bars > div > .qa-bars-unassessed {
+    font-size: 7pt !important;
+    white-space: nowrap !important;
   }
 
   .qa-print-report .qa-bars meter {

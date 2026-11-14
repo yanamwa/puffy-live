@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE } from "../../../config.js";
 import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
 import "./QuizAssessmentDashboard.css";
-import { summarizeAssessment } from "../../../utils/assessmentAnalytics.js";
+import { summarizeAssessment, summarizePracticeReport } from "../../../utils/assessmentAnalytics.js";
 import { AssessmentReportTable } from "./ProfessorStudentPerformance.jsx";
 import {
   tutorialAssessmentAttempts,
@@ -18,14 +18,30 @@ import {
 } from "../tutorial/professorTutorialExamples.js";
 
 const pct = (value) =>
-  value === null || !Number.isFinite(value) ? "0%" : `${Math.round(value)}%`;
+  value == null || !Number.isFinite(value)
+    ? "Not assessed"
+    : `${Math.round(value)}%`;
+
+const responseAccuracy = (row) =>
+  row.responses > 0 ? (row.correct / row.responses) * 100 : null;
+
+function topicRemark(topic) {
+  if (!topic.responses) return "Not assessed";
+  if (topic.responses < 5) return "Limited evidence";
+  if (topic.percent < 50) return "Needs review";
+  if (topic.percent < 80) return "Developing";
+  return "Strong";
+}
 
 function Bars({ rows }) {
   return (
     <div className="qa-bars">
       {rows.map((row) => (
-        <div key={row.label}>
-          <span>{row.label}</span>
+        <div key={row.key || row.label}>
+          <span>
+            {row.label}
+            {row.detail && <small className="qa-bar-detail">{row.detail}</small>}
+          </span>
           <div
             className="qa-bar-track"
             role="meter"
@@ -36,10 +52,67 @@ function Bars({ rows }) {
           >
             <div style={{ width: `${row.percent || 0}%` }} />
           </div>
-          <strong>{pct(row.percent)}</strong>
+          <strong className={row.percent == null ? "qa-bars-unassessed" : undefined}>
+            {pct(row.percent)}
+          </strong>
         </div>
       ))}
     </div>
+  );
+}
+
+function CoverageBars({ rows, pageSize = 10 }) {
+  const [selectedPage, setSelectedPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const page = Math.min(selectedPage, pageCount);
+  const firstVisiblePage = Math.max(
+    1,
+    Math.min(page - 2, pageCount - Math.min(pageCount, 5) + 1),
+  );
+  const visiblePages = Array.from(
+    { length: Math.min(pageCount, 5) },
+    (_, index) => firstVisiblePage + index,
+  );
+  const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
+
+  return (
+    <>
+      <div className="qa-bars qa-coverage-bars">
+        {pageRows.map((row) => (
+          <div key={row.key}>
+            <span>
+              {row.label}
+              <small className="qa-bar-detail">{row.detail}</small>
+            </span>
+            <div className="qa-bar-track" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percent ?? 0} aria-label={`${row.label} accuracy`}>
+              <div style={{ width: `${row.percent ?? 0}%` }} />
+            </div>
+            <strong>{pct(row.percent)}</strong>
+          </div>
+        ))}
+      </div>
+      {pageCount > 1 && (
+        <nav className="qa-bars-pagination" aria-label="Table of specifications pages">
+          <button type="button" disabled={page === 1} onClick={() => setSelectedPage(page - 1)}>
+            Previous
+          </button>
+          {visiblePages.map((pageNumber) => (
+            <button
+              key={pageNumber}
+              type="button"
+              aria-current={page === pageNumber ? "page" : undefined}
+              aria-label={`Page ${pageNumber}`}
+              onClick={() => setSelectedPage(pageNumber)}
+            >
+              {pageNumber}
+            </button>
+          ))}
+          <button type="button" disabled={page === pageCount} onClick={() => setSelectedPage(page + 1)}>
+            Next
+          </button>
+        </nav>
+      )}
+    </>
   );
 }
 export default function QuizAssessmentDashboard({
@@ -50,6 +123,7 @@ export default function QuizAssessmentDashboard({
   course,
   tutorialMode = false,
   tutorialStep,
+  onResponseViewChange,
 }) {
   const modules = useMemo(() => assessmentModules(course), [course]);
   const [moduleIndex, setModuleIndex] = useState("all");
@@ -74,6 +148,9 @@ export default function QuizAssessmentDashboard({
   const [responseView, setResponseView] = useState(
     tutorialStep?.id === "analysis-responses",
   );
+  useEffect(() => {
+    onResponseViewChange?.(responseView);
+  }, [onResponseViewChange, responseView]);
   const [view, setView] = useState("graph");
   const [data, setData] = useState(() =>
     tutorialMode
@@ -193,6 +270,7 @@ export default function QuizAssessmentDashboard({
     return studentMatches({ ...a, ...student });
   });
   const summary = useMemo(
+<<<<<<< HEAD
     () =>
       summarizeAssessment(
         filterModuleAttempts(filteredAttempts, moduleIndex, modules).filter(
@@ -201,22 +279,36 @@ export default function QuizAssessmentDashboard({
         filteredStudents,
         scopedItems,
       ),
+=======
+    () => {
+      const attempts = filterModuleAttempts(
+        filteredAttempts,
+        moduleIndex,
+        modules,
+      ).filter((attempt) => attempt.assessment_type === type);
+      return summarizeAssessment(attempts, filteredStudents, scopedItems);
+    },
+>>>>>>> dd10fefdad912201417d04f42587c23c84090b11
     [data, type, scopedItems, moduleIndex, modules, yearFilter, sectionFilter, enrolledStudents],
   );
   const cognitiveRows = ["LOTS", "HOTS"].map((label) => ({
     label,
-    percent: summary.cognitive.find((row) => row.label === label)?.percent || 0,
+    percent: summary.cognitive.find((row) => row.label === label)?.percent ?? null,
   }));
-  const levels = [
+  const levelLabels = [
     "Remember",
     "Understand",
     "Apply",
     "Analyze",
     "Evaluate",
     "Create",
-  ].map((label) => ({
+    ...(summary.levels.some((row) => row.label === "Not specified")
+      ? ["Not specified"]
+      : []),
+  ];
+  const levels = levelLabels.map((label) => ({
     label,
-    percent: summary.levels.find((row) => row.label === label)?.percent || 0,
+    percent: summary.levels.find((row) => row.label === label)?.percent ?? null,
   }));
   const skillCounts = cognitiveRows.map((row) => ({
     ...row,
@@ -227,6 +319,40 @@ export default function QuizAssessmentDashboard({
     (total, row) => total + row.count,
     0,
   );
+  const thinkingSkillRows = [
+    ...cognitiveRows,
+    ...summary.cognitive.filter(
+      (row) => !["LOTS", "HOTS"].includes(row.label),
+    ),
+  ];
+  const skillAndLevelRows = [
+    ...thinkingSkillRows.map((row) => {
+      const result = summary.cognitive.find((entry) => entry.label === row.label);
+      const responses = result?.responses ?? 0;
+      return {
+        key: `skill:${row.label}`,
+        cells: [
+          `${row.label} (Thinking Skill)`,
+          pct(result?.percent ?? null),
+          responses,
+          topicRemark({ responses, percent: result?.percent ?? null }),
+        ],
+      };
+    }),
+    ...levels.map((row) => {
+      const result = summary.levels.find((entry) => entry.label === row.label);
+      const responses = result?.responses ?? 0;
+      return {
+        key: `level:${row.label}`,
+        cells: [
+          `${row.label} (Cognitive Level)`,
+          pct(result?.percent ?? null),
+          responses,
+          topicRemark({ responses, percent: result?.percent ?? null }),
+        ],
+      };
+    }),
+  ];
   const lotsShare = classifiedCount
     ? (skillCounts[0].count / classifiedCount) * 100
     : 0;
@@ -234,6 +360,7 @@ export default function QuizAssessmentDashboard({
     setType(next);
     setResponseView(false);
   };
+<<<<<<< HEAD
   const coverage = new Map();
   for (const question of summary.questions) {
     const key = JSON.stringify([question.topic, question.skill, question.level]);
@@ -253,19 +380,26 @@ export default function QuizAssessmentDashboard({
     row.responses += question.responses;
     row.correct += question.correct;
   }
+=======
+  const { coverage, studentPerformance, studentsNeedingAttention } =
+    summarizePracticeReport(summary, passing);
+>>>>>>> dd10fefdad912201417d04f42587c23c84090b11
   const studentColumns = ["Student", "Scored Practice Attempts", "Average Score"];
   const studentRow = (student) => ({
     key: student.id,
     cells: [student.name, student.attempts, student.average == null ? "N/A" : pct(student.average)],
   });
+<<<<<<< HEAD
   const studentPerformance = [...summary.students].sort(
     (a, b) => b.attempts - a.attempts || a.name.localeCompare(b.name),
   );
   const studentsNeedingAttention = passing == null ? [] : studentPerformance
     .filter(({ average }) => average != null && average < passing)
     .sort((a, b) => a.average - b.average);
+=======
+>>>>>>> dd10fefdad912201417d04f42587c23c84090b11
   const metrics = [
-    ["Students", summary.students.length],
+    ["Students", summary.assessedStudents],
     ["Attempts", summary.attempts],
     ["Avg. Score", pct(summary.average)],
     ...["LOTS", "HOTS"].map((skill) => [
@@ -273,6 +407,28 @@ export default function QuizAssessmentDashboard({
       pct(summary.cognitive.find((r) => r.label === skill)?.percent ?? null),
     ]),
   ];
+  const orderedTopics = [...summary.topics].sort(
+    (a, b) => a.percent - b.percent,
+  );
+  const lowEvidenceTopics = orderedTopics.filter(
+    (topic) => topic.responses < 5,
+  );
+  const topicsForReview = orderedTopics.filter(
+    (topic) => topic.responses >= 5 && topic.percent < 50,
+  );
+  const priorityTopics = topicsForReview.slice(0, 3);
+  const topicRecommendation = !summary.questions.length
+    ? "Topic recommendations will appear after scored question responses are recorded."
+    : [
+        priorityTopics.length
+          ? `Review first: ${priorityTopics
+              .map((topic) => `${topic.label} (${pct(topic.percent)}, ${topic.responses} responses)`)
+              .join("; ")}${topicsForReview.length > priorityTopics.length ? `; ${topicsForReview.length - priorityTopics.length} more topics are below 50%` : ""}.`
+          : "No topic with enough responses currently falls below 50% accuracy.",
+        lowEvidenceTopics.length
+          ? `${lowEvidenceTopics.length} ${lowEvidenceTopics.length === 1 ? "topic has" : "topics have"} fewer than five responses; collect more data before judging mastery.`
+          : "",
+      ].join(" ");
   return (
     <section className="qa-dashboard">
       {refreshError && <p role="status">{refreshError}</p>}
@@ -330,6 +486,7 @@ export default function QuizAssessmentDashboard({
               courseId={courseId}
               courseTitle={`${courseTitle} - ${moduleTitle}`}
               quizTitle="Main Quiz 1"
+              assessmentTitle={`${courseTitle} - Main Quiz`}
               attempts={tutorialMainQuizResponses}
               passScore={1}
               onBack={() => setResponseView(false)}
@@ -388,16 +545,45 @@ export default function QuizAssessmentDashboard({
                     </article>
                   ))}
                 </div>
+                <div className={styles.analysisSectionTitle}>
+                  {type === "practice" ? "Practice Quiz" : "Main Quiz"} Table of Specifications
+                </div>
+                {!coverage.length ? (
+                  <p>
+                    The {type} table of specifications appears after students
+                    submit question responses.
+                  </p>
+                ) : view === "graph" ? (
+                  <CoverageBars
+                    key={`coverage:${courseId}:${type}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
+                    rows={coverage.map((row) => ({
+                      key: row.key,
+                      label: row.topic,
+                      detail: `${row.skill} · ${row.level} · ${row.questions} ${row.questions === 1 ? "question" : "questions"} · ${row.responses} ${row.responses === 1 ? "response" : "responses"}`,
+                      percent: responseAccuracy(row),
+                    }))}
+                  />
+                ) : (
+                  <AssessmentReportTable
+                    columns={["Topic", "Thinking Skill", "Cognitive Level", "Questions", "Responses", "Accuracy"]}
+                    rows={coverage.map((row) => ({
+                      key: row.key,
+                      cells: [row.topic, row.skill, row.level, row.questions, row.responses, pct(responseAccuracy(row))],
+                    }))}
+                    pageKey={`coverage:${courseId}:${type}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
+                    fixedPageSize={10}
+                    empty={`The ${type} table of specifications appears after students submit question responses.`}
+                  />
+                )}
 
                 <div className={styles.analysisSectionTitle}>
-                  Topic Performance
+                  Topic Performance Summary
                 </div>
                 <p className="qa-topic-intro">
-                  Topic performance shows how accurately students answered
-                  questions about each topic across all recorded {type}
-                  attempts. It helps identify which topics students understand
-                  and which need further explanation or practice. Repeated
-                  attempts are included in these results.
+                  Topic accuracy combines correct responses across recorded {type} attempts,
+                  including retakes. {topicRecommendation} Ratings are descriptive, not
+                  grades: below 50% needs review, 50–79% is developing, and 80% or higher
+                  is strong. Fewer than five responses means limited evidence.
                 </p>
                 {!summary.topics.length ? (
                   <p>
@@ -407,41 +593,38 @@ export default function QuizAssessmentDashboard({
                 ) : view === "graph" ? (
                   <Bars rows={summary.topics} />
                 ) : (
-                  <div className="qa-table">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Topic</th>
-                          <th>Correct</th>
-                          <th>Performance</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {summary.topics.map((topic) => (
-                          <tr key={topic.label}>
-                            <td>{topic.label}</td>
-                            <td>{pct(topic.percent)}</td>
-                            <td>
-                              {topic.percent >= 80
-                                ? "Strong"
-                                : topic.percent >= 60
-                                  ? "Average"
-                                  : "Weak"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <AssessmentReportTable
+                    columns={["Topic", "Accuracy", "Responses", "Remark"]}
+                    rows={summary.topics.map((topic) => ({
+                      key: topic.label,
+                      cells: [
+                        topic.label,
+                        pct(topic.percent),
+                        topic.responses,
+                        topicRemark(topic),
+                      ],
+                    }))}
+                    pageKey={`topics:${type}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
+                    fixedPageSize={5}
+                    empty="Topic results will appear after scored responses are recorded."
+                  />
                 )}
                 <div className={styles.analysisSectionTitle}>
-                  Performance by Thinking Skill
+                  Performance by Thinking Skill and Cognitive Level
                 </div>
-                <div className="qa-cognitive-grid">
-                  <article className="qa-cognitive-card">
-                    <h4>LOTS / HOTS</h4>
-                    {view === "graph" ? (
-                      <>
+                {view === "table" ? (
+                  <AssessmentReportTable
+                    columns={["Category", "Accuracy", "Responses", "Remark"]}
+                    rows={skillAndLevelRows}
+                    pageKey={`skills:${courseId}:${type}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
+                    fixedPageSize={10}
+                    empty="Skill and cognitive-level results will appear after scored responses are recorded."
+                  />
+                ) : (
+                  <>
+                    <div className="qa-cognitive-grid">
+                      <article className="qa-cognitive-card">
+                        <h4>LOTS / HOTS Question Distribution</h4>
                         <div
                           className="qa-donut"
                           role="img"
@@ -471,93 +654,30 @@ export default function QuizAssessmentDashboard({
                             HOTS {pct(classifiedCount ? 100 - lotsShare : 0)}
                           </span>
                         </div>
-                      </>
-                    ) : (
-                      <div className="qa-table">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Thinking Skill</th>
-                              <th>Questions</th>
-                              <th>Share (%)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {skillCounts.map((row) => (
-                              <tr key={row.label}>
-                                <td>{row.label}</td>
-                                <td>{row.count}</td>
-                                <td>
-                                  {pct(
-                                    classifiedCount
-                                      ? (row.count / classifiedCount) * 100
-                                      : 0,
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                    <p>Share of classified questions in recorded responses.</p>
-                  </article>
-                  <article className="qa-cognitive-card">
-                    <h4>Cognitive Levels</h4>
-                    {view === "graph" ? (
-                      <Bars rows={levels} />
-                    ) : (
-                      <div className="qa-table">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Level</th>
-                              <th>Correct</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {levels.map((row) => (
-                              <tr key={row.label}>
-                                <td>{row.label}</td>
-                                <td>{pct(row.percent)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                    <p>Percentage of correct responses at each level.</p>
-                  </article>
-                </div>
-                {view === "table" && (
-                  <div className="qa-table">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Thinking Skill</th>
-                          <th>Correct</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cognitiveRows.map((r) => (
-                          <tr key={r.label}>
-                            <td>{r.label}</td>
-                            <td>{pct(r.percent)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        <p>
+                          {classifiedCount
+                            ? `Question distribution among ${classifiedCount} question records with a LOTS or HOTS classification.`
+                            : "No LOTS or HOTS question records are available for the current filters."}
+                        </p>
+                      </article>
+                      <article className="qa-cognitive-card">
+                        <h4>Cognitive Levels</h4>
+                        <Bars rows={levels} />
+                        <p>Accuracy is based on recorded responses at each cognitive level. “Not assessed” means no responses were available.</p>
+                      </article>
+                    </div>
+                    <Bars rows={cognitiveRows} />
+                    <p className="qa-skill-guide">
+                      LOTS: Lower-Order Thinking Skills · HOTS: Higher-Order
+                      Thinking Skills. Accuracy describes submitted responses; “Not assessed” means no response data is available.
+                    </p>
+                  </>
                 )}
-                {view === "graph" && <Bars rows={cognitiveRows} />}
-                <p className="qa-skill-guide">
-                  LOTS: Lower-Order Thinking Skills · HOTS: Higher-Order
-                  Thinking Skills
-                </p>
               </>
 
               {type === "practice" ? (
                 <>
+<<<<<<< HEAD
                   <div className={styles.analysisSectionTitle}>Practice Table of Specifications</div>
                   <p className="qa-topic-intro">
                     Coverage from recorded practice responses by topic, thinking skill, and cognitive level.
@@ -572,17 +692,23 @@ export default function QuizAssessmentDashboard({
                   />
                   <div className={styles.analysisSectionTitle}>Student Practice Performance</div>
                   <p className="qa-topic-intro">Ordered by the number of scored practice attempts.</p>
+=======
+                  <div className={styles.analysisSectionTitle}>Student Practice Performance</div>
+>>>>>>> dd10fefdad912201417d04f42587c23c84090b11
                   <AssessmentReportTable
                     columns={studentColumns}
                     rows={studentPerformance.map(studentRow)}
                     empty="No students match these filters."
                   />
                   <div className={styles.analysisSectionTitle}>Students Needing Attention</div>
+<<<<<<< HEAD
                   {passing != null && (
                     <p className="qa-topic-intro">
                       Students with an average practice score below the {passing}% reporting threshold.
                     </p>
                   )}
+=======
+>>>>>>> dd10fefdad912201417d04f42587c23c84090b11
                   <AssessmentReportTable
                     columns={studentColumns}
                     rows={studentsNeedingAttention.map(studentRow)}
@@ -625,7 +751,7 @@ export default function QuizAssessmentDashboard({
                               </td>
                               <td>{q.topic}</td>
                               <td>{q.skill}</td>
-                              <td>{q.level || "Unclassified"}</td>
+                              <td>{q.level || "Not specified"}</td>
                               <td>{q.responses}</td>
                               <td>
                                 {view === "graph" && (

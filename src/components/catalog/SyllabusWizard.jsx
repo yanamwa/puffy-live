@@ -27,6 +27,7 @@ export function CatalogFields({
   value,
   onChange,
   readOnly = false,
+  readOnlyUnits = false,
   invalid = false,
   showPrograms = true,
 }) {
@@ -46,7 +47,7 @@ export function CatalogFields({
           type={type}
           value={value[key] ?? ""}
           onChange={(e) => onChange({ ...value, [key]: e.target.value })}
-          readOnly={readOnly}
+          readOnly={readOnly || (key === "units" && readOnlyUnits)}
           required={required}
           aria-invalid={invalid && required && !String(value[key] || "").trim()}
           maxLength={key === "code" ? 50 : 255}
@@ -396,6 +397,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
                 value={details}
                 onChange={change}
                 readOnly={!!attach}
+                readOnlyUnits
                 invalid={invalid}
                 showPrograms={false}
               />
@@ -404,9 +406,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
                 <input
                   value={details.academic_year || ""}
                   maxLength={30}
-                  onChange={(e) =>
-                    change({ ...details, academic_year: e.target.value })
-                  }
+                  readOnly
                 />
               </label>
               <label>

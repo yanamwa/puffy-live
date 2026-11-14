@@ -6091,3 +6091,171 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   outline: 2px solid currentColor;
   outline-offset: 3px;
 }
+
+/* Size module-card controls from the card width, not the full viewport.
+   The fixed professor sidebar can leave a narrow content lane on tablets. */
+.addModulePage.courseBuilderPage .moduleCard {
+  container-type: inline-size;
+}
+
+.addModulePage.courseBuilderPage .moduleCardHeading {
+  min-width: 0;
+}
+
+.addModulePage.courseBuilderPage .moduleCardHeading h3,
+.addModulePage.courseBuilderPage .moduleCardHeading p {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+@container (max-width: 760px) {
+  .addModulePage.courseBuilderPage .moduleCardHeader {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .addModulePage.courseBuilderPage .moduleCardHeading,
+  .addModulePage.courseBuilderPage .moduleCardHeaderActions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .addModulePage.courseBuilderPage .moduleCardHeading h3 {
+    font-size: clamp(21px, 5cqi, 26px);
+    line-height: 1.25;
+  }
+
+  .addModulePage.courseBuilderPage .moduleCardHeaderActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .addModulePage.courseBuilderPage .moduleUploadBtn {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .addModulePage.courseBuilderPage .moduleExpandBtn,
+  .addModulePage.courseBuilderPage .moduleDeleteBtn {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+}
+
+@container (max-width: 420px) {
+  .addModulePage.courseBuilderPage .moduleCardHeader {
+    padding: 16px;
+  }
+
+  .addModulePage.courseBuilderPage .moduleCardHeaderActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .addModulePage.courseBuilderPage .moduleUploadBtn {
+    grid-column: auto;
+  }
+}
+
+/* Keep the main quiz editor usable on tablets and phones. */
+@media (max-width: 900px) {
+  .courseModuleEditorPage.assessmentPage .pageHeader {
+    padding: 24px;
+  }
+
+  .courseModuleEditorPage.assessmentPage .assessmentHeaderActions {
+    position: static;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    transform: none;
+  }
+
+  .courseModuleEditorPage.assessmentPage .assessmentHeaderActions > button {
+    min-height: 44px;
+  }
+
+  .courseModuleEditorPage.assessmentPage .moduleEditorBand {
+    padding: 20px 24px;
+  }
+
+  .courseModuleEditorPage.assessmentPage .moduleEditorWorkspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    width: 100%;
+  }
+
+  .courseModuleEditorPage.assessmentPage .moduleEditorWorkspace > .lessonPageTabs,
+  .courseModuleEditorPage.assessmentPage .moduleEditorWorkspace > .moduleQuizEditorCard {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .courseModuleEditorPage.assessmentPage .moduleEditorWorkspace > .lessonPageTabs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 12px;
+    overflow: visible;
+  }
+
+  .courseModuleEditorPage.assessmentPage .moduleEditorWorkspace .lessonPageTab {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    height: auto;
+    flex: none;
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  .courseModuleEditorPage.assessmentPage .moduleQuizEditorCard {
+    border-radius: 18px;
+  }
+
+  .courseModuleEditorPage.assessmentPage .quizEditorToolbar,
+  .courseModuleEditorPage.assessmentPage .quizEditorFields {
+    padding: 20px;
+  }
+
+  .courseModuleEditorPage.assessmentPage .quizEditorFields :is(.popupInput, .popupSelect, .popupTextarea) {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 480px) {
+  .courseModuleEditorPage.assessmentPage .pageHeader,
+  .courseModuleEditorPage.assessmentPage .moduleEditorBand {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .courseModuleEditorPage.assessmentPage .quizEditorToolbar,
+  .courseModuleEditorPage.assessmentPage .quizEditorFields {
+    padding: 16px;
+  }
+
+  .courseModuleEditorPage.assessmentPage .quizEditorToolbar .moduleEditorBandActions {
+    width: 100%;
+  }
+
+  .courseModuleEditorPage.assessmentPage .quizEditorToolbar .moduleEditorBandActions > button {
+    flex: 1 1 140px;
+    min-width: 0;
+    white-space: normal;
+  }
+}

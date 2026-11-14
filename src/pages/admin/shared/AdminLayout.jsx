@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../context/AuthContext";
+import confirmLogout from "../../../utils/confirmLogout.js";
 
 import { API_BASE } from "../../../config.js";
 
@@ -23,7 +24,6 @@ import RoleNotificationMenu from "../../../components/rolenotif/RoleNotification
 
 import HeaderProfileChip from "../../../components/HeaderProfileChip";
 import SystemPageSearch from "../../../components/SystemPageSearch.jsx";
-import { confirmLogout } from "../../../utils/confirmLogout.js";
 
 import "./AdminLayout.css";
 

@@ -171,6 +171,7 @@ function normalizeQuizItem(item) {
     id: item?.id || createId("quiz"),
     type,
     question: String(item?.question || ""),
+    topic: String(item?.topic || ""),
     options,
     correct_answer: String(item?.correct_answer || item?.answer || ""),
     accepted_answers:
@@ -305,6 +306,9 @@ function normalizeContentModule(module, index = 0) {
       createId("module"),
     title: String(module?.title || "").trim() || `Module ${index + 1}`,
     description: String(module?.description || module?.summary || ""),
+    topics: Array.isArray(module?.topics)
+      ? [...new Set(module.topics.map((topic) => String(topic || "").trim()).filter(Boolean))]
+      : [],
     learningObjectives: String(
       module?.learningObjectives || module?.learning_objectives || "",
     ),
@@ -2443,6 +2447,44 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                             }
                             placeholder="Enter question"
                           />
+
+                          <label
+                            className={styles.popupLabel}
+                            htmlFor="main-quiz-question-topic"
+                          >
+                            Topic
+                          </label>
+                          {viewingGeneratedMain ? (
+                            <p className={styles.quizReviewValue}>
+                              {activeQuiz.topic || "General Concepts"}
+                            </p>
+                          ) : (
+                            <>
+                              <input
+                                id="main-quiz-question-topic"
+                                className={styles.popupInput}
+                                list="main-quiz-topic-options"
+                                value={activeQuiz.topic || ""}
+                                onChange={(event) =>
+                                  updateQuizItem(
+                                    activeQuizIndex,
+                                    "topic",
+                                    limit(event.target.value, 100),
+                                  )
+                                }
+                                placeholder="Enter a specific topic"
+                                maxLength={100}
+                              />
+                              <datalist id="main-quiz-topic-options">
+                                {(moduleDraft?.topics || []).map((topic) => (
+                                  <option key={topic} value={topic} />
+                                ))}
+                              </datalist>
+                              <p className={styles.quizReviewValue}>
+                                Use the question's specific lesson topic so it is grouped correctly in the TOS.
+                              </p>
+                            </>
+                          )}
 
                           <label
                             className={styles.popupLabel}

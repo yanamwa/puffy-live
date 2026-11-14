@@ -17,6 +17,18 @@ assert.equal(
   false,
 );
 assert.equal(
+  readMainQuizResponseAnswer({ selected: "saved selection" }, 0).selected,
+  "saved selection",
+);
+assert.equal(
+  readMainQuizResponseAnswer({ choice: "saved choice" }, 0).selected,
+  "saved choice",
+);
+assert.equal(
+  readMainQuizResponseAnswer({ student_answer: "saved response" }, 0).selected,
+  "saved response",
+);
+assert.equal(
   readMainQuizResponseAnswer(
     { selected_answer: "TRUE", correct_answer: "true" },
     0,

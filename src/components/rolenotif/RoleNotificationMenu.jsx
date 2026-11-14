@@ -130,6 +130,7 @@ async function requestNotifications(path, options = {}) {
 
 export default function RoleNotificationMenu({ role = "admin" }) {
   const navigate = useNavigate();
+  const showPostedBy = !["professor", "student"].includes(normalizeRole(role));
   const menuRef = useRef(null);
   const mountedRef = useRef(false);
   const requestSequenceRef = useRef(0);
@@ -310,7 +311,7 @@ export default function RoleNotificationMenu({ role = "admin" }) {
         <div style="text-align:left;padding:4px 6px">
           <p style="margin:0;font-size:15px;line-height:1.7;color:#374151">${escapeNotificationHtml(mainMessage)}</p>
           ${reason ? `<div style="margin-top:18px;padding:14px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid #2563eb;border-radius:8px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px">Reason</div><div style="font-size:14px;line-height:1.6;color:#334155">${escapeNotificationHtml(reason)}</div></div>` : ""}
-          ${creatorLabel ? `<div style="margin-top:14px;font-size:13px;color:#64748b">Posted by <strong>${escapeNotificationHtml(creatorLabel)}</strong></div>` : ""}
+          ${showPostedBy && creatorLabel ? `<div style="margin-top:14px;font-size:13px;color:#64748b">Posted by <strong>${escapeNotificationHtml(creatorLabel)}</strong></div>` : ""}
           ${notification.time ? `<div style="border-top:1px solid #e5e7eb;margin-top:18px;padding-top:12px;font-size:13px;color:#9ca3af">${escapeNotificationHtml(notification.time)}</div>` : ""}
         </div>`,
       customClass: {
@@ -392,7 +393,7 @@ export default function RoleNotificationMenu({ role = "admin" }) {
                   <span className="role-notification-copy">
                     <strong>{notification.title}</strong>
                     <span>{notification.message}</span>
-                    {notification.createdByName && (
+                    {showPostedBy && notification.createdByName && (
                       <small>Posted by {notification.createdByName}{notification.createdByRole ? ` (${notification.createdByRole === "superAdmin" ? "Super Admin" : notification.createdByRole})` : ""}</small>
                     )}
                     <small>{notification.time}</small>

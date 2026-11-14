@@ -11,11 +11,15 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import styles from "./modulemanage.module.css";
+import confirmLogout from "../../utils/confirmLogout.js";
 
 export default function AdminLayout({ children }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const confirmAndLogout = async () => {
+    if (await confirmLogout()) window.location.assign("/pb-admin-access");
+  };
 
   const menuItems = [
     {
@@ -69,7 +73,7 @@ export default function AdminLayout({ children }) {
         ))}
 
         <div className={styles.sidebarFooter}>
-          <button className={styles.logoutBtn} type="button">
+          <button className={styles.logoutBtn} type="button" onClick={confirmAndLogout}>
             <LogOut size={20} /> Logout
           </button>
         </div>
@@ -102,7 +106,7 @@ export default function AdminLayout({ children }) {
 
           {dropdownOpen && (
             <div className={styles.dropdownContent}>
-              <button className={styles.dropdownItem} type="button">
+              <button className={styles.dropdownItem} type="button" onClick={confirmAndLogout}>
                 <Settings size={16} /> Settings
               </button>
               <button className={styles.dropdownItem} type="button">

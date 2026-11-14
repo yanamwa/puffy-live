@@ -20,3 +20,5 @@ export async function confirmLogout() {
 
   return result.isConfirmed;
 }
+
+export default confirmLogout;

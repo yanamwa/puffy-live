@@ -2375,6 +2375,13 @@
   white-space: normal;
 }
 
+#root .dashboard-progress-action {
+  min-width: max-content;
+  padding-inline: 8px;
+  font-size: 11px !important;
+  white-space: nowrap;
+}
+
 #root .dashboard-quick-actions,
 #root .dashboard-pending-work,
 #root .dashboard-activity {
@@ -2675,27 +2682,27 @@
 
 #root .dashboard-attention-table th:nth-child(1),
 #root .dashboard-attention-table td:nth-child(1) {
-  width: 22%;
+  width: 20%;
 }
 
 #root .dashboard-attention-table th:nth-child(2),
 #root .dashboard-attention-table td:nth-child(2) {
-  width: 13%;
+  width: 16%;
 }
 
 #root .dashboard-attention-table th:nth-child(3),
 #root .dashboard-attention-table td:nth-child(3) {
-  width: 31%;
+  width: 27%;
 }
 
 #root .dashboard-attention-table th:nth-child(4),
 #root .dashboard-attention-table td:nth-child(4) {
-  width: 13%;
+  width: 12%;
 }
 
 #root .dashboard-attention-table th:nth-child(5),
 #root .dashboard-attention-table td:nth-child(5) {
-  width: 21%;
+  width: 25%;
 }
 
 #root .dashboard-timeline {
@@ -4102,4 +4109,72 @@
   #root .professor-layout .dashboard-course-table td:first-child strong { display:block; margin-bottom:6px; }
   #root .professor-layout .dashboard-course-table td:first-child > span { display:block; line-height:1.6; }
   #root .professor-layout :is(.dashboard-course-table, .dashboard-attention-table) .dashboard-empty-row td { display:block; width:auto; text-align:center; padding:20px 0; white-space:normal; }
+}
+
+/* The responsive drawer must show its labels even when the desktop sidebar
+   was saved in its collapsed state. */
+@media (max-width: 820px) {
+  #root .professor-layout .responsive-sidebar[data-mobile-open="true"] .professor-menu {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    margin: 0;
+    padding: 8px 0 0;
+  }
+
+  #root .professor-layout .responsive-sidebar[data-mobile-open="true"] .professor-link {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    box-sizing: border-box;
+  }
+
+  #root .professor-layout .responsive-sidebar[data-mobile-open="true"] .professor-link .professor-nav-label {
+    display: block !important;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 16px !important;
+    line-height: 1.35;
+  }
+
+  #root .professor-layout .responsive-sidebar[data-mobile-open="true"] .professor-link svg {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  #root .professor-layout .responsive-sidebar[data-mobile-open="true"] .professor-logout {
+    display: flex;
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    height: auto;
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 12px;
+    box-sizing: border-box;
+    color: #fff;
+  }
+
+  #root .professor-layout .responsive-sidebar[data-mobile-open="true"] .professor-logout-label {
+    display: inline !important;
+    font-size: 16px !important;
+  }
 }

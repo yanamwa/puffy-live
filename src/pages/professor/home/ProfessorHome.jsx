@@ -18,6 +18,12 @@ import { fetchCourseMonitoring } from "../../../services/monitoringApi.js";
 import "../layout/ProfessorLayout.css";
 
 const coursePerformanceSeed = {};
+const truncateCourseDescription = (value, maxLength = 80) => {
+  const description = String(value || "").trim();
+  return description.length > maxLength
+    ? `${description.slice(0, maxLength).trimEnd()}...`
+    : description;
+};
 const fallbackSections = ["BSIT 1A", "BSIT 2B", "BSCS 3A", "BSIT 4A"];
 const tutorialDashboardCourses = [
   {
@@ -750,7 +756,11 @@ export default function ProfessorHome() {
                   <tr key={course.id}>
                     <td data-label="Course">
                       <strong>{course.title}</strong>
-                      <span>{course.summary || course.section}</span>
+                      <span>
+                        {course.summary
+                          ? truncateCourseDescription(course.summary)
+                          : course.section}
+                      </span>
                     </td>
                     <td data-label="Section">{course.section}</td>
                     <td data-label="Students">{course.students}</td>
@@ -824,7 +834,7 @@ export default function ProfessorHome() {
                       </td>
                       <td data-label="Action">
                         <Link
-                          className="dashboard-table-action"
+                          className="dashboard-table-action dashboard-progress-action"
                           to="/professor/students"
                         >
                           View Progress

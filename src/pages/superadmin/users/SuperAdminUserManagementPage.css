@@ -236,6 +236,7 @@
 
 .users-student-controls .users-search {
   flex: 0 1 260px;
+  align-self: flex-end;
 }
 
 .users-notice {
@@ -1011,6 +1012,10 @@
   .users-student-controls .users-search {
     flex-basis: auto;
     width: 100%;
+  }
+
+  .users-student-controls .users-search {
+    align-self: stretch;
   }
 
   .users-header-actions {

@@ -864,6 +864,14 @@ function normalizeQuizAttempts(course, totalItems) {
 
       return {
         answers,
+        moduleIndex: attempt?.module_index ?? attempt?.moduleIndex ?? null,
+        moduleTitle:
+          attempt?.module_title ||
+          attempt?.moduleTitle ||
+          attempt?.lesson_title ||
+          attempt?.lessonTitle ||
+          "",
+        lessonId: attempt?.lesson_id ?? attempt?.lessonId ?? null,
         email:
           attempt.student_email ||
           attempt.studentEmail ||
@@ -903,6 +911,48 @@ function normalizeQuizAttempts(course, totalItems) {
     .filter(
       (attempt) => Number.isFinite(attempt.score) || attempt.answers.length > 0,
     );
+}
+
+function moduleTitleForAttempt(attempt, modules, fallbackTitle) {
+  const directTitle = String(attempt?.moduleTitle || "").trim();
+  if (directTitle) return directTitle;
+
+  const rawIndex = attempt?.moduleIndex ?? attempt?.module_index;
+  const index = Number(rawIndex);
+  if (
+    rawIndex !== null &&
+    rawIndex !== undefined &&
+    rawIndex !== "" &&
+    Number.isInteger(index)
+  ) {
+    const module = modules?.[index];
+    const title = module?.title || module?.module_title || module?.moduleTitle;
+    if (title) return String(title).trim();
+  }
+
+  const lessonId = attempt?.lessonId ?? attempt?.lesson_id;
+  if (lessonId !== null && lessonId !== undefined) {
+    const matchingModule = modules?.find((module) => {
+      const moduleLessonId = module?.lesson_id ?? module?.lessonId;
+      return moduleLessonId != null && String(moduleLessonId) === String(lessonId);
+    });
+    const title =
+      matchingModule?.title ||
+      matchingModule?.module_title ||
+      matchingModule?.moduleTitle;
+    if (title) return String(title).trim();
+  }
+
+  if (fallbackTitle && fallbackTitle !== "All Modules") return fallbackTitle;
+  if (modules?.length === 1) {
+    return String(
+      modules[0]?.title ||
+        modules[0]?.module_title ||
+        modules[0]?.moduleTitle ||
+        "Module unavailable",
+    ).trim();
+  }
+  return "Module unavailable";
 }
 
 function readAttemptSelectedAnswer(answer) {
@@ -1416,6 +1466,18 @@ function buildRows(items, totals, attempts = []) {
       totals.totalStudents,
     );
     const percent = 0;
+    const rawTopic = String(
+      item.topic ||
+        item.topicName ||
+        item.topic_name ||
+        item.topicTitle ||
+        item.topic_title ||
+        "",
+    ).trim();
+    const topic =
+      !rawTopic || rawTopic.toLowerCase() === "unclassified"
+        ? "General Concepts"
+        : rawTopic;
 
     return {
       answerCounts: attemptStats?.answerCounts,
@@ -1428,6 +1490,7 @@ function buildRows(items, totals, attempts = []) {
         item.prompt ||
         item.title ||
         `Assessment item ${index + 1}`,
+      topic,
       answer:
         item.answer ||
         item.correctAnswer ||
@@ -1450,6 +1513,8 @@ function buildRows(items, totals, attempts = []) {
       cognitiveCategory:
         item.cognitiveCategory ||
         item.cognitive_category ||
+        item.thinkingSkill ||
+        item.thinking_skill ||
         item.thinkingCategory ||
         item.thinking_category ||
         item.hotsLots ||
@@ -1471,6 +1536,83 @@ function buildRows(items, totals, attempts = []) {
           : percent,
     };
   });
+}
+
+function buildTableOfSpecifications(rows, totalStudents) {
+  const groups = new Map();
+
+  rows.forEach((question) => {
+    const cognitive = inferCognitiveLevel(question);
+    const topic = String(question.topic || "General Concepts").trim() || "General Concepts";
+    const key = JSON.stringify([topic, cognitive.category, cognitive.level]);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        topic,
+        skill: cognitive.category,
+        level: cognitive.level,
+        questions: 0,
+        responses: 0,
+        correct: 0,
+      });
+    }
+
+    const group = groups.get(key);
+    group.questions += 1;
+    group.responses += getQuestionResponseTotal(question, totalStudents);
+    group.correct += Number(question.totalCorrect || 0);
+  });
+
+  const skillOrder = { LOTS: 0, HOTS: 1 };
+  const levelOrder = Object.fromEntries(BLOOM_DISPLAY_ORDER.map((level, index) => [level, index]));
+  return [...groups.values()].sort(
+    (left, right) =>
+      left.topic.localeCompare(right.topic) ||
+      (skillOrder[left.skill] ?? 2) - (skillOrder[right.skill] ?? 2) ||
+      (levelOrder[left.level] ?? 99) - (levelOrder[right.level] ?? 99),
+  );
+}
+
+function MainQuizTableOfSpecifications({ rows }) {
+  return (
+    <section className={styles.analysisSection}>
+      <div className={styles.analysisSectionTitle}>
+        Main Quiz Table of Specifications
+      </div>
+      <p>
+        Assessment coverage and response accuracy grouped by topic, LOTS or HOTS,
+        and cognitive level. Items without a specific topic are grouped under
+        General Concepts.
+      </p>
+      <div className={styles.tableWrap}>
+        <table>
+          <thead>
+            <tr>
+              <th>Topic</th>
+              <th>Thinking Skill</th>
+              <th>Cognitive Level</th>
+              <th>Questions</th>
+              <th>Responses</th>
+              <th>Accuracy</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length ? rows.map((row) => (
+              <tr key={`${row.topic}:${row.skill}:${row.level}`}>
+                <td>{row.topic}</td>
+                <td>{row.skill}</td>
+                <td>{row.level}</td>
+                <td>{row.questions}</td>
+                <td>{row.responses}</td>
+                <td>{formatPercent(row.responses ? (row.correct / row.responses) * 100 : 0)}</td>
+              </tr>
+            )) : (
+              <tr><td colSpan="6">TOS coverage appears when the quiz contains classified questions.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
 }
 
 export default function MainQuizAnalysis({
@@ -1681,6 +1823,17 @@ export default function MainQuizAnalysis({
             student?.student_name ||
             attempt.studentName ||
             `Student ${attempt.userId ?? "(name unavailable)"}`,
+          yearLevel:
+            student?.yearLevel ||
+            student?.year_level ||
+            student?.student_year_level ||
+            student?.year ||
+            attempt.yearLevel ||
+            attempt.year_level ||
+            attempt.student_year_level ||
+            attempt.student?.yearLevel ||
+            attempt.student?.year_level ||
+            "N/A",
           section:
             student?.sectionName ||
             student?.section_name ||
@@ -1688,9 +1841,10 @@ export default function MainQuizAnalysis({
             student?.student_section ||
             attempt.section ||
             "N/A",
+          moduleTitle: moduleTitleForAttempt(attempt, modules, moduleTitle),
         };
       }),
-    [quizAttempts, enrollmentSummary],
+    [quizAttempts, enrollmentSummary, modules, moduleTitle],
   );
   const studentPageCount = Math.max(
     1,
@@ -1711,6 +1865,10 @@ export default function MainQuizAnalysis({
   const rows = useMemo(
     () => buildRows(quizItems, totals, quizAttempts),
     [quizItems, quizAttempts, totals],
+  );
+  const tableOfSpecifications = useMemo(
+    () => buildTableOfSpecifications(rows, totals.totalStudents),
+    [rows, totals.totalStudents],
   );
   const quizAnalytics = useMemo(
     () => buildQuizAnalytics(activeCourse, rows, totals, quizAttempts),
@@ -1904,6 +2062,7 @@ export default function MainQuizAnalysis({
         courseId={courseId}
         courseTitle={`${activeCourse.title} - ${moduleTitle}`}
         quizTitle={quizTitle}
+        assessmentTitle={`${activeCourse.title} - ${String(quizTitle || "Main Quiz").replace(/\s+\d+$/, "")}`}
         passScore={quizAnalytics.passScore}
         attempts={studentResults}
         onBack={onSummary}
@@ -2029,6 +2188,7 @@ export default function MainQuizAnalysis({
                   ))}
                 </div>
               </section>
+              <MainQuizTableOfSpecifications rows={tableOfSpecifications} />
               <section className={styles.analysisSection}>
                 <div className={styles.analysisSectionTitle}>
                   Student Scores
@@ -2236,7 +2396,7 @@ export default function MainQuizAnalysis({
 
               <section className={styles.analysisSection}>
                 <div className={styles.analysisSectionTitle}>
-                  Performance by Thinking Skill
+                  LOTS / HOTS Performance
                 </div>
                 <div className={styles.skillPerformance}>
                   {cognitiveAnalytics.performance.map((skill) => (
@@ -2473,6 +2633,7 @@ export default function MainQuizAnalysis({
                   </table>
                 </div>
               </section>
+              <MainQuizTableOfSpecifications rows={tableOfSpecifications} />
               <section className={styles.analysisSection}>
                 <div className={styles.analysisSectionTitle}>
                   Student Scores

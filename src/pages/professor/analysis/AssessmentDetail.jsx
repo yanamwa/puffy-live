@@ -27,6 +27,12 @@ export default function AssessmentDetail() {
   const [course, setCourse] = useState(tutorialAnalysis ? tutorialCourseDraft : initial);
   const [loading, setLoading] = useState(!tutorialAnalysis);
   const [error, setError] = useState("");
+  const [responseView, setResponseView] = useState(
+    tutorialStep?.id === "analysis-responses",
+  );
+  useEffect(() => {
+    setResponseView(tutorialStep?.id === "analysis-responses");
+  }, [tutorialStep?.id]);
   useEffect(() => {
     if (tutorialAnalysis) {
       setCourse(tutorialCourseDraft);
@@ -68,9 +74,11 @@ export default function AssessmentDetail() {
       </nav>
       <header className="qa-page-heading">
         <div><h1>Assessment Analysis</h1><p>Review practice and main quiz results for {title}.</p></div>
-        <div className="qa-page-print-actions">
-          <button type="button" className="qa-page-print" onClick={() => window.print()} disabled={loading || Boolean(error)}>Print</button>
-        </div>
+        {!responseView && (
+          <div className="qa-page-print-actions">
+            <button type="button" className="qa-page-print" onClick={() => window.print()} disabled={loading || Boolean(error)}>Print</button>
+          </div>
+        )}
       </header>
       {loading ? <p>Loading assessment details…</p> : error ? <p role="alert">{error}</p> : (
         <QuizAssessmentDashboard
@@ -81,6 +89,7 @@ export default function AssessmentDetail() {
           course={course}
           tutorialMode={tutorialAnalysis}
           tutorialStep={tutorialStep}
+          onResponseViewChange={setResponseView}
         />
       )}
     </section>

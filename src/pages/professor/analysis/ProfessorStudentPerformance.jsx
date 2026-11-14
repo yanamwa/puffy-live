@@ -65,8 +65,7 @@ export function AssessmentReportTable({
   fixedPageSize,
 }) {
   const [selection, setSelection] = useState({ key: pageKey, page: 1 });
-  const [selectedPageSize, setPageSize] = useState(10);
-  const pageSize = fixedPageSize ?? selectedPageSize;
+  const pageSize = fixedPageSize ?? 10;
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const page = Math.min(
     selection.key === pageKey ? selection.page : 1,
@@ -74,6 +73,15 @@ export function AssessmentReportTable({
   );
   const start = (page - 1) * pageSize;
   const setPage = (value) => setSelection({ key: pageKey, page: value });
+  const visiblePageCount = Math.min(pageCount, 5);
+  const firstVisiblePage = Math.max(
+    1,
+    Math.min(page - Math.floor(visiblePageCount / 2), pageCount - visiblePageCount + 1),
+  );
+  const visiblePages = Array.from(
+    { length: visiblePageCount },
+    (_, index) => firstVisiblePage + index,
+  );
 
   return (
     <>
@@ -113,36 +121,7 @@ export function AssessmentReportTable({
       </div>
       {rows.length > 0 && (
         <div className={styles.reportPagination}>
-          <span>
-            Showing {start + 1}–{Math.min(start + pageSize, rows.length)} of{" "}
-            {rows.length} records
-          </span>
-          <div className={styles.reportPaginationControls}>
-            {!fixedPageSize && (
-              <label>
-                Rows per page
-                <select
-                  value={pageSize}
-                  onChange={(event) => {
-                    setPageSize(Number(event.target.value));
-                    setPage(1);
-                  }}
-                >
-                  {[10, 25, 50].map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage(1)}
-            >
-              First
-            </button>
+          <nav className={styles.reportPaginationControls} aria-label="Table pages">
             <button
               type="button"
               disabled={page === 1}
@@ -150,9 +129,17 @@ export function AssessmentReportTable({
             >
               Previous
             </button>
-            <span aria-live="polite">
-              {page} / {pageCount}
-            </span>
+            {visiblePages.map((pageNumber) => (
+              <button
+                key={pageNumber}
+                type="button"
+                aria-current={page === pageNumber ? "page" : undefined}
+                aria-label={`Page ${pageNumber}`}
+                onClick={() => setPage(pageNumber)}
+              >
+                {pageNumber}
+              </button>
+            ))}
             <button
               type="button"
               disabled={page === pageCount}
@@ -160,14 +147,7 @@ export function AssessmentReportTable({
             >
               Next
             </button>
-            <button
-              type="button"
-              disabled={page === pageCount}
-              onClick={() => setPage(pageCount)}
-            >
-              Last
-            </button>
-          </div>
+          </nav>
         </div>
       )}
     </>

@@ -2043,6 +2043,7 @@
 }
 
 .moduleBox .actionEdit {
+  margin-top: auto;
   background: #3f3f3f !important;
   box-shadow: 0 2px 0 rgba(20, 20, 20, 0.28) !important;
   color: #ffffff !important;

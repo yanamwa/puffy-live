@@ -24,6 +24,7 @@ function getAuthToken() {
     localStorage.getItem("token") ||
     localStorage.getItem("authToken") ||
     localStorage.getItem("puffy-token") ||
+    sessionStorage.getItem("puffy-token") ||
     sessionStorage.getItem("token") ||
     sessionStorage.getItem("authToken") ||
     ""

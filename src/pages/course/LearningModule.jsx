@@ -2,6 +2,7 @@ import { readAccountQuizResult } from "../../utils/quizStorage.js";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import Swal from "sweetalert2";
+import confirmLogout from "../../utils/confirmLogout.js";
 import styles from "./Learning_Module.module.css";
 import "../../index.css";
 import { API_BASE } from "../../config.js";
@@ -462,45 +463,26 @@ function LearningModule() {
     });
   };
 
-  const handleLogout = () => {
-    Swal.fire({
-      title: "Logout?",
-      text: "Are you sure you want to logout?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#8d6cab",
-      cancelButtonColor: "#b0b0b0",
-      confirmButtonText: "Yes, Logout",
-      cancelButtonText: "Cancel",
-      reverseButtons: true,
-      customClass: {
-        popup: styles.logoutPopup,
-        title: styles.logoutTitle,
-        htmlContainer: styles.logoutText,
-        confirmButton: styles.logoutConfirm,
-        cancelButton: styles.logoutCancel,
-      },
-    }).then(async (result) => {
-      if (!result.isConfirmed) return;
+  const handleLogout = async () => {
+    if (!(await confirmLogout())) return;
 
-      try {
-        await fetch(`${API_BASE}/logout.php`, {
-          method: "POST",
-          credentials: "include",
-        });
-      } catch (err) {
-        console.error("Logout API error:", err);
-      }
+    try {
+      await fetch(`${API_BASE}/logout.php`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error("Logout API error:", err);
+    }
 
-      localStorage.removeItem("username");
-      localStorage.removeItem("user_email");
-      localStorage.removeItem("user_id");
-      localStorage.removeItem("profile_image");
+    localStorage.removeItem("username");
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("profile_image");
 
-      sessionStorage.clear();
+    sessionStorage.clear();
 
-      navigate("/login", { replace: true });
-    });
+    navigate("/login", { replace: true });
   };
 
   const handleShare = async () => {
