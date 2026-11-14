@@ -21,9 +21,17 @@ const COLUMNS = {
   gender: ["gender", "sex"],
   course: ["course", "program", "courseprogram", "degreeprogram"],
   yearLevel: ["year", "yearlevel", "studentyear", "grade", "gradelevel"],
-  sectionName: ["section", "sectionname", "studentsection", "block"],
+  sectionName: [
+    "section",
+    "sectionname",
+    "studentsection",
+    "yearsection",
+    "yearandsection",
+    "block",
+  ],
   firstName: ["firstname", "givenname", "givennames", "forename"],
   lastName: ["lastname", "surname", "familyname"],
+  middleName: ["middlename", "middleinitial", "mi"],
 };
 
 const POSITIONAL_COLUMNS = {
@@ -45,6 +53,60 @@ const GENDER_NAMES = new Map([
 const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 
 const SECTION_PATTERN = /^(?:[A-Z][A-Z0-9]*\s*-\s*)?([1-4][A-F])$/i;
+const SECTION_LABEL =
+  /^(?:(?:year\s*(?:&|and|\/)\s*)?section|block)\s*[:=-]\s*/i;
+const SURNAME_PREFIX =
+  /^(?:de la|de los|de las|dela|delos|delas|de|del|san|santa|santo|van|von)$/i;
+
+function getSection(value) {
+  const label = value.replace(SECTION_LABEL, "").trim();
+  return (
+    SECTION_PATTERN.exec(label.replace(/\s+/g, ""))?.[1].toUpperCase() ?? ""
+  );
+}
+
+function inferNames(name, middleName) {
+  const [firstPart, secondPart, commaMiddle] = name
+    .split(",")
+    .map((part) => part.trim());
+  const words = (secondPart ?? firstPart).split(/\s+/).filter(Boolean);
+  let surname = firstPart;
+  if (secondPart === undefined) {
+    if (words.length < 2) return {};
+    let start = words.length - 1;
+    for (const length of [2, 1]) {
+      if (
+        start > length &&
+        SURNAME_PREFIX.test(words.slice(start - length, start).join(" "))
+      ) {
+        start -= length;
+        break;
+      }
+    }
+    surname = words.splice(start).join(" ");
+  }
+
+  const middleWords = (middleName || commaMiddle || "")
+    .toLowerCase()
+    .split(/\s+/);
+  const hasNamedMiddle =
+    (middleName || commaMiddle) &&
+    words.slice(-middleWords.length).join(" ").toLowerCase() ===
+      middleWords.join(" ");
+  if (hasNamedMiddle && words.length > middleWords.length) {
+    words.splice(-middleWords.length);
+  } else if (
+    !middleName &&
+    !commaMiddle &&
+    words.length > 2 &&
+    !/^\p{L}\.?$/u.test(words.at(-1))
+  ) {
+    // A spelled-out trailing middle name can look like another given name.
+    words.pop();
+  }
+  while (words.length > 1 && /^\p{L}\.?$/u.test(words.at(-1))) words.pop();
+  return { firstName: words.join(" "), lastName: surname };
+}
 
 function parseCsvRows(text) {
   const rows = [];
@@ -122,14 +184,14 @@ export function getStudentImportLayout(rows, rowIndex, hasHeaders) {
   const classLabel = rows
     .slice(0, rowIndex)
     .flatMap(({ cells }) => cells)
-    .map((cell) => SECTION_PATTERN.exec(cell))
+    .map(getSection)
     .find(Boolean);
 
   return {
     rowIndex,
     hasHeaders,
     columns,
-    defaultSection: classLabel?.[1].toUpperCase() ?? "",
+    defaultSection: classLabel ?? "",
   };
 }
 
@@ -140,10 +202,9 @@ export function canImportStudentLayout({ columns, defaultSection }) {
 
   return (
     (hasColumn("name") || hasSplitName) &&
-    (hasColumn("email") || hasSplitName) &&
     hasColumn("studentId") &&
     hasColumn("gender") &&
-    (hasColumn("sectionName") || SECTION_PATTERN.test(defaultSection.trim())) &&
+    (hasColumn("sectionName") || Boolean(getSection(defaultSection ?? ""))) &&
     new Set(selected).size === selected.length
   );
 }
@@ -183,6 +244,7 @@ function detectStudentImportLayout(rows) {
 export function mapStudentImportRows(
   rows,
   { rowIndex, hasHeaders, columns, defaultSection },
+  { preview = false } = {},
 ) {
   return rows
     .slice(rowIndex + Number(hasHeaders))
@@ -192,7 +254,15 @@ export function mapStudentImportRows(
       const lastName = value("lastName");
       const name =
         value("name") || [firstName, lastName].filter(Boolean).join(" ");
-      const email = value("email") || generateStudentEmail(firstName, lastName);
+      const suppliedEmail = value("email");
+      const inferred = !suppliedEmail && !(firstName && lastName);
+      const names = inferred ? inferNames(name, value("middleName")) : {};
+      const email =
+        suppliedEmail ||
+        generateStudentEmail(
+          firstName || names.firstName || "",
+          lastName || names.lastName || "",
+        );
       const studentId = value("studentId");
       const rawGender = value("gender");
       const gender = GENDER_NAMES.get(rawGender.toLowerCase()) ?? rawGender;
@@ -200,17 +270,28 @@ export function mapStudentImportRows(
       const section = value("sectionName");
       const course = value("course");
 
-      if (!(name || email || studentId || gender || year || section)) {
+      if (!(
+        name ||
+        email ||
+        studentId ||
+        gender ||
+        year ||
+        section ||
+        course
+      )) {
         return [];
       }
 
       const rawSection = (section || defaultSection)
         .toUpperCase()
         .replace(/\s+/g, "");
-      const sectionName = SECTION_PATTERN.exec(rawSection)?.[1] ?? rawSection;
-      const yearLevel = year
-        ? (YEAR_LEVELS[Number(year) - 1] ?? year)
-        : (YEAR_LEVELS[Number(sectionName[0]) - 1] ?? "");
+      const sectionName = getSection(section || defaultSection) || rawSection;
+      const yearLevel =
+        preview && getSection(sectionName)
+          ? YEAR_LEVELS[Number(sectionName[0]) - 1]
+          : year
+            ? (YEAR_LEVELS[Number(year) - 1] ?? year)
+            : (YEAR_LEVELS[Number(sectionName[0]) - 1] ?? "");
       return [
         {
           sourceRow,
@@ -221,6 +302,7 @@ export function mapStudentImportRows(
           yearLevel,
           sectionName,
           ...(course ? { course } : {}),
+          ...(preview && inferred ? { reviewName: true } : {}),
         },
       ];
     });
@@ -246,7 +328,11 @@ async function readStudentImportRows(file) {
   throw new Error("Only CSV and XLSX files are supported.");
 }
 
-export async function parseStudentImportFile(file, onNeedsMapping) {
+export async function parseStudentImportFile(
+  file,
+  onNeedsMapping,
+  { review = false } = {},
+) {
   const sourceRows = await readStudentImportRows(file);
   const rows = sourceRows
     .map((row, index) => ({
@@ -257,7 +343,7 @@ export async function parseStudentImportFile(file, onNeedsMapping) {
   if (rows.length === 0) return [];
 
   const layout = detectStudentImportLayout(rows);
-  if (canImportStudentLayout(layout)) {
+  if (!review && canImportStudentLayout(layout)) {
     return mapStudentImportRows(rows, layout);
   }
   if (!onNeedsMapping)

@@ -185,6 +185,31 @@ function validateStudent(student) {
   return "";
 }
 
+function validateStudentImport(students, users) {
+  const key = (value) => String(value ?? "").trim().toLowerCase();
+  const fields = [["email", "Email"], ["studentId", "Student ID"]];
+  const existing = fields.map(([field]) => new Set(users.map((user) => key(user[field]))));
+  const counts = fields.map(([field]) => {
+    const values = new Map();
+    for (const student of students) {
+      const value = key(student[field]);
+      values.set(value, (values.get(value) ?? 0) + 1);
+    }
+    return values;
+  });
+  return students.map((student) => {
+    const errors = [validateStudent(student)].filter(Boolean);
+    if (student.course?.trim().length > 255) errors.push("Course must be 255 characters or fewer.");
+    fields.forEach(([field, label], index) => {
+      const value = key(student[field]);
+      if (!value) return;
+      if (existing[index].has(value)) errors.push(`${label} is already registered.`);
+      if (counts[index].get(value) > 1) errors.push(`Duplicate ${label.toLowerCase()} in this file.`);
+    });
+    return errors;
+  });
+}
+
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState("");
@@ -233,7 +258,7 @@ export default function UserManagementPage() {
       setUsers(current => [normalizeUser(data.user), ...current]);
       setActiveTab("students"); setQuery("");
       closeModal(); setStudentModalOpen(false); setStudentForm({ ...EMPTY_FORM });
-      await showCredentialResult({ title: "Student Created", password: data.temporaryPassword, message: data.credentialsEmailed === true ? "The email includes the temporary password and a verification code. The student must verify their email before signing in and starting the tutorial." : "Email delivery is not confirmed. Share the temporary password securely. The student can request a new verification code after attempting to sign in." });
+      await showCredentialResult({ title: "Student Created", password: data.temporaryPassword, message: data.credentialsEmailed === true ? "The temporary password was emailed. The student receives a separate verification code after entering that password at sign-in." : "Email delivery is not confirmed. Share the temporary password securely. The student receives a verification code after entering the temporary password at sign-in." });
     } catch (error) { showError(error.message || "Could not create student account.", "Create Failed"); }
     finally { setCreatingStudent(false); }
   };
@@ -263,7 +288,7 @@ export default function UserManagementPage() {
         }
         seenEmails.add(emailKey); seenIds.add(idKey);
         try {
-          const data = await createStudent(student);
+          const data = await createStudent({ ...student, bulkImport: true });
           if (data.user) {
             created.push(normalizeUser(data.user));
             if (data.credentialsEmailed !== true) {
@@ -276,7 +301,7 @@ export default function UserManagementPage() {
         setUsers(current => [...created, ...current]);
         setActiveTab("students"); setQuery("");
       }
-      const emailSummary = created.length ? ` Mail server accepted ${created.length - unconfirmedEmails.length} of ${created.length} credential emails, each with the temporary password and verification code.` : "";
+      const emailSummary = created.length ? ` Mail server accepted ${created.length - unconfirmedEmails.length} of ${created.length} temporary-password emails. Verification codes are sent at sign-in.` : "";
       const message = `${created.length} imported, ${failures.length} failed.${emailSummary}`;
       const issues = [...failures, ...unconfirmedEmails].slice(0, 5);
       setStudentImportStatus({ ...EMPTY_IMPORT, ...base, state: issues.length ? (created.length ? "partial" : "error") : "success", message, detail: issues.join("\n") });
@@ -677,6 +702,7 @@ export default function UserManagementPage() {
         busy={importBusy}
         disabled={creatingStudent}
         onImport={handleBulkImport}
+        reviewStudents={(students) => validateStudentImport(students, users)}
       />
       <form className="users-student-form" onSubmit={handleCreateStudent}>
         <label>Student Name<input type="text" value={studentForm.name} onChange={e => setStudentForm(s => ({ ...s, name: e.target.value }))} disabled={creatingStudent || importBusy} required /></label>

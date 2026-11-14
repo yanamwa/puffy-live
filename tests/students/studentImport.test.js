@@ -188,3 +188,57 @@ test("keeps email punctuation and uses an explicitly supplied address", async ()
   assert.equal(generated.email, "ma.ana-marie.o'peña@cvsu.edu.ph");
   assert.equal(supplied.email, "luis.peña-2@cvsu.edu.ph");
 });
+
+test("previews a roster without email or separate name columns", async () => {
+  const file = new File(
+    [
+      [
+        "CvSU class roster",
+        "Year & Section: BSIT - 4A",
+        "Course,Student Number,Full Name,Sex",
+        'BSIT,000123,"Dela Cruz, Ana Marie S.",F',
+        ",,,",
+        "BSIT,000124,Luis Miguel Santos De Guzman,M",
+        "BSIT,000125,Ana Reyes,F",
+      ].join("\n"),
+    ],
+    "roster.csv",
+  );
+  let table;
+  assert.equal(
+    await parseStudentImportFile(
+      file,
+      (result) => {
+        table = result;
+      },
+      { review: true },
+    ),
+    null,
+  );
+  assert.equal(canImportStudentLayout(table.layout), true);
+  const students = mapStudentImportRows(table.rows, table.layout, {
+    preview: true,
+  });
+  assert.deepEqual(
+    students.map(({ email }) => email),
+    [
+      "anamarie.delacruz@cvsu.edu.ph",
+      "luismiguel.deguzman@cvsu.edu.ph",
+      "ana.reyes@cvsu.edu.ph",
+    ],
+  );
+  assert.deepEqual(
+    students.map(({ sourceRow }) => sourceRow),
+    [4, 6, 7],
+  );
+  assert.ok(
+    students.every(
+      ({ course, yearLevel, sectionName, reviewName }) =>
+        course === "BSIT" &&
+        yearLevel === "4th Year" &&
+        sectionName === "4A" &&
+        reviewName,
+    ),
+  );
+  assert.equal(students[0].studentId, "000123");
+});

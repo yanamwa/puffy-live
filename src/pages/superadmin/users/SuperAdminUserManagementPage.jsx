@@ -1642,7 +1642,7 @@ export default function SuperAdminUserManagementPage() {
         showSuccess(
           `${createdUsers.length} student account${
             createdUsers.length === 1 ? "" : "s"
-          } successfully imported. Their email includes the temporary password and verification code; students must verify before signing in to start the tutorial.`,
+          } successfully imported. Students receive their temporary password first and a separate verification code at sign-in.`,
           "Import Complete",
         );
       }
@@ -2284,8 +2284,7 @@ export default function SuperAdminUserManagementPage() {
                 <h2>Temporary Credentials</h2>
                 <p>
                   Share these with users. Temporary accounts stop working after
-                  their expiry date. Student accounts also need the email
-                  verification code before their first sign-in and tutorial.
+                  their expiry date. Students receive a verification code after entering their temporary password at sign-in.
                 </p>
               </div>
             </div>
@@ -2303,8 +2302,8 @@ export default function SuperAdminUserManagementPage() {
                   {typeof item.credentialsEmailed === "boolean" && (
                     <span>
                       {item.credentialsEmailed
-                        ? "The email includes the temporary password and verification code."
-                        : "Email delivery is unconfirmed. Share the password securely; the student can request a new code from sign-in."}
+                        ? "The temporary password was emailed. The student receives a separate verification code at sign-in."
+                        : "Email delivery is unconfirmed. Share the password securely so the student can sign in and receive a verification code."}
                     </span>
                   )}
                   <span>

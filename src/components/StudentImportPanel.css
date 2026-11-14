@@ -133,3 +133,14 @@
   font-weight: 600;
   text-decoration: underline;
 }
+
+.student-import-preview {
+  display: grid;
+  gap: 8px;
+  max-height: 45vh;
+  overflow: auto;
+}
+
+.student-import-error {
+  color: #a32121;
+}

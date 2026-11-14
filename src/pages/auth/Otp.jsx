@@ -177,6 +177,7 @@ export default function Otp() {
             sessionStorage.removeItem("otp_email");
             sessionStorage.removeItem("otp_role");
             sessionStorage.removeItem("otp_expires_at");
+            sessionStorage.removeItem("otp_verification_token");
             navigate("/login");
           });
         } else {
@@ -215,11 +216,20 @@ export default function Otp() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({
+        email,
+        verificationToken: otpRole === "student"
+          ? sessionStorage.getItem("otp_verification_token")
+          : undefined,
+      }),
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) {
+        if (data.code === "STUDENT_VERIFICATION_SESSION_EXPIRED") {
+          sessionStorage.removeItem("otp_verification_token");
+          showThinkAlert("Session Expired", data.message);
+          navigate("/login");
+        } else if (data.success) {
           showSuccessAlert("Verification Code Resent", "A new verification code has been sent to your email.");
           const parsedSeconds = Number(data.otpSecondsRemaining);
           const secondsRemaining = Number.isFinite(parsedSeconds)

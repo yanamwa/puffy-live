@@ -20,10 +20,21 @@ const STUDENT_FIELDS = [
   ["course", "Course / Program"],
 ];
 
-export default function StudentImportPanel({ busy, disabled, onImport }) {
+const PREVIEW_FIELDS = STUDENT_FIELDS.filter(
+  ([field]) => !["firstName", "lastName", "yearLevel"].includes(field),
+);
+const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+
+export default function StudentImportPanel({
+  busy,
+  disabled,
+  onImport,
+  reviewStudents,
+}) {
   const titleId = useId();
   const fileInputRef = useRef(null);
   const [pending, setPending] = useState(null);
+  const [preview, setPreview] = useState(null);
 
   function selectFile(event) {
     const file = event.currentTarget.files?.[0];
@@ -32,14 +43,41 @@ export default function StudentImportPanel({ busy, disabled, onImport }) {
 
     setPending(null);
     onImport(file, () =>
-      parseStudentImportFile(file, (table) => setPending({ file, ...table })),
+      parseStudentImportFile(file, (table) => setPending({ file, ...table }), {
+        review: Boolean(reviewStudents),
+      }),
     );
   }
 
   function importMappedRows() {
     const { file, rows, layout } = pending;
+    if (reviewStudents) {
+      setPreview(mapStudentImportRows(rows, layout, { preview: true }));
+      return;
+    }
     setPending(null);
     onImport(file, () => mapStudentImportRows(rows, layout));
+  }
+
+  function editStudent(index, field, value) {
+    setPreview((students) =>
+      students.map((student, row) => {
+        if (row !== index) return student;
+        const updated = { ...student, [field]: value };
+        if (field === "sectionName") {
+          updated.yearLevel = YEAR_LEVELS[Number(value.trim()[0]) - 1] ?? "";
+        }
+        return updated;
+      }),
+    );
+  }
+
+  function confirmImport() {
+    const { file } = pending;
+    const students = preview.map(({ reviewName, ...student }) => student);
+    setPreview(null);
+    setPending(null);
+    onImport(file, () => students);
   }
 
   function changeStartRow(rowIndex, hasHeaders) {
@@ -58,6 +96,7 @@ export default function StudentImportPanel({ busy, disabled, onImport }) {
   }
 
   const layout = pending?.layout;
+  const errors = preview ? reviewStudents(preview) : [];
   const columnOptions = layout
     ? Array.from(
         {
@@ -82,8 +121,9 @@ export default function StudentImportPanel({ busy, disabled, onImport }) {
           Include a Course or Program column to save the degree program.
         </p>
         <p>
-          Use a full name and email, or use first and last names to generate a
-          CvSU email.
+          {reviewStudents
+            ? "CvSU email addresses are generated from student names when the roster has no email. Review the addresses before importing."
+            : "Use a full name and email, or use first and last names to generate a CvSU email."}
         </p>
         <p className="student-import-examples">
           Download an example in{" "}
@@ -104,7 +144,7 @@ export default function StudentImportPanel({ busy, disabled, onImport }) {
         </p>
       </div>
 
-      {pending && (
+      {pending && !preview && (
         <fieldset
           className="student-import-mapping"
           disabled={busy || disabled}
@@ -141,7 +181,10 @@ export default function StudentImportPanel({ busy, disabled, onImport }) {
               />
               File has column headers
             </label>
-            {STUDENT_FIELDS.map(([field, label]) => (
+            {[
+              ...STUDENT_FIELDS,
+              ...(reviewStudents ? [["middleName", "Middle name"]] : []),
+            ].map(([field, label]) => (
               <label key={field}>
                 {label}
                 <select
@@ -178,8 +221,9 @@ export default function StudentImportPanel({ busy, disabled, onImport }) {
           </div>
           <p>
             Match student ID, gender, and a section or enter a default section.
-            Year can be read from the section. Email can be generated when both
-            name columns are matched.
+            {reviewStudents
+              ? " Year level comes from the section."
+              : " Year can be read from the section. Email can be generated when both name columns are matched."}
           </p>
           <div className="student-import-actions">
             <button
@@ -188,12 +232,88 @@ export default function StudentImportPanel({ busy, disabled, onImport }) {
               disabled={!canImportStudentLayout(layout)}
               onClick={importMappedRows}
             >
-              Import mapped students
+              {reviewStudents ? "Preview students" : "Import mapped students"}
             </button>
             <button
               className="student-import-cancel"
               type="button"
               onClick={() => setPending(null)}
+            >
+              Cancel
+            </button>
+          </div>
+        </fieldset>
+      )}
+
+      {preview && (
+        <fieldset
+          className="student-import-mapping"
+          disabled={busy || disabled}
+        >
+          <legend>Review {preview.length} students</legend>
+          <p>
+            {preview.length
+              ? "Check the names and email addresses before creating accounts. Edit the email directly if you change a name."
+              : "No student records found after the selected header."}
+          </p>
+          <div className="student-import-preview">
+            {preview.map((student, index) => (
+              <fieldset
+                key={student.sourceRow}
+                className="student-import-mapping"
+              >
+                <legend>
+                  Row {student.sourceRow} ·{" "}
+                  {student.yearLevel || "Year level pending"}
+                </legend>
+                {student.reviewName && (
+                  <p>Check which names belong in the CvSU email.</p>
+                )}
+                <div className="student-import-fields">
+                  {PREVIEW_FIELDS.map(([field, label]) => (
+                    <label key={field}>
+                      {label}
+                      <input
+                        type="text"
+                        value={student[field] ?? ""}
+                        onChange={(event) =>
+                          editStudent(index, field, event.target.value)
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+                {errors[index]?.length > 0 && (
+                  <p className="student-import-error">
+                    {errors[index].join(" ")}
+                  </p>
+                )}
+              </fieldset>
+            ))}
+          </div>
+          <div className="student-import-actions">
+            <button
+              className="student-import-button"
+              type="button"
+              disabled={!preview.length || errors.some((row) => row.length)}
+              onClick={confirmImport}
+            >
+              Confirm import
+            </button>
+            <button
+              className="student-import-cancel"
+              type="button"
+              onClick={() => setPreview(null)}
+            >
+              Back to column matching
+            </button>
+            <button
+              className="student-import-cancel"
+              type="button"
+              onClick={() => {
+                setPreview(null);
+                setPending(null);
+              }}
             >
               Cancel
             </button>

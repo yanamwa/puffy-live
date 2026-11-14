@@ -297,8 +297,6 @@ function Login() {
         window.clearTimeout(timeoutId);
       }
 
-      console.log("LOGIN RESPONSE:", data);
-
       if (!res.ok || !data.success) {
         if (data.code === "MAINTENANCE_MODE") {
           showLoginError(data.message);
@@ -319,6 +317,7 @@ function Login() {
           sessionStorage.setItem("otp_email", otpEmail);
           sessionStorage.setItem("otp_role", APP_ROLES.STUDENT);
           sessionStorage.setItem("otp_expires_at", String(otpExpiresAt));
+          sessionStorage.setItem("otp_verification_token", data.verificationToken || "");
 
           await Swal.fire({
             imageUrl: "/images/emailsent.png",
@@ -330,7 +329,9 @@ function Login() {
               container: "login-feedback-overlay",
             },
             title: "Verify Your Email",
-            text: "Enter the 4-digit code sent with your temporary password. After verification, sign in again to begin the student tutorial.",
+            text: data.verificationDeliveryFailed
+              ? "We couldn’t send the verification email. Continue to request a new code."
+              : "Enter the 4-digit code from your verification email. After verification, sign in again to begin the student tutorial.",
             confirmButtonText: "Continue",
           });
 
