@@ -822,7 +822,15 @@ export default function SuperAdminUserManagementPage() {
     const confirmation = await Swal.fire({
       icon: "warning",
       title: `${archive ? "Archive" : "Restore"} account?`,
-      text: `Are you sure you want to ${archive ? "archive" : "restore"} ${user.name}'s account?`,
+      text: archive
+        ? `The reason will be emailed to ${user.email}.`
+        : `Restore ${user.name}'s account?`,
+      ...(archive && {
+        input: "textarea",
+        inputLabel: `Reason for archiving ${user.name}'s account`,
+        inputAttributes: { maxlength: "1000" },
+        inputValidator: (value) => !value.trim() ? "Enter a reason for archiving this account." : undefined,
+      }),
       showCancelButton: true,
       confirmButtonText: archive ? "Yes, archive" : "Yes, restore",
       cancelButtonText: "Cancel",
@@ -837,7 +845,7 @@ export default function SuperAdminUserManagementPage() {
       const response = await fetch(`${API_BASE}/users/${user.id}/archive`, {
         method: "PATCH",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ archive }),
+        body: JSON.stringify({ archive, reason: archive ? confirmation.value.trim() : undefined }),
       });
       const data = await response.json();
 
@@ -846,7 +854,11 @@ export default function SuperAdminUserManagementPage() {
       }
 
       updateUserInList(data.user);
-      showSuccess(data.message);
+      if (data.emailSent === false) {
+        showWarning(data.message, "Account archived");
+      } else {
+        showSuccess(data.message);
+      }
     } catch (error) {
       showError(error.message || "Could not update account.");
     } finally {

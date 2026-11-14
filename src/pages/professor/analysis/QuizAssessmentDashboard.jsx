@@ -3,9 +3,11 @@ import {
   filterModuleAttempts,
 } from "../../../utils/assessmentModuleScope.js";
 import styles from "./AssessmentAnalysis.module.css";
+import reportStyles from "./AssessmentDashboard.module.css";
+import { FiSearch } from "react-icons/fi";
 import MainQuizAnalysis from "./MainQuizAnalysis.jsx";
 import MainQuizResponses from "./MainQuizResponses.jsx";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { API_BASE } from "../../../config.js";
 import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
 import "./QuizAssessmentDashboard.css";
@@ -61,7 +63,7 @@ function Bars({ rows }) {
   );
 }
 
-function CoverageBars({ rows, pageSize = 10 }) {
+function PaginatedBars({ rows, pageSize = 10, label, children }) {
   const [selectedPage, setSelectedPage] = useState(1);
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const page = Math.min(selectedPage, pageCount);
@@ -77,22 +79,9 @@ function CoverageBars({ rows, pageSize = 10 }) {
 
   return (
     <>
-      <div className="qa-bars qa-coverage-bars">
-        {pageRows.map((row) => (
-          <div key={row.key}>
-            <span>
-              {row.label}
-              <small className="qa-bar-detail">{row.detail}</small>
-            </span>
-            <div className="qa-bar-track" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percent ?? 0} aria-label={`${row.label} accuracy`}>
-              <div style={{ width: `${row.percent ?? 0}%` }} />
-            </div>
-            <strong>{pct(row.percent)}</strong>
-          </div>
-        ))}
-      </div>
+      {children(pageRows)}
       {pageCount > 1 && (
-        <nav className="qa-bars-pagination" aria-label="Table of specifications pages">
+        <nav className="qa-bars-pagination" aria-label={label}>
           <button type="button" disabled={page === 1} onClick={() => setSelectedPage(page - 1)}>
             Previous
           </button>
@@ -115,6 +104,88 @@ function CoverageBars({ rows, pageSize = 10 }) {
     </>
   );
 }
+
+function CoverageBars({ rows, pageSize }) {
+  return (
+    <PaginatedBars rows={rows} pageSize={pageSize} label="Table of specifications pages">
+      {(pageRows) => (
+        <div className="qa-bars qa-coverage-bars">
+          {pageRows.map((row) => (
+            <div key={row.key}>
+              <span>
+                {row.label}
+                <small className="qa-bar-detail">{row.detail}</small>
+              </span>
+              <div className="qa-bar-track" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={row.percent ?? 0} aria-label={`${row.label} accuracy`}>
+                <div style={{ width: `${row.percent ?? 0}%` }} />
+              </div>
+              <strong>{pct(row.percent)}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+    </PaginatedBars>
+  );
+}
+function PracticeStudentReport({ title, description, students, courseTitle, years, sections, empty, attention = false }) {
+  const headingId = useId();
+  const [year, setYear] = useState("all");
+  const [section, setSection] = useState("all");
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLowerCase();
+  const rows = students.filter((student) =>
+    (year === "all" || student.year === year) &&
+    (section === "all" || student.section === section) &&
+    `${student.name} ${courseTitle}`.toLowerCase().includes(query),
+  );
+  const attempts = "Scored Attempts (Practice Quiz)";
+  const measures = attention ? ["Average Score", attempts] : [attempts, "Average Score"];
+
+  return (
+    <section className={`${reportStyles.panel} ${reportStyles.studentReport}`} aria-labelledby={headingId}>
+      <div className={reportStyles.tableHeading}>
+        <div>
+          <h2 id={headingId}>{title}</h2>
+          <p>{description}</p>
+        </div>
+        <div className={reportStyles.performanceFilters}>
+          <label className={reportStyles.yearSectionFilter}>
+            <span>Year Level</span>
+            <select value={year} onChange={(event) => setYear(event.target.value)}>
+              <option value="all">All Years</option>
+              {years.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <label className={reportStyles.yearSectionFilter}>
+            <span>Section</span>
+            <select value={section} onChange={(event) => setSection(event.target.value)}>
+              <option value="all">All Sections</option>
+              {sections.map((value) => <option key={value}>{value}</option>)}
+            </select>
+          </label>
+          <label className={reportStyles.searchBox}>
+            <FiSearch aria-hidden="true" />
+            <input type="search" aria-label={`Search ${title.toLowerCase()}`} placeholder="Search students or courses..." value={search} onChange={(event) => setSearch(event.target.value)} />
+          </label>
+        </div>
+      </div>
+      <AssessmentReportTable
+        columns={["Student", "Course", ...measures]}
+        rows={rows.map((student) => {
+          const score = student.average == null ? "N/A" : pct(student.average);
+          return {
+            key: student.id,
+            cells: [<strong>{student.name}</strong>, courseTitle, ...(attention ? [score, student.attempts] : [student.attempts, score])],
+          };
+        })}
+        pageKey={JSON.stringify([year, section, query])}
+        fixedPageSize={10}
+        empty={students.length ? "No students match these filters." : empty}
+      />
+    </section>
+  );
+}
+
 export default function QuizAssessmentDashboard({
   courseId,
   courseTitle,
@@ -351,11 +422,13 @@ export default function QuizAssessmentDashboard({
   };
   const { coverage, studentPerformance, studentsNeedingAttention } =
     summarizePracticeReport(summary, passing);
-  const studentColumns = ["Student", "Scored Practice Attempts", "Average Score"];
-  const studentRow = (student) => ({
-    key: student.id,
-    cells: [student.name, student.attempts, student.average == null ? "N/A" : pct(student.average)],
-  });
+  const practiceRoster = new Map([...data.attempts, ...roster].map((student) =>
+    [String(student.user_id ?? student.userId ?? student.id), student],
+  ));
+  const withStudentSection = (student) => {
+    const record = practiceRoster.get(String(student.id)) ?? {};
+    return { ...student, year: yearOf(record), section: sectionOf(record) };
+  };
   const metrics = [
     ["Students", summary.assessedStudents],
     ["Attempts", summary.attempts],
@@ -549,7 +622,13 @@ export default function QuizAssessmentDashboard({
                     responses.
                   </p>
                 ) : view === "graph" ? (
-                  <Bars rows={summary.topics} />
+                  <PaginatedBars
+                    key={`topics:${courseId}:${type}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
+                    rows={summary.topics}
+                    label="Topic performance pages"
+                  >
+                    {(pageRows) => <Bars rows={pageRows} />}
+                  </PaginatedBars>
                 ) : (
                   <AssessmentReportTable
                     columns={["Topic", "Accuracy", "Responses", "Remark"]}
@@ -562,8 +641,8 @@ export default function QuizAssessmentDashboard({
                         topicRemark(topic),
                       ],
                     }))}
-                    pageKey={`topics:${type}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
-                    fixedPageSize={5}
+                    pageKey={`topics:${courseId}:${type}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
+                    fixedPageSize={10}
                     empty="Topic results will appear after scored responses are recorded."
                   />
                 )}
@@ -635,16 +714,25 @@ export default function QuizAssessmentDashboard({
 
               {type === "practice" ? (
                 <>
-                  <div className={styles.analysisSectionTitle}>Student Practice Performance</div>
-                  <AssessmentReportTable
-                    columns={studentColumns}
-                    rows={studentPerformance.map(studentRow)}
-                    empty="No students match these filters."
+                  <PracticeStudentReport
+                    key={`performance:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
+                    title="Student Practice Performance"
+                    description="Scored practice quiz attempts and average scores for this course."
+                    students={studentPerformance.map(withStudentSection)}
+                    courseTitle={courseTitle}
+                    years={years}
+                    sections={sections}
+                    empty="No scored practice attempts match these filters."
                   />
-                  <div className={styles.analysisSectionTitle}>Students Needing Attention</div>
-                  <AssessmentReportTable
-                    columns={studentColumns}
-                    rows={studentsNeedingAttention.map(studentRow)}
+                  <PracticeStudentReport
+                    key={`attention:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
+                    title="Students Needing Attention"
+                    description={passing == null ? "The reporting threshold is not configured." : `Students with a practice average below the ${pct(passing)} reporting threshold.`}
+                    students={studentsNeedingAttention.map(withStudentSection)}
+                    courseTitle={courseTitle}
+                    years={years}
+                    sections={sections}
+                    attention
                     empty={thresholdStatus || (passing == null
                       ? "The reporting threshold is not configured."
                       : "No students with scored practice attempts are below the threshold.")}

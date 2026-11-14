@@ -379,7 +379,7 @@ const deleteNotification = async (notification) => {
 
       <div className="notification-management-grid">
         <form
-          className="feature-card notification-form"
+          className={`feature-card notification-form${variant === "notification" ? " notification-post-form" : ""}`}
           onSubmit={addNotification}
         >
           <div className="feature-card-top" />

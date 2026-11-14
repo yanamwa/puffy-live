@@ -1,5 +1,9 @@
 /* Notification Management page-specific styles */
 
+.notification-management-grid > .notification-post-form {
+  align-self: start;
+}
+
 .notification-management-grid {
 
   display: grid;

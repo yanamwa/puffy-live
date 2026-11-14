@@ -320,7 +320,15 @@ export default function UserManagementPage() {
     const confirmation = await Swal.fire({
       icon: "warning",
       title: `${archive ? "Archive" : "Restore"} account?`,
-      text: `Are you sure you want to ${archive ? "archive" : "restore"} ${user.name}'s account?`,
+      text: archive
+        ? `The reason will be emailed to ${user.email}.`
+        : `Restore ${user.name}'s account?`,
+      ...(archive && {
+        input: "textarea",
+        inputLabel: `Reason for archiving ${user.name}'s account`,
+        inputAttributes: { maxlength: "1000" },
+        inputValidator: (value) => !value.trim() ? "Enter a reason for archiving this account." : undefined,
+      }),
       showCancelButton: true,
       confirmButtonText: archive ? "Yes, archive" : "Yes, restore",
       cancelButtonText: "Cancel",
@@ -329,10 +337,17 @@ export default function UserManagementPage() {
     if (!confirmation.isConfirmed) return;
     setBusyUserId(user.id); setNotice("");
     try {
-      const data = await apiRequest(`/users/${encodeURIComponent(user.id)}/archive`, { method: "PATCH", body: JSON.stringify({ archive }) });
+      const data = await apiRequest(`/users/${encodeURIComponent(user.id)}/archive`, {
+        method: "PATCH",
+        body: JSON.stringify({ archive, reason: archive ? confirmation.value.trim() : undefined }),
+      });
       if (data.user) updateUser(data.user);
       else await loadUsers();
-      showSuccess(data.message || (archive ? "Account archived." : "Account restored."));
+      if (data.emailSent === false) {
+        Swal.fire({ icon: "warning", title: "Account archived", text: data.message });
+      } else {
+        showSuccess(data.message || (archive ? "Account archived." : "Account restored."));
+      }
     } catch (error) { showError(error.message || "Could not update account."); }
     finally { setBusyUserId(null); }
   };
@@ -389,7 +404,7 @@ export default function UserManagementPage() {
     { label: "Archived", value: users.filter(u => u.isArchived).length, icon: FiArchive },
   ];
   const importTitle = ({ reading: "Reading file", importing: "Importing students", success: "Students imported", partial: "Import completed with errors", error: "Import failed" })[studentImportStatus.state] || "Student import";
-  return <div className="users-page">
+  return <div className="users-page admin-users-page">
     {!studentModalOpen && studentImportStatus.state !== "idle" && <aside className={`student-import-popup is-${studentImportStatus.state}`} role="status" aria-live="polite">
       <span className="student-import-popup-icon">{studentImportStatus.state === "success" ? <FiCheck /> : studentImportStatus.state === "error" ? <FiX /> : studentImportStatus.state === "partial" ? <FiFileText /> : <FiClock />}</span>
       <div className="student-import-popup-copy"><strong>{importTitle}</strong><p>{studentImportStatus.message}</p>

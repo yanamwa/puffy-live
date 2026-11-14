@@ -2673,9 +2673,52 @@
 }
 
 /* Super Admin-matched management table layout */
-.users-page .user-management-tabs { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 26px; padding:0; background:transparent; border:0; box-shadow:none; }
-.users-page .user-management-tabs button { background:#fff; color:#191b2c; border:1px solid #b8c4d3; border-radius:999px; box-shadow:none; padding:12px 17px; font:inherit; font-weight:700; cursor:pointer; }
-.users-page .user-management-tabs button.active { background:#191b2c; color:#fff; border-color:#191b2c; }
+.users-page.admin-users-page .user-management-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  margin: 0;
+  padding: 0 10px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.users-page.admin-users-page .user-management-tabs button {
+  flex: 0 0 auto;
+  min-width: 150px;
+  min-height: 48px;
+  margin: 0;
+  padding: 13px 18px;
+  border: 1px solid #c4c8cf;
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: #eee;
+  color: #4f6174;
+  font-size: 14px;
+  font-weight: 400;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.users-page.admin-users-page .user-management-tabs button.active {
+  background: #7fa8d6;
+  border-color: #7fa8d6;
+  color: #fff;
+  font-weight: 700;
+}
+
+.users-page.admin-users-page .user-management-tabs button:focus-visible {
+  outline: 2px solid #35669a;
+  outline-offset: -4px;
+}
+
+.users-page.admin-users-page .user-management-tabs + .users-panel {
+  border: 1px solid #d5dfec;
+  border-radius: 0 8px 8px 8px;
+  box-shadow: none;
+}
 .users-page .users-panel { padding:30px 32px; }
 .users-page .users-panel-top { margin-bottom:24px; }
 .users-page .users-table { width:100%; border-collapse:collapse; }

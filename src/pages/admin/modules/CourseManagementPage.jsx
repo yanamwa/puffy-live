@@ -503,17 +503,31 @@ export default function CourseManagementPage() {
         : "Archive professor class?",
       text: course.archived
         ? "Restore this class to active classes?"
-        : "This archives the professor class for students. Its catalog entry is managed separately.",
+        : "The archive reason will be emailed to the professor assigned to this class.",
+      ...(!course.archived && {
+        input: "textarea",
+        inputLabel: "Reason for archiving",
+        inputAttributes: { maxlength: "1000" },
+        inputValidator: (value) => value.trim() ? undefined : "Enter a reason for archiving this class.",
+      }),
       showCancelButton: true,
       confirmButtonText: course.archived ? "Restore Class" : "Archive Class",
     });
     if (!answer.isConfirmed) return;
     setBusy(true);
     try {
-      await archiveCourseById(course.course_id, !course.archived, {
+      const result = await archiveCourseById(course.course_id, !course.archived, {
         fallback: false,
+        archiveReason: course.archived ? undefined : answer.value.trim(),
       });
       refresh();
+      if (typeof result.emailSent === "boolean") {
+        Swal.fire({
+          icon: result.emailSent ? "success" : "warning",
+          title: "Class archived",
+          text: result.message,
+        });
+      }
     } catch (e) {
       Swal.fire({
         confirmButtonColor: "#7fa8d6",

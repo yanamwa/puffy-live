@@ -613,7 +613,7 @@ export async function archiveCourseById(id, archived = true, options = {}) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ archived }),
+        body: JSON.stringify({ archived, archiveReason: options.archiveReason }),
       },
     );
   } catch (error) {

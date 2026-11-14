@@ -2,9 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiCamera,
-  FiEye,
-  FiEyeOff,
-  FiLock,
   FiMail,
   FiShield,
   FiUser,
@@ -23,7 +20,6 @@ const defaultAdminData = {
   department: "Administration",
   email: "Not available",
   accessLevel: "Administrative Access",
-  temporaryPassword: "Not available",
 };
 
 function getStoredToken() {
@@ -148,10 +144,6 @@ function getAdminProfileData(user) {
       user?.permission_level ||
       defaultAdminData.accessLevel,
 
-    temporaryPassword:
-      user?.temporaryPassword ||
-      user?.temporary_password ||
-      defaultAdminData.temporaryPassword,
   };
 }
 
@@ -212,7 +204,6 @@ export default function AdminAccountPage() {
   );
   const adminData = useMemo(() => getAdminProfileData(adminUser), [adminUser]);
 
-  const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState("");
   const [profileImageUploading, setProfileImageUploading] = useState(false);
@@ -487,7 +478,7 @@ useEffect(() => {
 
               <div className="admin-identity-header">
                 <div className="admin-identity-brand">
-                  <img src="/images/logo_solo.png" alt="PuffyBrain" />
+                  <img src={import.meta.env.BASE_URL + "images/logo.png"} alt="" />
 
                   <div>
                     <strong>PuffyBrain</strong>
@@ -612,7 +603,7 @@ useEffect(() => {
 
                   <h2>Administrator Information</h2>
 
-                  <p>Your personal, administrative, and account information.</p>
+                  <p>Your personal and administrative information.</p>
                 </div>
               </div>
 
@@ -714,87 +705,6 @@ useEffect(() => {
                     </div>
                   </div>
                 </div>
-              </section>
-
-              {/* =================================
-                ACCOUNT SECURITY
-            ================================= */}
-
-              <section className="admin-info-section admin-security-section">
-                <div className="admin-info-section-heading">
-                  <span className="admin-info-section-icon">
-                    <FiLock aria-hidden="true" />
-                  </span>
-
-                  <div>
-                    <h3>Account Security</h3>
-
-                    <p>Temporary account credentials</p>
-                  </div>
-                </div>
-
-                {/* =================================
-                  TEMPORARY PASSWORD
-              ================================= */}
-
-                <div className="admin-password-card">
-                  <div className="admin-password-copy">
-                    <span className="admin-info-label">Temporary Password</span>
-
-                    <strong
-                      className={
-                        showTemporaryPassword
-                          ? "admin-password-visible"
-                          : "admin-password-hidden"
-                      }
-                    >
-                      {showTemporaryPassword
-                        ? adminData.temporaryPassword
-                        : "••••••••••••••"}
-                    </strong>
-                  </div>
-
-                  {/* =================================
-                    SHOW/HIDE PASSWORD
-                ================================= */}
-
-                  <button
-                    type="button"
-
-                    className="admin-password-toggle"
-
-                    onClick={() =>
-                      setShowTemporaryPassword((currentValue) => !currentValue)
-                    }
-
-                    title={
-                      showTemporaryPassword
-                        ? "Hide temporary password"
-                        : "Show temporary password"
-                    }
-
-                    aria-label={
-                      showTemporaryPassword
-                        ? "Hide temporary password"
-                        : "Show temporary password"
-                    }
-
-                    aria-pressed={showTemporaryPassword}
-                  >
-                    {showTemporaryPassword ? (
-                      <FiEyeOff aria-hidden="true" />
-                    ) : (
-                      <FiEye aria-hidden="true" />
-                    )}
-
-                    <span>{showTemporaryPassword ? "Hide" : "Show"}</span>
-                  </button>
-                </div>
-
-                <p className="admin-password-note">
-                  Keep this password private. Change it from the Settings page
-                  after your first successful login.
-                </p>
               </section>
             </div>
           </div>
