@@ -192,3 +192,33 @@
   min-height: 42px;
   border-radius: 8px;
 }
+
+.swal2-popup.student-import-result {
+  width: min(660px, calc(100vw - 32px));
+  padding: 0 0 22px;
+  overflow: hidden;
+  border: 1px solid #cbd9e8;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px #182d423d;
+  font-family: system-ui, sans-serif;
+}
+
+.student-import-result .swal2-title {
+  background: #7fa8d6;
+  color: white;
+  padding: 18px 24px;
+  font-size: 1.375rem;
+}
+
+.student-import-result ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-inline-start: 24px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.student-import-dialog .student-import-error {
+  overflow-wrap: anywhere;
+}

@@ -1,3 +1,5 @@
+import { showStudentImportIssue } from "../../../components/studentImportIssue.js";
+import { validateStudentImport } from "../../../utils/studentImport.js";
 import UserPagination, { useUserPagination } from "../../../components/UserPagination";
 import StudentImportPanel from "../../../components/StudentImportPanel.jsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -185,32 +187,8 @@ function validateStudent(student) {
   return "";
 }
 
-function validateStudentImport(students, users) {
-  const key = (value) => String(value ?? "").trim().toLowerCase();
-  const fields = [["email", "Email"], ["studentId", "Student ID"]];
-  const existing = fields.map(([field]) => new Set(users.map((user) => key(user[field]))));
-  const counts = fields.map(([field]) => {
-    const values = new Map();
-    for (const student of students) {
-      const value = key(student[field]);
-      values.set(value, (values.get(value) ?? 0) + 1);
-    }
-    return values;
-  });
-  return students.map((student) => {
-    const errors = [validateStudent(student)].filter(Boolean);
-    if (student.course?.trim().length > 255) errors.push("Course must be 255 characters or fewer.");
-    fields.forEach(([field, label], index) => {
-      const value = key(student[field]);
-      if (!value) return;
-      if (existing[index].has(value)) errors.push(`${label} is already registered.`);
-      if (counts[index].get(value) > 1) errors.push(`Duplicate ${label.toLowerCase()} in this file.`);
-    });
-    return errors;
-  });
-}
-
 export default function UserManagementPage() {
+  const [otherAccounts, setOtherAccounts] = useState([]);
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -238,8 +216,10 @@ export default function UserManagementPage() {
       const accounts = data.users.map(normalizeUser);
       setPendingApprovalCount(accounts.filter(user => user.role === "professor" && user.verificationStatus === "pending" && !user.isArchived).length);
       setUsers(accounts.filter(managedUser));
+      setOtherAccounts(accounts.filter(user => !managedUser(user)));
     } catch (error) {
       setUsers([]);
+      setOtherAccounts([]);
       setPendingApprovalCount(0);
       setLoadError(error.message || "Could not load users.");
     } finally { setLoading(false); }
@@ -314,13 +294,13 @@ export default function UserManagementPage() {
       const issues = [...failures, ...unconfirmedEmails].slice(0, 5);
       setStudentImportStatus({ ...EMPTY_IMPORT, ...base, state: issues.length ? (created.length ? "partial" : "error") : "success", message, detail: issues.join("\n") });
       if (!issues.length) showSuccess(message, "Import Complete");
-      else Swal.fire({ icon: created.length ? "warning" : "error", title: "Import Results", text: `${message} ${issues.join(" | ")}` });
+      else showStudentImportIssue("Import Results", [message, ...failures, ...unconfirmedEmails]);
       try {
         await apiRequest("/users/student/bulk-import-audit", { method: "POST", body: JSON.stringify({ fileName: file.name, importedCount: created.length, failedCount: failures.length, totalCount: students.length }) });
       } catch (auditError) { setNotice(`${message} Audit log could not be saved: ${auditError.message}`); }
     } catch (error) {
       setStudentImportStatus({ ...EMPTY_IMPORT, ...base, state: "error", message: "Could not import students.", detail: error.message });
-      showError(error.message, "Import Failed");
+      showStudentImportIssue("Import Failed", [error.message]);
     }
   };
   const handleArchiveToggle = async user => {
@@ -423,7 +403,7 @@ export default function UserManagementPage() {
   ];
   const importTitle = ({ reading: "Reading file", importing: "Importing students", success: "Students imported", partial: "Import completed with errors", error: "Import failed" })[studentImportStatus.state] || "Student import";
   return <div className="users-page admin-users-page">
-    {!studentModalOpen && studentImportStatus.state !== "idle" && <aside className={`student-import-popup is-${studentImportStatus.state}`} role="status" aria-live="polite">
+    {!studentModalOpen && importBusy && <aside className={`student-import-popup is-${studentImportStatus.state}`} role="status" aria-live="polite">
       <span className="student-import-popup-icon">{studentImportStatus.state === "success" ? <FiCheck /> : studentImportStatus.state === "error" ? <FiX /> : studentImportStatus.state === "partial" ? <FiFileText /> : <FiClock />}</span>
       <div className="student-import-popup-copy"><strong>{importTitle}</strong><p>{studentImportStatus.message}</p>
         <span>{studentImportStatus.fileName} - {fileSize(studentImportStatus.fileSize)}</span>
@@ -771,7 +751,7 @@ export default function UserManagementPage() {
         busy={importBusy}
         disabled={creatingStudent}
         onImport={handleBulkImport}
-        reviewStudents={(students) => validateStudentImport(students, users)}
+        reviewStudents={(students) => validateStudentImport(students, [...users, ...otherAccounts], validateStudent)}
       />
       <form className="users-student-form" onSubmit={handleCreateStudent}>
         <label>Student Name<input type="text" value={studentForm.name} onChange={e => setStudentForm(s => ({ ...s, name: e.target.value }))} disabled={creatingStudent || importBusy} required /></label>

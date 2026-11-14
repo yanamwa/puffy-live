@@ -351,3 +351,46 @@ export async function parseStudentImportFile(
   onNeedsMapping({ rows, layout });
   return null;
 }
+
+export function validateStudentImport(
+  students,
+  users,
+  validateStudent = () => "",
+) {
+  const key = (value) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase();
+  const fields = [
+    ["email", "Email"],
+    ["studentId", "Student ID"],
+  ];
+  const existing = fields.map(
+    ([field]) => new Map(users.map((user) => [key(user[field]), user])),
+  );
+  const counts = fields.map(([field]) => {
+    const values = new Map();
+    for (const student of students) {
+      const value = key(student[field]);
+      values.set(value, (values.get(value) ?? 0) + 1);
+    }
+    return values;
+  });
+  return students.map((student) => {
+    const errors = [validateStudent(student)].filter(Boolean);
+    if (student.course?.trim().length > 255)
+      errors.push("Course must be 255 characters or fewer.");
+    fields.forEach(([field, label], index) => {
+      const value = key(student[field]);
+      if (!value) return;
+      const registered = existing[index].get(value);
+      if (registered)
+        errors.push(
+          `${label} already registered to ${registered.name || registered.email} (${registered.email}).`,
+        );
+      if (counts[index].get(value) > 1)
+        errors.push(`Duplicate ${label.toLowerCase()} in this file.`);
+    });
+    return errors;
+  });
+}

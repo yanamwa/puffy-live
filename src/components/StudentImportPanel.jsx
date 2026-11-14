@@ -35,8 +35,12 @@ function PreviewField({ field, label, value, onChange }) {
       {options ? (
         <select value={value} onChange={onChange}>
           <option value="">Select {label.toLowerCase()}</option>
-          {value && !options.includes(value) && <option value={value}>{value}</option>}
-          {options.map((option) => <option key={option}>{option}</option>)}
+          {value && !options.includes(value) && (
+            <option value={value}>{value}</option>
+          )}
+          {options.map((option) => (
+            <option key={option}>{option}</option>
+          ))}
         </select>
       ) : (
         <input type="text" value={value} onChange={onChange} />
@@ -118,14 +122,21 @@ export default function StudentImportPanel({
     onImport(file, () => students);
   }
 
+  const validation = preview ? reviewStudents?.(preview) : null;
+  const registeredCount =
+    validation?.filter((row) =>
+      row.some((issue) => issue.includes("already registered to")),
+    ).length ?? 0;
   const errors = preview
-    ? (reviewStudents?.(preview) ??
-      preview.map((student) => {
+    ? preview.map((student, index) => {
         const missing = PREVIEW_FIELDS.filter(
           ([field]) => field !== "course" && !student[field]?.trim(),
         ).map(([, label]) => label);
-        return missing.length ? [`Missing: ${missing.join(", ")}.`] : [];
-      }))
+        return [
+          ...(missing.length ? [`Missing: ${missing.join(", ")}.`] : []),
+          ...(validation?.[index] ?? []),
+        ];
+      })
     : [];
 
   return (
@@ -195,6 +206,15 @@ export default function StudentImportPanel({
                 {preview.length === 1 ? "student" : "students"} in{" "}
                 <strong>{pending.name}</strong>.
               </p>
+              {registeredCount > 0 && (
+                <p className="student-import-error">
+                  {registeredCount}{" "}
+                  {registeredCount === 1
+                    ? "row matches an existing account"
+                    : "rows match existing accounts"}
+                  . Open the preview to see which accounts matched.
+                </p>
+              )}
               {filenameSection && (
                 <p>
                   <strong>Section.</strong> We found {filenameSection} in the
@@ -280,7 +300,9 @@ export default function StudentImportPanel({
                           field={field}
                           label={label}
                           value={student[field] ?? ""}
-                          onChange={(event) => editStudent(index, field, event.target.value)}
+                          onChange={(event) =>
+                            editStudent(index, field, event.target.value)
+                          }
                         />
                       ))}
                     </div>

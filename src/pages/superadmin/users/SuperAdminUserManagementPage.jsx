@@ -1,3 +1,5 @@
+import { showStudentImportIssue } from "../../../components/studentImportIssue.js";
+import { validateStudentImport } from "../../../utils/studentImport.js";
 import ProfessorProofImage from "../../../components/ProfessorProofImage.jsx";
 import { professorProofUrl } from "../../../utils/professorProof.js";
 import UserPagination, { useUserPagination } from "../../../components/UserPagination";
@@ -1467,7 +1469,7 @@ export default function SuperAdminUserManagementPage() {
           detail: "Include at least one student row below the headers.",
         });
 
-        showError("Import file has no student records.", "Import Failed");
+        showStudentImportIssue("Import Failed", ["Import file has no student records."]);
 
         return;
       }
@@ -1602,10 +1604,7 @@ export default function SuperAdminUserManagementPage() {
           detail: detail || "Please check the student records and try again.",
         });
 
-        showError(
-          detail || "No student accounts were imported.",
-          "Import Failed",
-        );
+        showStudentImportIssue("Import Failed", failures.length ? failures : ["No student accounts were imported."]);
 
         return;
       }
@@ -1670,6 +1669,8 @@ export default function SuperAdminUserManagementPage() {
           } successfully imported. Students receive their temporary password first and a separate verification code at sign-in.`,
           "Import Complete",
         );
+      } else {
+        showStudentImportIssue("Import Results", [`${createdUsers.length} students imported.`, ...failures, ...emailFailures.map((row) => `Password email failed for ${row}`)]);
       }
     } catch (error) {
       console.error("Bulk student import error:", error);
@@ -1683,7 +1684,7 @@ export default function SuperAdminUserManagementPage() {
           error.message || "Please check the CSV or Excel file and try again.",
       });
 
-      showError(error.message || "Could not import students.", "Import Failed");
+      showStudentImportIssue("Import Failed", [error.message || "Could not import students."]);
     }
   };
 
@@ -2079,7 +2080,7 @@ export default function SuperAdminUserManagementPage() {
 
   return (
     <div className="users-page">
-      {!studentModalOpen && studentImportStatus.state !== "idle" && (
+      {!studentModalOpen && studentImportBusy && (
         <aside
           className={`student-import-popup is-${studentImportStatus.state}`}
           role="status"
@@ -2611,6 +2612,7 @@ export default function SuperAdminUserManagementPage() {
             <StudentImportPanel
               busy={studentImportBusy}
               onImport={handleBulkImport}
+              reviewStudents={(students) => validateStudentImport(students, users)}
             />
             <form className="users-student-form" onSubmit={handleCreateStudent}>
               <label>
