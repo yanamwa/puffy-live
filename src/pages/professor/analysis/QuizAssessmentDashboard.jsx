@@ -10,6 +10,7 @@ import { API_BASE } from "../../../config.js";
 import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
 import "./QuizAssessmentDashboard.css";
 import { summarizeAssessment } from "../../../utils/assessmentAnalytics.js";
+import { AssessmentReportTable } from "./ProfessorStudentPerformance.jsx";
 import {
   tutorialAssessmentAttempts,
   tutorialAssessmentStudents,
@@ -83,6 +84,31 @@ export default function QuizAssessmentDashboard({
   const [refresh, setRefresh] = useState(0);
   const loadedCourseId = useRef(null);
   const [refreshError, setRefreshError] = useState("");
+  const [passing, setPassing] = useState(tutorialMode ? 70 : null);
+  const [thresholdStatus, setThresholdStatus] = useState(
+    tutorialMode ? "" : "Loading the reporting threshold…",
+  );
+  useEffect(() => {
+    if (tutorialMode) return;
+    const controller = new AbortController();
+    fetch(`${API_BASE}/reports/professor/assessments`, {
+      credentials: "include",
+      headers: lessonAuthHeaders(),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok || !result.success) throw Error();
+        if (controller.signal.aborted) return;
+        const value = result.passingPercentage;
+        setPassing(value != null && value !== "" && Number.isFinite(Number(value)) ? Number(value) : null);
+        setThresholdStatus("");
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setThresholdStatus("Could not load the reporting threshold.");
+      });
+    return () => controller.abort();
+  }, [tutorialMode]);
   useEffect(() => {
     if (!tutorialMode) return;
     setType(tutorialStep?.id === "analysis-main" || tutorialStep?.id === "analysis-responses" ? "main" : "practice");
@@ -165,7 +191,8 @@ export default function QuizAssessmentDashboard({
   const filteredAttempts = data.attempts.filter(a => {
     const student = roster.find(s => String(s.user_id ?? s.userId ?? s.id) === String(a.user_id ?? a.userId));
     return studentMatches({ ...a, ...student });
-  });  const summary = useMemo(
+  });
+  const summary = useMemo(
     () =>
       summarizeAssessment(
         filterModuleAttempts(filteredAttempts, moduleIndex, modules).filter(
@@ -207,6 +234,36 @@ export default function QuizAssessmentDashboard({
     setType(next);
     setResponseView(false);
   };
+  const coverage = new Map();
+  for (const question of summary.questions) {
+    const key = JSON.stringify([question.topic, question.skill, question.level]);
+    if (!coverage.has(key)) {
+      coverage.set(key, {
+        key,
+        topic: question.topic,
+        skill: question.skill,
+        level: question.level || "Unclassified",
+        questions: 0,
+        responses: 0,
+        correct: 0,
+      });
+    }
+    const row = coverage.get(key);
+    row.questions++;
+    row.responses += question.responses;
+    row.correct += question.correct;
+  }
+  const studentColumns = ["Student", "Scored Practice Attempts", "Average Score"];
+  const studentRow = (student) => ({
+    key: student.id,
+    cells: [student.name, student.attempts, student.average == null ? "N/A" : pct(student.average)],
+  });
+  const studentPerformance = [...summary.students].sort(
+    (a, b) => b.attempts - a.attempts || a.name.localeCompare(b.name),
+  );
+  const studentsNeedingAttention = passing == null ? [] : studentPerformance
+    .filter(({ average }) => average != null && average < passing)
+    .sort((a, b) => a.average - b.average);
   const metrics = [
     ["Students", summary.students.length],
     ["Attempts", summary.attempts],
@@ -266,7 +323,7 @@ export default function QuizAssessmentDashboard({
           </button>
         )}
       </div>
-      {(moduleIndex !== "all" || responseView) ? (
+      {((type === "main" && moduleIndex !== "all") || responseView) ? (
         <div className="qa-main-analysis">
           {tutorialMode && responseView ? (
             <MainQuizResponses
@@ -499,6 +556,42 @@ export default function QuizAssessmentDashboard({
                 </p>
               </>
 
+              {type === "practice" ? (
+                <>
+                  <div className={styles.analysisSectionTitle}>Practice Table of Specifications</div>
+                  <p className="qa-topic-intro">
+                    Coverage from recorded practice responses by topic, thinking skill, and cognitive level.
+                  </p>
+                  <AssessmentReportTable
+                    columns={["Topic", "Thinking Skill", "Cognitive Level", "Questions", "Responses", "Accuracy"]}
+                    rows={[...coverage.values()].map((row) => ({
+                      key: row.key,
+                      cells: [row.topic, row.skill, row.level, row.questions, row.responses, pct(100 * row.correct / row.responses)],
+                    }))}
+                    empty="Coverage appears after students submit practice responses."
+                  />
+                  <div className={styles.analysisSectionTitle}>Student Practice Performance</div>
+                  <p className="qa-topic-intro">Ordered by the number of scored practice attempts.</p>
+                  <AssessmentReportTable
+                    columns={studentColumns}
+                    rows={studentPerformance.map(studentRow)}
+                    empty="No students match these filters."
+                  />
+                  <div className={styles.analysisSectionTitle}>Students Needing Attention</div>
+                  {passing != null && (
+                    <p className="qa-topic-intro">
+                      Students with an average practice score below the {passing}% reporting threshold.
+                    </p>
+                  )}
+                  <AssessmentReportTable
+                    columns={studentColumns}
+                    rows={studentsNeedingAttention.map(studentRow)}
+                    empty={thresholdStatus || (passing == null
+                      ? "The reporting threshold is not configured."
+                      : "No students with scored practice attempts are below the threshold.")}
+                  />
+                </>
+              ) : (
               <>
                 <div className={styles.analysisSectionTitle}>
                   Question Analysis
@@ -562,6 +655,7 @@ export default function QuizAssessmentDashboard({
                   </>
                 )}
               </>
+              )}
             </>
           )}
         </div>
