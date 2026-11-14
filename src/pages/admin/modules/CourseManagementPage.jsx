@@ -32,7 +32,11 @@ const classSection = (row) =>
   row.enrolled_sections?.join(", ") ||
   row.class_name ||
   [row.program, row.year_level, row.section_name].filter(Boolean).join(" / ") ||
-  "Not set";
+  (Number(row.student_count) > 0
+    ? Array.isArray(row.enrolled_sections)
+      ? "No sections recorded"
+      : "Enrollment sections unavailable"
+    : "Not set");
 const classStatus = (row) =>
   row.archived
     ? "Archived"
