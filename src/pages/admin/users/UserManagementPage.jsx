@@ -75,7 +75,7 @@ async function showCredentialResult({ title, password, message }) {
   });
 }
 
-const EMPTY_FORM = { name: "", email: "", studentId: "", gender: "", yearLevel: "", sectionName: "" };
+const EMPTY_FORM = { name: "", email: "", studentId: "", gender: "", course: "", yearLevel: "", sectionName: "" };
 const EMPTY_IMPORT = { state: "idle", fileName: "", fileSize: 0, message: "", detail: "" };
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 const API_ORIGIN = (() => {
@@ -214,6 +214,7 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
   const [loadError, setLoadError] = useState("");
@@ -389,13 +390,18 @@ export default function UserManagementPage() {
     professors: users.filter(user => user.role === "professor" && !user.isArchived),
     archived: users.filter(user => user.isArchived),
   }), [users]);
+  const tabUsers = userGroups[activeTab] || userGroups.all;
+  const departmentOf = (user) => (user.professorDepartment || user.department || "").trim();
+  const departments = [...new Set(tabUsers.map(departmentOf).filter(Boolean))].sort();
+  const department = activeTab !== "students" && departments.includes(departmentFilter) ? departmentFilter : "";
   const filteredUsers = useMemo(() => {
     const search = query.trim().toLowerCase();
-    return (userGroups[activeTab] || userGroups.all).filter(user =>
-      !search || [user.name, user.email, user.id, formatUserDisplayId(user), user.studentId, user.professorDepartment]
-        .some(value => String(value ?? "").toLowerCase().includes(search)));
-  }, [userGroups, activeTab, query]);
-  const pagination = useUserPagination(filteredUsers, activeTab, query);
+    return tabUsers.filter(user =>
+      (!department || (user.professorDepartment || user.department || "").trim() === department) &&
+      (!search || [user.name, user.email, user.id, formatUserDisplayId(user), user.studentId, user.professorDepartment, user.department]
+        .some(value => String(value ?? "").toLowerCase().includes(search))));
+  }, [tabUsers, query, department]);
+  const pagination = useUserPagination(filteredUsers, activeTab, JSON.stringify([query, department]));
   const securityLabel = user => user.isTemporary ? `Temporary until ${formatDate(user.temporaryExpiresAt)}` : user.mustChangePassword ? "Temporary password" : user.verified ? "Email verified" : "Email pending";
   const stats = [
     { label: "Managed Users", value: users.length, icon: FiUsers },
@@ -426,10 +432,21 @@ export default function UserManagementPage() {
           <h2>{USER_TABS.find(tab => tab.id === activeTab)?.label}</h2>
           <p>{pagination.range} user records shown</p>
         </div>
-        <label className="users-search">
-          <FiSearch />
-          <input type="text" placeholder="Search users..." value={query} onChange={event => setQuery(event.target.value)} />
-        </label>
+        <div className="admin-user-filters">
+          {activeTab !== "students" && (
+            <label className="admin-user-department">
+              Department
+              <select value={department} onChange={event => setDepartmentFilter(event.target.value)}>
+                <option value="">All Departments</option>
+                {departments.map(value => <option key={value}>{value}</option>)}
+              </select>
+            </label>
+          )}
+          <label className="users-search">
+            <FiSearch aria-hidden="true" />
+            <input type="search" aria-label="Search users" placeholder="Search users..." value={query} onChange={event => setQuery(event.target.value)} />
+          </label>
+        </div>
       </div>
       {notice && <div className="users-notice" role="status">{notice}</div>}
       {loadError && <div className="users-notice" role="alert">{loadError} <button type="button" onClick={loadUsers}>Retry</button></div>}
@@ -724,6 +741,19 @@ export default function UserManagementPage() {
         <label>Student Email<input type="email" value={studentForm.email} onChange={e => setStudentForm(s => ({ ...s, email: e.target.value }))} disabled={creatingStudent || importBusy} required /></label>
         <label>Student ID<input type="text" value={studentForm.studentId} onChange={e => setStudentForm(s => ({ ...s, studentId: e.target.value }))} disabled={creatingStudent || importBusy} required /></label>
         <label>Gender<select value={studentForm.gender} onChange={e => setStudentForm(s => ({ ...s, gender: e.target.value }))} disabled={creatingStudent || importBusy} required><option value="">Select gender</option><option value="Male">Male</option><option value="Female">Female</option></select></label>
+        <label>
+          Course / Program
+          <select
+            value={studentForm.course}
+            onChange={event => setStudentForm(form => ({ ...form, course: event.target.value }))}
+            disabled={creatingStudent || importBusy}
+            required
+          >
+            <option value="">Select course or program</option>
+            <option value="BSIT">BSIT</option>
+            <option value="BSCS">BSCS</option>
+          </select>
+        </label>
         <label>Year Level<select value={studentForm.yearLevel} onChange={e => setStudentForm(s => ({ ...s, yearLevel: e.target.value, sectionName: "" }))} disabled={creatingStudent || importBusy} required><option value="">Select year</option>{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select></label>
         <label>Section<select value={studentForm.sectionName} onChange={e => setStudentForm(s => ({ ...s, sectionName: e.target.value }))} disabled={creatingStudent || importBusy || !studentForm.yearLevel} required><option value="">Select section</option>{studentForm.yearLevel && "ABCDEF".split("").map(letter => { const value = `${YEARS.indexOf(studentForm.yearLevel) + 1}${letter}`; return <option key={value} value={value}>{value}</option>; })}</select></label>
         <button className="users-submit-btn" type="submit" disabled={creatingStudent || importBusy}>{creatingStudent ? "Creating Student..." : "Create Student Account"}</button>

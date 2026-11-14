@@ -2673,6 +2673,34 @@
 }
 
 /* Super Admin-matched management table layout */
+.users-page.admin-users-page .admin-user-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-user-department {
+  display: grid;
+  gap: 5px;
+  width: min(210px, 100%);
+  font-size: 12px;
+  color: #4f6174;
+}
+
+.admin-user-department select {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 2px solid #b8c4d3;
+  border-radius: 999px;
+  background: #fff;
+  color: #191b2c;
+  font: inherit;
+}
+
 .users-page.admin-users-page .user-management-tabs {
   display: flex;
   flex-wrap: nowrap;

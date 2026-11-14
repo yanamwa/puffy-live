@@ -49,6 +49,7 @@ const initialStudentForm = {
   email: "",
   studentId: "",
   gender: "",
+  course: "",
   yearLevel: "",
   sectionName: "",
 };
@@ -130,7 +131,8 @@ function getStatusFromUser(user) {
 
   if (
     role === "professor" &&
-    (verificationStatus === "pending" || currentStatus === "pending")
+    (verificationStatus === "pending" ||
+      (!verificationStatus && currentStatus === "pending"))
   ) {
     return "Approving";
   }
@@ -2653,6 +2655,21 @@ export default function SuperAdminUserManagementPage() {
                   <option value="">Select gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
+                </select>
+              </label>
+
+              <label>
+                Course / Program
+                <select
+                  value={studentForm.course}
+                  onChange={(event) =>
+                    setStudentForm((form) => ({ ...form, course: event.target.value }))
+                  }
+                  required
+                >
+                  <option value="">Select course or program</option>
+                  <option value="BSIT">BSIT</option>
+                  <option value="BSCS">BSCS</option>
                 </select>
               </label>
 
