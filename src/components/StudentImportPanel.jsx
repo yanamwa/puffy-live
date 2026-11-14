@@ -1,8 +1,6 @@
 import { useId, useRef, useState } from "react";
 import { FiUpload } from "react-icons/fi";
 import {
-  canImportStudentLayout,
-  getStudentImportLayout,
   mapStudentImportRows,
   parseStudentImportFile,
 } from "../utils/studentImport.js";
@@ -35,6 +33,8 @@ export default function StudentImportPanel({
   const fileInputRef = useRef(null);
   const [pending, setPending] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [filenameSection, setFilenameSection] = useState("");
 
   function selectFile(event) {
     const file = event.currentTarget.files?.[0];
@@ -42,21 +42,24 @@ export default function StudentImportPanel({
     if (!file) return;
 
     setPending(null);
+    setPreview(null);
+    setReviewOpen(false);
+    setFilenameSection("");
     onImport(file, () =>
-      parseStudentImportFile(file, (table) => setPending({ file, ...table }), {
-        review: Boolean(reviewStudents),
-      }),
+      parseStudentImportFile(file, ({ rows, layout }) => {
+        const section = file.name.match(/\b([1-4][A-F])(?=\b)/i)?.[1].toUpperCase();
+        const students = mapStudentImportRows(rows, {
+          ...layout,
+          defaultSection: layout.defaultSection || section || "",
+        }, { preview: true });
+        if (!students.length) {
+          throw new Error("No student records could be detected. Check the roster headers and upload the file again.");
+        }
+        setPending(file);
+        setFilenameSection(layout.defaultSection ? "" : section || "");
+        setPreview(students);
+      }, { review: true }),
     );
-  }
-
-  function importMappedRows() {
-    const { file, rows, layout } = pending;
-    if (reviewStudents) {
-      setPreview(mapStudentImportRows(rows, layout, { preview: true }));
-      return;
-    }
-    setPending(null);
-    onImport(file, () => mapStudentImportRows(rows, layout));
   }
 
   function editStudent(index, field, value) {
@@ -73,43 +76,20 @@ export default function StudentImportPanel({
   }
 
   function confirmImport() {
-    const { file } = pending;
+    const file = pending;
     const students = preview.map(({ reviewName, ...student }) => student);
     setPreview(null);
     setPending(null);
     onImport(file, () => students);
   }
 
-  function changeStartRow(rowIndex, hasHeaders) {
-    setPending(({ file, rows }) => ({
-      file,
-      rows,
-      layout: getStudentImportLayout(rows, rowIndex, hasHeaders),
-    }));
-  }
-
-  function changeMapping(change) {
-    setPending((current) => ({
-      ...current,
-      layout: { ...current.layout, ...change(current.layout) },
-    }));
-  }
-
-  const layout = pending?.layout;
-  const errors = preview ? reviewStudents(preview) : [];
-  const columnOptions = layout
-    ? Array.from(
-        {
-          length: pending.rows.reduce(
-            (max, row) => Math.max(max, row.cells.length),
-            0,
-          ),
-        },
-        (_, index) => ({
-          index,
-          text: pending.rows[layout.rowIndex].cells[index] || "",
-        }),
-      )
+  const errors = preview
+    ? reviewStudents?.(preview) ?? preview.map((student) => {
+        const missing = PREVIEW_FIELDS.filter(([field]) =>
+          field !== "course" && !student[field]?.trim(),
+        ).map(([, label]) => label);
+        return missing.length ? [`Missing: ${missing.join(", ")}.`] : [];
+      })
     : [];
 
   return (
@@ -144,118 +124,37 @@ export default function StudentImportPanel({
         </p>
       </div>
 
-      {pending && !preview && (
-        <fieldset
-          className="student-import-mapping"
-          disabled={busy || disabled}
-        >
-          <legend>Match columns</legend>
-          <p>
-            {pending.file.name}. Match each student field to a column. Use each
-            column once.
-          </p>
-          <div className="student-import-fields">
-            <label>
-              {layout.hasHeaders ? "Header row" : "First student row"}
-              <select
-                value={layout.rowIndex}
-                onChange={(event) =>
-                  changeStartRow(Number(event.target.value), layout.hasHeaders)
-                }
-              >
-                {pending.rows.map(({ cells, sourceRow }, index) => (
-                  <option key={sourceRow} value={index}>
-                    {sourceRow} ·{" "}
-                    {cells.filter(Boolean).slice(0, 3).join(" | ").slice(0, 80)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="student-import-checkbox">
-              <input
-                type="checkbox"
-                checked={layout.hasHeaders}
-                onChange={(event) =>
-                  changeStartRow(layout.rowIndex, event.target.checked)
-                }
-              />
-              File has column headers
-            </label>
-            {[
-              ...STUDENT_FIELDS,
-              ...(reviewStudents ? [["middleName", "Middle name"]] : []),
-            ].map(([field, label]) => (
-              <label key={field}>
-                {label}
-                <select
-                  value={layout.columns[field] ?? -1}
-                  onChange={(event) => {
-                    const index = Number(event.target.value);
-                    changeMapping(({ columns }) => ({
-                      columns: { ...columns, [field]: index },
-                    }));
-                  }}
-                >
-                  <option value={-1}>Choose column</option>
-                  {columnOptions.map(({ index, text }) => (
-                    <option key={index} value={index}>
-                      {index + 1}
-                      {text && " · " + text.slice(0, 80)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ))}
-            <label>
-              Default section
-              <input
-                type="text"
-                value={layout.defaultSection}
-                placeholder="e.g. 3C"
-                onChange={(event) => {
-                  const defaultSection = event.target.value;
-                  changeMapping(() => ({ defaultSection }));
-                }}
-              />
-            </label>
-          </div>
-          <p>
-            Match student ID, gender, and a section or enter a default section.
-            {reviewStudents
-              ? " Year level comes from the section."
-              : " Year can be read from the section. Email can be generated when both name columns are matched."}
-          </p>
-          <div className="student-import-actions">
-            <button
-              className="student-import-button"
-              type="button"
-              disabled={!canImportStudentLayout(layout)}
-              onClick={importMappedRows}
-            >
-              {reviewStudents ? "Preview students" : "Import mapped students"}
-            </button>
-            <button
-              className="student-import-cancel"
-              type="button"
-              onClick={() => setPending(null)}
-            >
-              Cancel
-            </button>
-          </div>
+      {preview && !reviewOpen && (
+        <fieldset className="student-import-mapping" disabled={busy || disabled}>
+          <legend>{errors.some((row) => row.length) ? "Student details needed" : "Review roster"}</legend>
+          <p>We found {preview.length} {preview.length === 1 ? "student" : "students"} in <strong>{pending.name}</strong>.</p>
+          {filenameSection && (
+            <p><strong>Section.</strong> We found {filenameSection} in the filename. Confirm or edit it in the preview. The year level will be set to {YEAR_LEVELS[Number(filenameSection[0]) - 1]}.</p>
+          )}
+          {preview.some((student) => !student.sectionName) && (
+            <p><strong>Section.</strong> Fill in any missing sections in the preview to set the year level.</p>
+          )}
+          {preview.some((student) => !["Male", "Female"].includes(student.gender)) && (
+            <p><strong>Sex / Gender.</strong> Fill in the missing or invalid values in the preview, or add a Sex column and upload the file again.</p>
+          )}
+          <button className="student-import-button" type="button" onClick={() => setReviewOpen(true)}>
+            Review {preview.length} {preview.length === 1 ? "student" : "students"}
+          </button>
         </fieldset>
       )}
 
-      {preview && (
+      {preview && reviewOpen && (
         <fieldset
           className="student-import-mapping"
           disabled={busy || disabled}
         >
-          <legend>Review {preview.length} students</legend>
+          <legend>{errors.some((row) => row.length) ? "Student details needed" : "Review students"}</legend>
           <p>
             {preview.length
               ? "Check the names and email addresses before creating accounts. Edit the email directly if you change a name."
               : "No student records found after the selected header."}
           </p>
+          <p>{pending.name} · {preview.length} student records</p>
           <div className="student-import-preview">
             {preview.map((student, index) => (
               <fieldset
@@ -303,25 +202,18 @@ export default function StudentImportPanel({
             <button
               className="student-import-cancel"
               type="button"
-              onClick={() => setPreview(null)}
-            >
-              Back to column matching
-            </button>
-            <button
-              className="student-import-cancel"
-              type="button"
               onClick={() => {
                 setPreview(null);
                 setPending(null);
               }}
             >
-              Cancel
+              Clear preview
             </button>
           </div>
         </fieldset>
       )}
 
-      {!pending && (
+      {(
         <button
           className="student-import-button"
           type="button"
@@ -329,7 +221,7 @@ export default function StudentImportPanel({
           onClick={() => fileInputRef.current?.click()}
         >
           <FiUpload aria-hidden="true" />
-          {busy ? "Reading file…" : "Import CSV or Excel"}
+          {busy ? "Reading file…" : pending ? "Upload another file" : "Import CSV or Excel"}
         </button>
       )}
       <input
