@@ -4,7 +4,6 @@ import { findCatalogCodeMatches } from "../../../services/catalogDuplicates.js";
 import { readCoverage } from "../../../components/catalog/CoverageModules.jsx";
 import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import "../../../utils/successDialog.css";
 import { FiUpload } from "react-icons/fi";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getUserRole } from "../../../utils/roles.js";
@@ -26,6 +25,9 @@ import "../../superadmin/SuperAdminDashboard.css";
 import "../../../components/catalog/catalog.css";
 
 const date = (value) => (value ? new Date(value).toLocaleString() : "—");
+const syllabusPeriod = (version) =>
+  [version.academic_year, version.semester].filter(Boolean).join(" / ") ||
+  "Not set";
 const classSection = (row) =>
   row.enrolled_sections?.join(", ") ||
   row.class_name ||
@@ -263,7 +265,7 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
                 {data.versions.map((v) => (
                   <tr key={v.version_id}>
                     <td>#{v.version_id}</td>
-                    <td>{period(v)}</td>
+                    <td>{syllabusPeriod(v)}</td>
                     <td className="course-syllabus-file">
                       {v.filename}
                       {v.generation_status && <p role="status">Draft lessons: {v.generation_status === "completed" ? "Ready for professor review" : v.generation_status}</p>}
@@ -492,6 +494,8 @@ export default function CourseManagementPage() {
   };
   const archiveClass = async (course) => {
     const answer = await Swal.fire({
+      customClass: { popup: "catalog-confirm-popup", container: "catalog-confirm-overlay" },
+      showCloseButton: true,
       confirmButtonColor: "#7fa8d6",
       cancelButtonColor: "#7d8798",
       title: course.archived
@@ -540,10 +544,8 @@ export default function CourseManagementPage() {
     const activation = action === "activate";
     const answer = await Swal.fire({
       ...(!activation && {
-        position: "center",
-        icon: "question",
-        iconColor: "#7fa8d6",
-        customClass: { popup: "puffy-success-dialog" },
+        customClass: { popup: "catalog-confirm-popup", container: "catalog-confirm-overlay" },
+        showCloseButton: true,
       }),
       confirmButtonColor: "#7fa8d6",
       cancelButtonColor: "#7d8798",

@@ -218,6 +218,15 @@ export default function AcademicCalendarPage() {
       );
       documentDialog.current?.close();
       successDialog.fire({
+        position: "center",
+        icon: undefined,
+        imageUrl: "/images/complete.png",
+        imageAlt: "",
+        imageWidth: 220,
+        customClass: {
+          container: "academic-success-overlay",
+          popup: "puffy-success-dialog academic-success-popup",
+        },
         title: value.published ? "Academic Calendar Published" : "Draft Saved",
         text: value.published
           ? "Students can now view events and descriptions on their calendar."

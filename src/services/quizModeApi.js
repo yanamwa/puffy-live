@@ -485,7 +485,7 @@ export async function saveQuizMode(mode) {
 
         description: normalized.description,
 
-        route: normalized.route,
+        route: mode.route || "",
 
         image: normalized.image,
 

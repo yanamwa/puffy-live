@@ -4,7 +4,6 @@ import Swal from "sweetalert2";
 import {
   deleteQuizModeById,
   fetchQuizModes,
-  quizModeSeeds,
   saveQuizMode,
 } from "../../../services/quizModeApi.js";
 
@@ -13,7 +12,6 @@ import "./SuperAdminModesManagement.css";
 const emptyForm = {
   title: "",
   description: "",
-  route: "",
   image: "",
 };
 
@@ -191,7 +189,6 @@ export default function SuperAdminModesManagement() {
     setForm({
       title: mode.title || "",
       description: mode.description || "",
-      route: mode.route || "",
       image: mode.image || "",
     });
 
@@ -249,7 +246,6 @@ export default function SuperAdminModesManagement() {
 
     const title = form.title.trim();
     const description = form.description.trim();
-    const route = form.route.trim();
     const image = form.image.trim();
 
     /* -------------------------
@@ -268,25 +264,9 @@ export default function SuperAdminModesManagement() {
       return;
     }
 
-    if (!route) {
-      await showWarning("Mode route is required.", "Missing Route");
-
-      return;
-    }
-
-    if (!route.startsWith("/")) {
-      await showWarning(
-        'The route must start with "/". Example: /flashcards',
-        "Invalid Route",
-      );
-
-      return;
-    }
-
     const payload = {
       title,
       description,
-      route,
       image,
     };
 
@@ -606,28 +586,6 @@ export default function SuperAdminModesManagement() {
                 required
                 disabled={saving}
               />
-            </label>
-
-            {/* ROUTE */}
-
-            <label className="feature-field">
-              <span>Route</span>
-
-              {editingMode ? (
-                <input value={form.route} readOnly />
-              ) : (
-                <select
-                  value={form.route}
-                  onChange={(event) => setForm({ ...form, route: event.target.value })}
-                  required
-                  disabled={saving}
-                >
-                  <option value="">Select a tutorial route</option>
-                  {quizModeSeeds.map((mode) => (
-                    <option key={mode.route} value={mode.route}>{mode.title}</option>
-                  ))}
-                </select>
-              )}
             </label>
 
             <label className="feature-field">

@@ -1651,3 +1651,27 @@ main.academic-management .academic-overview {
 .academic-document-dialog[open] footer .academic-save-button:hover:not(:disabled) {
   filter: brightness(0.9);
 }
+
+body .swal2-container.academic-success-overlay {
+  inset: 0 !important;
+  place-items: center;
+}
+
+body .swal2-container .academic-success-popup {
+  margin: auto;
+  max-width: 100%;
+  justify-self: center;
+  text-align: center;
+}
+
+body .academic-success-popup .swal2-image {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 16px;
+}
+
+body .academic-success-popup :is(.swal2-title, .swal2-html-container, .swal2-actions) {
+  justify-self: center;
+  margin-inline: auto !important;
+  text-align: center !important;
+}
