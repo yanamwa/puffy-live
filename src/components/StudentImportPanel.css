@@ -14,13 +14,13 @@
 }
 
 /* Keep the import guide compact inside the larger Add Student modal. */
-.users-page .users-modal .student-import-panel h3 {
+.users-page .users-modal .student-import-panel > h3 {
   margin: 0;
   font-size: 1rem !important;
   line-height: 1.3;
 }
 
-.users-page .users-modal .student-import-panel :is(p, button) {
+.users-page .users-modal .student-import-panel :is(.student-import-notes p, .student-import-panel > button) {
   font-size: 0.875rem !important;
   line-height: 1.45;
 }
@@ -90,10 +90,6 @@
   gap: 8px 12px;
 }
 
-.users-page .users-modal .student-import-fields :is(label, select, input) {
-  font-size: 0.875rem !important;
-}
-
 .student-import-fields label {
   display: grid;
   min-width: 0;
@@ -152,22 +148,47 @@
   margin: auto;
   padding: 22px;
   overflow: auto;
-  border: 1px solid #cbdced;
-  border-radius: 12px;
+  border: 1px solid #cbd9e8;
+  border-radius: 20px;
   background: #fff;
   color: #263e5b;
-  box-shadow: 0 16px 48px #142b4540;
+  box-shadow: 0 24px 64px #182d423d;
 }
 
 .student-import-dialog::backdrop {
   background: #172c4966;
 }
 
-.student-import-dialog h3 {
-  margin: 0 0 12px;
+.users-page .student-import-dialog h3 {
+  margin: -22px -22px 20px;
+  padding: 18px 24px;
+  background: #7fa8d6;
+  color: #fff;
+  text-align: center;
+  font-size: 1.375rem !important;
 }
 
 .student-import-dialog > .student-import-mapping {
   border: 0;
   padding: 0;
+}
+
+.users-page .student-import-dialog :is(p, legend, label, input, select, button) {
+  font-size: 1rem !important;
+  line-height: 1.5;
+}
+
+.users-page .student-import-dialog strong {
+  font-size: inherit !important;
+}
+
+.student-import-dialog .student-import-preview > fieldset {
+  background: #f7faff;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.student-import-dialog .student-import-fields :is(select, input[type="text"]) {
+  min-height: 42px;
+  border-radius: 8px;
 }

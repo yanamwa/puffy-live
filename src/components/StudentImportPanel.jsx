@@ -22,6 +22,28 @@ const PREVIEW_FIELDS = STUDENT_FIELDS.filter(
   ([field]) => !["firstName", "lastName", "yearLevel"].includes(field),
 );
 const YEAR_LEVELS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+const PREVIEW_OPTIONS = {
+  gender: ["Female", "Male"],
+  course: ["BSIT", "BSCS"],
+};
+
+function PreviewField({ field, label, value, onChange }) {
+  const options = PREVIEW_OPTIONS[field];
+  return (
+    <label>
+      {label}
+      {options ? (
+        <select value={value} onChange={onChange}>
+          <option value="">Select {label.toLowerCase()}</option>
+          {value && !options.includes(value) && <option value={value}>{value}</option>}
+          {options.map((option) => <option key={option}>{option}</option>)}
+        </select>
+      ) : (
+        <input type="text" value={value} onChange={onChange} />
+      )}
+    </label>
+  );
+}
 
 export default function StudentImportPanel({
   busy,
@@ -253,16 +275,13 @@ export default function StudentImportPanel({
                     )}
                     <div className="student-import-fields">
                       {PREVIEW_FIELDS.map(([field, label]) => (
-                        <label key={field}>
-                          {label}
-                          <input
-                            type="text"
-                            value={student[field] ?? ""}
-                            onChange={(event) =>
-                              editStudent(index, field, event.target.value)
-                            }
-                          />
-                        </label>
+                        <PreviewField
+                          key={field}
+                          field={field}
+                          label={label}
+                          value={student[field] ?? ""}
+                          onChange={(event) => editStudent(index, field, event.target.value)}
+                        />
                       ))}
                     </div>
                     {errors[index]?.length > 0 && (
