@@ -8,6 +8,21 @@ import {
 } from "../../services/catalogApi.js";
 import { CatalogModal, PdfPreview } from "./CatalogModal.jsx";
 
+function requireValidatedSyllabus(data) {
+  if (data.cvsuSyllabusValidated !== true) {
+    throw Object.assign(
+      new Error("The server could not verify this as a Cavite State University (CvSU) syllabus."),
+      { code: "INVALID_SYLLABUS" },
+    );
+  }
+}
+
+function discardUpload(uploadId) {
+  if (uploadId) {
+    void catalogRequest(`/uploads/${uploadId}`, { method: "DELETE" }).catch(() => {});
+  }
+}
+
 export function CatalogFields({
   value,
   onChange,
@@ -92,11 +107,11 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       normalizeCatalogCode(details.code) !== normalizeCatalogCode(attach.code),
   );
   const pending = useRef(null);
-  const setError = (message) => {
+  const setError = (message, title = "Please check before continuing") => {
     if (!message) return;
     void Swal.fire({
       icon: "warning",
-      title: "Please check before continuing",
+      title,
       text: message,
       confirmButtonText: "OK",
       confirmButtonColor: "#80a9d3",
@@ -106,6 +121,20 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
         if (container) container.style.zIndex = "2000";
       },
     });
+  };
+  const handleUploadError = (error) => {
+    if (error.code !== "INVALID_SYLLABUS") {
+      setError(error.message);
+      return;
+    }
+    discardUpload(pending.current);
+    pending.current = null;
+    setUpload(null);
+    setDetails({ programs: [] });
+    setMatches([]);
+    setAttach(course || null);
+    setReviewed(false);
+    setError(error.message, "Invalid syllabus");
   };
   const duplicateNotice = useRef("");
   useEffect(() => {
@@ -131,12 +160,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
     });
   }, [course, details.code, matches, onClose]);
   useEffect(
-    () => () => {
-      if (pending.current)
-        catalogRequest(`/uploads/${pending.current}`, {
-          method: "DELETE",
-        }).catch(() => {});
-    },
+    () => () => discardUpload(pending.current),
     [],
   );
   const choose = async (file) => {
@@ -151,12 +175,13 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       body.append("file", file);
       const data = await catalogRequest("/uploads", { method: "POST", body });
       pending.current = data.uploadId;
+      requireValidatedSyllabus(data);
       setUpload(data);
       setReviewed(false);
       setDetails(data.suggestions);
       setMatches(data.matches || []);
-    } catch (e) {
-      setError(e.message);
+    } catch (error) {
+      handleUploadError(error);
     } finally {
       setBusy(false);
     }
@@ -168,11 +193,12 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       const data = await catalogRequest(`/uploads/${upload.uploadId}/extract`, {
         method: "POST",
       });
+      requireValidatedSyllabus(data);
       setUpload({ ...upload, ...data });
       setDetails(data.suggestions);
       setMatches(data.matches || []);
     } catch (error) {
-      setError(error.message);
+      handleUploadError(error);
     } finally {
       setBusy(false);
     }
@@ -241,7 +267,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       notifyCatalogChanged();
       onSaved(saved.generationQueued ? "Course saved and activated. Draft lessons are generating in the background." : attach?.archived_at ? "Course restored and syllabus version saved." : attach ? "Syllabus version saved." : "Catalog course saved.");
     } catch (e) {
-      setError(e.message);
+      handleUploadError(e);
       if (e.matches) setMatches(e.matches);
     } finally {
       setBusy(false);

@@ -19,7 +19,7 @@ export async function catalogRequest(path = "", options = {}) {
   if (!response.ok || data.success === false)
     throw Object.assign(
       new Error(data.message || "Course catalog request failed."),
-      { status: response.status, matches: data.matches },
+      { status: response.status, code: data.code, matches: data.matches },
     );
   return data;
 }
