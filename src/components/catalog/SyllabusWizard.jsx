@@ -8,56 +8,45 @@ import {
 } from "../../services/catalogApi.js";
 import { CatalogModal, PdfPreview } from "./CatalogModal.jsx";
 
-function syllabusPeriod({ academic_year, semester }) {
-  const year = new Date().getFullYear();
-  const semesterText = String(semester ?? "").trim();
-  return {
-    academic_year: /\d{4}\s*[-–—]\s*\d{4}/.test(academic_year ?? "")
-      ? academic_year.trim()
-      : `${year}-${year + 1}`,
-    semester: /^(?:first|1st|1)(?:\s+semester)?$/i.test(semesterText)
-      ? "First Semester"
-      : /^(?:second|2nd|2)(?:\s+semester)?$/i.test(semesterText)
-        ? "Second Semester"
-        : "",
-  };
-}
-
 export function CatalogFields({
   value,
   onChange,
   readOnly = false,
-  readOnlyUnits = false,
-  invalid = false,
   showPrograms = true,
 }) {
-  const field = (key, label, type = "text", required = false) => (
-    <label key={key}>
-      {label}
-      {required ? " *" : ""}
-      {key === "description" ? (
-        <textarea
-          value={value[key] || ""}
-          onChange={(e) => onChange({ ...value, [key]: e.target.value })}
-          readOnly={readOnly}
-          maxLength={15000}
-        />
-      ) : (
-        <input
-          type={type}
-          value={value[key] ?? ""}
-          onChange={(e) => onChange({ ...value, [key]: e.target.value })}
-          readOnly={readOnly || (key === "units" && readOnlyUnits)}
-          required={required}
-          aria-invalid={invalid && required && !String(value[key] || "").trim()}
-          maxLength={key === "code" ? 50 : 255}
-          min={type === "number" ? 0 : undefined}
-          max={type === "number" ? 99 : undefined}
-          step={type === "number" ? "0.5" : undefined}
-        />
-      )}
-    </label>
-  );
+  const field = (key, label, type = "text", required = false) => {
+    const update = readOnly
+      ? undefined
+      : (e) => onChange({ ...value, [key]: e.target.value });
+    return (
+      <label key={key}>
+        {label}
+        {required && !readOnly ? " *" : ""}
+        {key === "description" ? (
+          <textarea
+            value={value[key] || ""}
+            onChange={update}
+            readOnly={readOnly}
+            placeholder={readOnly ? "Not detected" : undefined}
+            maxLength={15000}
+          />
+        ) : (
+          <input
+            type={type}
+            value={value[key] ?? ""}
+            onChange={update}
+            readOnly={readOnly}
+            placeholder={readOnly ? "Not detected" : undefined}
+            required={required && !readOnly}
+            maxLength={key === "code" ? 50 : 255}
+            min={type === "number" ? 0 : undefined}
+            max={type === "number" ? 99 : undefined}
+            step={type === "number" ? "0.5" : undefined}
+          />
+        )}
+      </label>
+    );
+  };
   return (
     <div className="catalog-fields">
       {field("code", "Course code", "text", true)}
@@ -96,8 +85,12 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
     [busy, setBusy] = useState(false);
   const [reviewed, setReviewed] = useState(false),
     [matches, setMatches] = useState([]),
-    [attach, setAttach] = useState(course || null),
-    [invalid, setInvalid] = useState(false);
+    [attach, setAttach] = useState(course || null);
+  const courseMismatch = Boolean(
+    upload &&
+      attach &&
+      normalizeCatalogCode(details.code) !== normalizeCatalogCode(attach.code),
+  );
   const pending = useRef(null);
   const setError = (message) => {
     if (!message) return;
@@ -146,28 +139,8 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
     },
     [],
   );
-  useEffect(() => {
-    if (!upload || course) return;
-    setMatches([]);
-    if (!details.code) return;
-    let active = true;
-    const timer = setTimeout(() => {
-      findCatalogCodeMatches(details.code, catalogRequest)
-        .then((records) => {
-          if (active) setMatches(records);
-        })
-        .catch((e) => {
-          if (active) setError(`Could not check the course code: ${e.message}`);
-        });
-    }, 300);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [details.code, upload, course]);
   const choose = async (file) => {
     if (!file) return;
-    setError("");
     if (!/\.pdf$/i.test(file.name) || file.size > 15 * 1024 * 1024) {
       setError("Choose a PDF no larger than 15 MB.");
       return;
@@ -180,16 +153,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       pending.current = data.uploadId;
       setUpload(data);
       setReviewed(false);
-      setDetails({
-        ...data.suggestions,
-        ...(course
-          ? {
-              ...course,
-              coverage_modules: data.suggestions.coverage_modules || [],
-            }
-          : {}),
-        ...syllabusPeriod(data.suggestions),
-      });
+      setDetails(data.suggestions);
       setMatches(data.matches || []);
     } catch (e) {
       setError(e.message);
@@ -199,23 +163,13 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
   };
   const reextract = async () => {
     setBusy(true);
-    setError("");
     setReviewed(false);
     try {
       const data = await catalogRequest(`/uploads/${upload.uploadId}/extract`, {
         method: "POST",
       });
       setUpload({ ...upload, ...data });
-      setDetails({
-        ...data.suggestions,
-        ...(attach
-          ? {
-              ...attach,
-              coverage_modules: data.suggestions.coverage_modules,
-            }
-          : {}),
-        ...syllabusPeriod(data.suggestions),
-      });
+      setDetails(data.suggestions);
       setMatches(data.matches || []);
     } catch (error) {
       setError(error.message);
@@ -223,18 +177,12 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       setBusy(false);
     }
   };
-  const change = (value) => {
-    setDetails(value);
+  const changeCoverage = (coverage_modules) => {
+    setDetails({ ...details, coverage_modules });
     setReviewed(false);
-    if (!course && attach && value.code !== details.code) setAttach(null);
   };
   const save = async (activate) => {
-    setInvalid(true);
-    setError("");
-    if (!attach && (!details.code?.trim() || !details.title?.trim())) {
-      setError("Course code and title are required.");
-      return;
-    }
+    if (courseMismatch) return;
     if ((activate || attach?.status === "active") && !reviewed) {
       setError(
         "Confirm review before activating or adding a version to an active course.",
@@ -272,7 +220,6 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
           });
           if (choice.isConfirmed) {
             setAttach(previous);
-            setDetails(current => ({ ...current, code: previous.code, title: previous.title, description: previous.description, units: previous.units, programs: previous.programs }));
             setReviewed(false);
             return;
           }
@@ -282,7 +229,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       const saved = await catalogRequest("", {
         method: "POST",
         body: JSON.stringify({
-          ...details,
+          coverage_modules: details.coverage_modules,
           uploadId: upload.uploadId,
           catalogId: attach?.catalog_id,
           restoreArchived: Boolean(attach?.archived_at),
@@ -322,14 +269,18 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
             if (!busy) choose(e.dataTransfer.files[0]);
           }}
         >
-          <strong>Drag and drop a syllabus PDF here</strong>
+          <strong>Drag and drop a CvSU syllabus PDF here</strong>
           <p>PDF only · Maximum 15 MB</p>
           <input
             type="file"
-            aria-label="Choose syllabus PDF"
+            aria-label="Choose CvSU syllabus PDF"
             accept=".pdf,application/pdf"
             disabled={busy}
-            onChange={(e) => choose(e.target.files[0])}
+            onChange={(e) => {
+              const file = e.target.files[0];
+              e.target.value = "";
+              choose(file);
+            }}
           />
           {busy && (
             <p role="status">Uploading and extracting searchable PDF text…</p>
@@ -342,7 +293,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
               {upload.extractionMessage}
             </p>
           )}
-          <p>Review the extracted information before activating this course.</p>
+          <p>Review the course details extracted from the PDF before saving.</p>
           <button
             className="catalog-button catalog-extract"
             type="button"
@@ -370,7 +321,6 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
                     disabled={!!match.archived_at || busy}
                     onChange={() => {
                       setAttach(match);
-                      setDetails({ ...details, ...match });
                       setReviewed(false);
                     }}
                   />{" "}
@@ -382,52 +332,50 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
               ))}
             </div>
           )}
-          {attach && (
+          {courseMismatch ? (
+            <p className="catalog-error" role="alert">
+              This PDF is for {details.code}. Upload a syllabus for {attach.code}.
+            </p>
+          ) : attach && (
             <p className="catalog-note">
               This PDF will be added to {attach.code} — {attach.title}. Existing
               PDFs and professor class selections are preserved. Use Edit
               Details to change the catalog information.
             </p>
           )}
-          {attach?.archived_at && <p className="catalog-note" role="status">You selected the archived {attach.code}. Review its original course details below. Saving will restore it and add this PDF as a new syllabus version. Existing classes and syllabus history will be kept.</p>}
+          {attach?.archived_at && (
+            <p className="catalog-note" role="status">
+              Saving will restore {attach.code} and add this PDF as a new syllabus version.
+            </p>
+          )}
           <div className="catalog-review">
             <PdfPreview path={`/uploads/${upload.uploadId}/pdf`} />
             <div className="catalog-fields">
               <CatalogFields
                 value={details}
-                onChange={change}
-                readOnly={!!attach}
-                readOnlyUnits
-                invalid={invalid}
+                readOnly
                 showPrograms={false}
               />
               <label>
                 Syllabus academic year
                 <input
                   value={details.academic_year || ""}
-                  maxLength={30}
+                  placeholder="Not detected"
                   readOnly
                 />
               </label>
               <label>
                 Syllabus semester
-                <select
+                <input
                   value={details.semester || ""}
-                  onChange={(e) =>
-                    change({ ...details, semester: e.target.value })
-                  }
-                >
-                  <option value="">Select semester</option>
-                  <option>First Semester</option>
-                  <option>Second Semester</option>
-                </select>
+                  placeholder="Not detected"
+                  readOnly
+                />
               </label>
               <CoverageModules
                 value={details.coverage_modules}
                 busy={busy}
-                onChange={(coverage_modules) =>
-                  change({ ...details, coverage_modules })
-                }
+                onChange={changeCoverage}
               />
               <label className="catalog-check">
                 <input
@@ -457,7 +405,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
             <button
               type="button"
               className="catalog-button catalog-save-draft"
-              disabled={busy}
+              disabled={busy || courseMismatch}
               onClick={() => save(false)}
             >
               {attach ? "Save Syllabus Version" : "Save Draft"}
@@ -466,7 +414,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
               <button
                 type="button"
                 className="catalog-button catalog-save-activate"
-                disabled={busy}
+                disabled={busy || courseMismatch}
                 onClick={() => save(true)}
               >
                 Save and Activate

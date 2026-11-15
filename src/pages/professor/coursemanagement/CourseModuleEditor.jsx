@@ -733,20 +733,6 @@ export default function CourseModuleEditor({ quizManagement = false }) {
   const activeQuiz = assessmentItems[activeQuizIndex] || null;
   const viewingGeneratedMain = isMainAssessment && selectedMainQuiz >= 0;
   const activePageMedia = getLessonPageMedia(activePage);
-  const tosTopics = [
-    ...(mainQuizConfig?.topics || []),
-    ...(moduleDraft?.topics || []),
-    ...(activeQuiz?.topic ? [activeQuiz.topic] : []),
-  ].reduce((topics, value) => {
-    const topic = String(value || "").trim();
-    if (
-      topic &&
-      !topics.some((item) => item.toLowerCase() === topic.toLowerCase())
-    ) {
-      topics.push(topic);
-    }
-    return topics;
-  }, []);
 
   const lessonCount = moduleDraft?.lessonPages?.length || 0;
   const quizCount = assessmentItems.length;
@@ -2513,44 +2499,6 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
                           <label
                             className={styles.popupLabel}
-                            htmlFor="main-quiz-question-topic"
-                          >
-                            Topic
-                          </label>
-                          {viewingGeneratedMain ? (
-                            <p className={styles.quizReviewValue}>
-                              {activeQuiz.topic || "General Concepts"}
-                            </p>
-                          ) : (
-                            <>
-                              <select
-                                id="main-quiz-question-topic"
-                                className={styles.popupSelect}
-                                value={activeQuiz.topic || ""}
-                                onChange={(event) =>
-                                  updateQuizItem(
-                                    activeQuizIndex,
-                                    "topic",
-                                    limit(event.target.value, 100),
-                                  )
-                                }
-                              >
-                                <option value="">Select a TOS topic</option>
-                                {tosTopics.map((topic) => (
-                                  <option key={topic} value={topic}>
-                                    {topic}
-                                  </option>
-                                ))}
-                              </select>
-                              <p className={styles.quizReviewValue}>
-                                Select the matching topic from this module's
-                                TOS.
-                              </p>
-                            </>
-                          )}
-
-                          <label
-                            className={styles.popupLabel}
                             htmlFor="quiz-question-type"
                           >
                             Question type
@@ -2714,6 +2662,11 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                                   aria-label="Other accepted identification answers, one per line"
                                   maxLength={3039}
                                 />
+                                <p className={styles.quizReviewValue}>
+                                  Capitalization, extra spaces, ending
+                                  punctuation, and a leading “the” are accepted
+                                  automatically.
+                                </p>
                               </>
                             )}
 

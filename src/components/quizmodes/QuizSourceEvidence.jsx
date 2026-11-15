@@ -25,9 +25,7 @@ export default function QuizSourceEvidence({ question }) {
           }}
         >
           <p>{citation.quote}</p>
-          <small>
-            {citation.filename || "Uploaded source"} · Chunk {citation.chunk_id}
-          </small>
+          <small>{citation.filename || "Uploaded source"}</small>
         </blockquote>
       ))}
     </details>

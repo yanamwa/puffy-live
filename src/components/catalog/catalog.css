@@ -75,7 +75,8 @@
   box-sizing: border-box;
   max-width: 100%;
 }
-.catalog-modal input:read-only {
+.catalog-modal input:read-only,
+.catalog-modal textarea:read-only {
   background: #f7f9fc;
 }
 .catalog-error {

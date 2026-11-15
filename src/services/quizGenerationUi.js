@@ -27,7 +27,6 @@ function requestMainQuizSettings({ tutorialPreview = false } = {}) {
       <div><label for="main-tf">True/False</label><input id="main-tf" type="number" min="0" max="100" step="1" value="5" required /></div></div>
       <div class="practiceDistributionSummary" aria-live="polite"><strong id="main-assigned">20 of 20 questions assigned</strong></div></section></div>
       <section id="main-quiz-passing-grade"><h3>Passing Grade</h3><div class="mainRequiredScore"><span>70% passing grade</span><strong id="main-required" aria-live="polite">14/20</strong><small>Required correct answers to pass, automatically calculated from the total questions.</small></div></section>
-      <section><h3>Adaptive Assessment</h3><ul class="mainAdaptiveList"><li>Practice results personalize questions when available</li><li>Students can start without completing Practice Quiz</li><li>Questions grounded in saved lesson sources</li></ul></section>
       </div>`,
     showCloseButton: !tutorialPreview,
     closeButtonAriaLabel: "Close Main Quiz generation",
