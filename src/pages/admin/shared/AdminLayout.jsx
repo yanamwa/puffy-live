@@ -1,7 +1,7 @@
 import ResponsiveSidebar from "../../../components/ResponsiveSidebar";
 import { useEffect, useState } from "react";
 
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../context/AuthContext";
 import confirmLogout from "../../../utils/confirmLogout.js";
@@ -24,6 +24,17 @@ import RoleNotificationMenu from "../../../components/rolenotif/RoleNotification
 
 import HeaderProfileChip from "../../../components/HeaderProfileChip";
 import SystemPageSearch from "../../../components/SystemPageSearch.jsx";
+import GuidedTutorial from "../../../components/GuidedTutorial.jsx";
+import {
+  requiresAdminTutorial,
+  requiresPasswordChange,
+} from "../../../utils/passwordPolicy.js";
+import {
+  ADMIN_DASHBOARD_PATH,
+  adminTutorialStepPath,
+  adminTutorialSteps,
+  getAdminTutorialStep,
+} from "../tutorial/adminTutorialSteps.js";
 
 import "./AdminLayout.css";
 
@@ -212,9 +223,36 @@ function getDisplayName(user) {
 \===================================================== */
 
 export default function AdminLayout({ children }) {
-  const { user: authUser, logout, switchRole } = useAuth();
+  const { user: authUser, logout, switchRole, updateUser } = useAuth();
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const tutorialStep =
+    requiresAdminTutorial(authUser) && !requiresPasswordChange(authUser)
+      ? getAdminTutorialStep(location)
+      : null;
+
+  async function completeTutorial() {
+    const token = getStoredToken();
+    const response = await fetch(`${API_BASE_URL}/users/me/complete-tutorial`, {
+      method: "POST",
+      credentials: "include",
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (
+      !response.ok ||
+      data.success !== true ||
+      data.user?.adminTutorialPending !== false ||
+      getStoredToken() !== token
+    ) {
+      throw new Error("Could not save your tutorial progress.");
+    }
+
+    updateUser(data.user);
+    navigate(ADMIN_DASHBOARD_PATH, { replace: true });
+  }
 
   /* ===================================================
 
@@ -296,14 +334,6 @@ export default function AdminLayout({ children }) {
         }
 
         setHeaderUser(loggedInUser);
-
-        const serializedUser = JSON.stringify(loggedInUser);
-
-        localStorage.setItem("puffy-user", serializedUser);
-
-        localStorage.setItem("user", serializedUser);
-
-        localStorage.setItem("currentUser", serializedUser);
       } catch (error) {
         console.error("Admin header loading error:", error);
       }
@@ -617,6 +647,18 @@ export default function AdminLayout({ children }) {
 
         <div className="admin-content">{children}</div>
       </main>
+
+      {tutorialStep && (
+        <GuidedTutorial
+          key={authUser.userId}
+          step={tutorialStep}
+          steps={adminTutorialSteps}
+          stepPath={adminTutorialStepPath}
+          layoutSelector=".admin-layout"
+          skipDescription="Continue to the Admin Dashboard?"
+          onFinish={completeTutorial}
+        />
+      )}
     </div>
   );
 }

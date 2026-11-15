@@ -6,6 +6,7 @@ import "./ResponsiveSidebar.css";
 export default function ResponsiveSidebar({
   className = "",
   logoSrc = "/images/Student.png",
+  alwaysOpen = false,
   children,
 }) {
   const [open, setOpen] = useState(false);
@@ -18,7 +19,7 @@ export default function ResponsiveSidebar({
   return (
     <aside
       className={`responsive-sidebar ${className}`}
-      data-mobile-open={open}
+      data-mobile-open={alwaysOpen || open}
       onKeyDown={(event) => {
         if (event.key === "Escape" && open) {
           setOpen(false);
@@ -28,16 +29,18 @@ export default function ResponsiveSidebar({
     >
       <div className="responsive-sidebar-mobile-header">
         <img src={logoSrc} alt="PuffyBrain" />
-        <button
-          ref={toggleRef}
-          type="button"
-          aria-expanded={open}
-          aria-controls={navigationId}
-          onClick={() => setOpen((value) => !value)}
-        >
-          {open ? <FiX aria-hidden="true" /> : <FiMenu aria-hidden="true" />}
-          <span>{open ? "Close" : "Menu"}</span>
-        </button>
+        {!alwaysOpen && (
+          <button
+            ref={toggleRef}
+            type="button"
+            aria-expanded={open}
+            aria-controls={navigationId}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? <FiX aria-hidden="true" /> : <FiMenu aria-hidden="true" />}
+            <span>{open ? "Close" : "Menu"}</span>
+          </button>
+        )}
       </div>
       <div
         id={navigationId}

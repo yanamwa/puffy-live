@@ -1,10 +1,10 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  requiresPasswordChange,
   requiresProfessorTutorial,
   requiresStudentTutorial,
 } from "../utils/passwordPolicy.js";
+import { getAdminSetupRedirect } from "../pages/admin/tutorial/adminTutorialSteps.js";
 import {
   getProfessorTutorialStep,
   professorTutorialStepPath,
@@ -203,13 +203,9 @@ export default function ProtectedRoute() {
     return <Navigate to={professorTutorialStepPath(professorTutorialSteps[0])} replace />;
   }
 
-  if (
-    role === APP_ROLES.ADMIN &&
-    requiresPasswordChange(currentUser) &&
-    !(professorTutorial && professorStep) &&
-    pathname.replace(/\/+$/, "").toLowerCase() !== `/${role}/settings`
-  ) {
-    return <Navigate to={`/${role}/settings`} replace />;
+  if (role === APP_ROLES.ADMIN) {
+    const setupRedirect = getAdminSetupRedirect(currentUser, location);
+    if (setupRedirect) return <Navigate to={setupRedirect} replace />;
   }
   if (professorStep && !professorTutorial) {
     return <Navigate to={professorStep.path} replace />;

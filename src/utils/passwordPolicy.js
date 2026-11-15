@@ -9,6 +9,10 @@ export function requiresStudentPasswordChange(user) {
   return getUserRole(user) === APP_ROLES.STUDENT && requiresPasswordChange(user);
 }
 
+export function requiresAdminTutorial(user) {
+  return getUserRole(user) === APP_ROLES.ADMIN && user.adminTutorialPending === true;
+}
+
 export function requiresProfessorTutorial(user) {
   return (
     getUserRole(user) === APP_ROLES.PROFESSOR &&

@@ -162,6 +162,16 @@ export default function AppRoutes() {
           />
 
           <Route
+            path="/super-admin/reports"
+            caseSensitive
+            element={
+              <SuperAdminLayout>
+                <ReportsPage superAdmin />
+              </SuperAdminLayout>
+            }
+          />
+
+          <Route
             path="/super-admin/academic-calendar"
             element={
               <SuperAdminLayout>

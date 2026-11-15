@@ -55,6 +55,13 @@ function Signup() {
     });
   };
 
+  const showInvalidEmail = () => {
+    showError(
+      "Invalid email address",
+      "Please check your email address and try again.",
+    );
+  };
+
   const getPasswordStrength = (value) => {
     let strength = 0;
 
@@ -148,8 +155,8 @@ function Signup() {
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailPattern.test(cleanEmail)) {
-      showError("Invalid Email", "Please enter a valid email address.");
+    if (!emailPattern.test(cleanEmail) || cleanEmail.endsWith("@gmail.co")) {
+      showInvalidEmail();
       return;
     }
 
@@ -212,7 +219,11 @@ function Signup() {
       }));
 
       if (!response.ok || !data.success) {
-        showError("Signup Failed", data.message || "Unable to create account.");
+        if (data.code === "INVALID_EMAIL") {
+          showInvalidEmail();
+        } else {
+          showError("Signup Failed", data.message || "Unable to create account.");
+        }
         return;
       }
 
@@ -303,6 +314,10 @@ function Signup() {
                   disabled={isSigningUp}
                   autoComplete="email"
                   onChange={(event) => setEmail(event.target.value)}
+                  onInvalid={(event) => {
+                    event.preventDefault();
+                    showInvalidEmail();
+                  }}
                 />
               </div>
 

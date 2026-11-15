@@ -37,21 +37,10 @@ export default function StudentSettings() {
   const passwordChangeRequired = requiresStudentPasswordChange(user);
   const locked = passwordChangeRequired && !tutorial;
   const secureHeading = useRef(null);
-  const [showPasswordReminder, setShowPasswordReminder] = useState(false);
 
   useEffect(() => {
     if (locked) secureHeading.current?.focus();
   }, [locked]);
-
-  const keepOnSettings = (event) => {
-    if (event.type !== "submit" && !event.target.closest("a, button")) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    setShowPasswordReminder(true);
-    secureHeading.current?.focus();
-  };
-  const onLockedAction = locked ? keepOnSettings : undefined;
 
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [courseCode, setCourseCode] = useState("");
@@ -269,11 +258,11 @@ export default function StudentSettings() {
 
   return (
     <div className="student-settings-page">
-      <StudentSidebar onLockedAction={onLockedAction} />
+      <StudentSidebar locked={locked} />
 
       <div className="student-settings-main-area">
         <StudentHeader
-          onLockedAction={onLockedAction}
+          locked={locked}
           searchPlaceholder="Search your course"
           onJoinCourse={() => setJoinModalOpen(true)}
         />
@@ -310,9 +299,9 @@ export default function StudentSettings() {
                     {locked ? "Secure Your Account" : "Change Password"}
                   </h2>
 
-                  <p role="status">
-                    {locked && showPasswordReminder
-                      ? "Change your temporary password here to unlock that feature."
+                  <p>
+                    {locked
+                      ? "Change your temporary password here to unlock your account."
                       : "Use a strong password that you do not use on other accounts."}
                   </p>
                 </div>

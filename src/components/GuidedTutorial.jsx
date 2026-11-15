@@ -1,12 +1,8 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import {
-  professorTutorialStepPath,
-  professorTutorialSteps,
-} from "./professorTutorialSteps.js";
-import "../../student/tutorial/StudentTutorial.css";
-import "./ProfessorTutorial.css";
+import "../pages/student/tutorial/StudentTutorial.css";
+import "./GuidedTutorial.css";
 
 const edge = 12;
 const gap = 18;
@@ -25,10 +21,17 @@ function visibleBounds(bounds, width, height) {
   };
 }
 
-export default function ProfessorTutorial({
+export default function GuidedTutorial({
   step,
+  steps,
+  stepPath,
+  layoutSelector,
+  sidebarSelector,
+  sidebarLastLinkSelector,
+  sidebarLogoutSelector,
+  scrollPreviewSelector,
+  skipDescription,
   onFinish,
-  onSkip = onFinish,
 }) {
   const navigate = useNavigate();
   const panel = useRef(null);
@@ -38,8 +41,9 @@ export default function ProfessorTutorial({
   const [confirmingSkip, setConfirmingSkip] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  const index = professorTutorialSteps.indexOf(step);
-  const lastStep = index === professorTutorialSteps.length - 1;
+  const panelId = useId();
+  const index = steps.indexOf(step);
+  const lastStep = index === steps.length - 1;
   const popupMode = Boolean(step.popupTarget);
   const popupAnchor =
     popupMode &&
@@ -71,15 +75,14 @@ export default function ProfessorTutorial({
       setPlacement(null);
       return;
     }
-    const layout = document.querySelector(".professor-layout");
+    const layout = document.querySelector(layoutSelector);
     if (!layout) return;
     const previousFocus = document.activeElement;
     // Keep the preview's scroll container available while its controls are inert.
-    const background = step.allowPreviewScroll
-      ? layout.querySelectorAll(
-          ".professor-sidebar, .professor-header, .professor-content > *",
-        )
-      : [layout];
+    const background =
+      step.allowPreviewScroll && scrollPreviewSelector
+        ? layout.querySelectorAll(scrollPreviewSelector)
+        : [layout];
     const previousInert = Array.from(background, (element) => ({
       element,
       inert: element.inert,
@@ -96,10 +99,10 @@ export default function ProfessorTutorial({
         previousFocus.focus({ preventScroll: true });
       }
     };
-  }, [step]);
+  }, [step, layoutSelector, scrollPreviewSelector]);
 
   useLayoutEffect(() => {
-    const layout = document.querySelector(".professor-layout");
+    const layout = document.querySelector(layoutSelector);
     const dialog = panel.current;
     if (!dialog) return;
     const popupBoundary = step.popupTarget
@@ -114,13 +117,12 @@ export default function ProfessorTutorial({
     let panelAnchor = step.panelAnchor
       ? (document.querySelector(step.panelAnchor) ?? target)
       : target;
-    const sidebar = step.preferSidebar
-      ? layout?.querySelector(".professor-sidebar")
-      : null;
-    const lastSidebarLink = sidebar?.querySelector(
-      ".professor-link:last-child",
-    );
-    const logout = sidebar?.querySelector(".professor-logout");
+    const sidebar =
+      step.preferSidebar && sidebarSelector
+        ? layout?.querySelector(sidebarSelector)
+        : null;
+    const lastSidebarLink = sidebar?.querySelector(sidebarLastLinkSelector);
+    const logout = sidebar?.querySelector(sidebarLogoutSelector);
     panelAnchor?.scrollIntoView({ block: "nearest", behavior: "instant" });
 
     function positionPanel() {
@@ -297,7 +299,15 @@ export default function ProfessorTutorial({
       window.removeEventListener("resize", positionPanel);
       window.removeEventListener("scroll", positionPanel, true);
     };
-  }, [step, popupAnchor, popupTarget]);
+  }, [
+    step,
+    popupAnchor,
+    popupTarget,
+    layoutSelector,
+    sidebarSelector,
+    sidebarLastLinkSelector,
+    sidebarLogoutSelector,
+  ]);
 
   useLayoutEffect(() => {
     panel.current?.focus({ preventScroll: true });
@@ -305,7 +315,7 @@ export default function ProfessorTutorial({
 
   function move(nextIndex) {
     setError("");
-    navigate(professorTutorialStepPath(professorTutorialSteps[nextIndex]), {
+    navigate(stepPath(steps[nextIndex]), {
       replace: true,
     });
   }
@@ -352,7 +362,7 @@ export default function ProfessorTutorial({
 
   return createPortal(
     <div
-      className="student-tutorial-layer professor-tutorial-layer"
+      className="student-tutorial-layer guided-tutorial-layer"
       data-scroll-preview={step.allowPreviewScroll ? "" : undefined}
     >
       {placement ? (
@@ -365,27 +375,25 @@ export default function ProfessorTutorial({
       )}
       <section
         ref={panel}
-        className="student-tutorial-panel professor-tutorial-panel"
+        className="student-tutorial-panel guided-tutorial-panel"
         style={placement?.panel}
         data-arrow={placement?.arrow}
         role={popupMode ? "region" : "dialog"}
         aria-modal={popupMode ? undefined : "true"}
-        aria-labelledby="professor-tutorial-title"
-        aria-describedby="professor-tutorial-description"
+        aria-labelledby={`${panelId}-title`}
+        aria-describedby={`${panelId}-description`}
         aria-busy={isSaving}
         tabIndex={-1}
         onKeyDown={keepFocusInPanel}
       >
         <p className="student-tutorial-progress">
-          Step {index + 1} of {professorTutorialSteps.length}
+          Step {index + 1} of {steps.length}
         </p>
-        <h2 id="professor-tutorial-title">
+        <h2 id={`${panelId}-title`}>
           {confirmingSkip ? "Skip the tutorial?" : step.title}
         </h2>
-        <p id="professor-tutorial-description">
-          {confirmingSkip
-            ? "Continue to Settings? You can update your password there whenever you need to."
-            : step.description}
+        <p id={`${panelId}-description`}>
+          {confirmingSkip ? skipDescription : step.description}
         </p>
         {error && (
           <p className="student-tutorial-error" role="alert">
@@ -405,7 +413,7 @@ export default function ProfessorTutorial({
               <button
                 type="button"
                 className="student-tutorial-next"
-                onClick={() => complete(onSkip)}
+                onClick={() => complete(onFinish)}
                 disabled={isSaving}
               >
                 {isSaving ? "Saving…" : "Skip tutorial"}

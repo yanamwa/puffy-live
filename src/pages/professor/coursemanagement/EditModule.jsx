@@ -1491,7 +1491,7 @@ export default function EditModule() {
                 onClick={handleUploadAndExtract}
                 disabled={extractingFile || !uploadedFile.length}
               >
-                {extractingFile ? "Generating..." : "Generate Module"}
+                {extractingFile ? "Organizing..." : "Organizine Module"}
               </button>
             </div>
             <LessonSourceManager

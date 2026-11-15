@@ -153,12 +153,11 @@ export default function StudentHeader({
   onJoinCourse,
   showSearch = true,
   showJoinCourse = true,
-  onLockedAction,
+  locked = false,
 }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const tutorial = useStudentTutorial();
-  const locked = Boolean(onLockedAction);
   const [localSearch, setLocalSearch] = useState("");
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
   const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
@@ -484,11 +483,9 @@ export default function StudentHeader({
         <form
           className="student-header-search"
           role="search"
-          onClickCapture={onLockedAction}
-          onSubmitCapture={onLockedAction}
           onSubmit={(event) => {
             event.preventDefault();
-            if (!onSearchChange)
+            if (!locked && !onSearchChange)
               navigate(
                 `/student/enrolled-courses?search=${encodeURIComponent(localSearch.trim())}`,
               );
@@ -498,6 +495,7 @@ export default function StudentHeader({
             type="search"
             placeholder={searchPlaceholder}
             aria-label={searchPlaceholder}
+            disabled={locked}
             value={onSearchChange ? searchValue : localSearch}
             onChange={(event) => {
               if (onSearchChange) {
@@ -511,6 +509,7 @@ export default function StudentHeader({
             type="submit"
             className="student-header-search-icon"
             aria-label="Search courses"
+            disabled={locked}
           >
             <svg viewBox="0 0 24 24">
               <circle cx="10.5" cy="10.5" r="5.5" />
@@ -522,17 +521,15 @@ export default function StudentHeader({
       {/* RIGHT SIDE */}
       <div className="student-header-actions">
         {/* NOTIFICATION */}
-        <div
-          className="notification-menu-wrapper"
-          onClickCapture={onLockedAction}
-        >
+        <div className="notification-menu-wrapper">
           <button
             type="button"
             className={`notification-button ${
-              notificationMenuOpen ? "active" : ""
+              !locked && notificationMenuOpen ? "active" : ""
             }`}
             aria-label="Notifications"
-            aria-expanded={notificationMenuOpen}
+            aria-expanded={!locked && notificationMenuOpen}
+            disabled={locked}
             onClick={(event) => {
               event.stopPropagation();
               setProfileMenuOpen(false);
@@ -543,14 +540,14 @@ export default function StudentHeader({
               <path d="M6.6 17.4h10.8l-.9-1.6v-4.5a4.5 4.5 0 0 0-9 0v4.5l-.9 1.6Z" />
               <path d="M10 19.2h4" />
             </svg>
-            {unreadNotificationCount > 0 && (
+            {!locked && unreadNotificationCount > 0 && (
               <span className="notification-badge">
                 {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
               </span>
             )}
           </button>
           {/* NOTIFICATION DROPDOWN */}
-          {notificationMenuOpen && (
+          {!locked && notificationMenuOpen && (
             <section
               className="notification-dropdown-menu"
               role="dialog"
@@ -675,7 +672,7 @@ export default function StudentHeader({
           <button
             type="button"
             className="student-join-course-button"
-            onClickCapture={onLockedAction}
+            disabled={locked}
             onClick={() => {
               if (onJoinCourse) {
                 onJoinCourse();
@@ -691,10 +688,8 @@ export default function StudentHeader({
             <button
               type="button"
               className="profile-main-button"
-              aria-expanded={locked ? profileMenuOpen : undefined}
-              onClick={
-                locked ? toggleProfileMenu : () => navigate("/student/profile")
-              }
+              disabled={locked}
+              onClick={() => navigate("/student/profile")}
             >
               <span className="profile-avatar">
                 <img

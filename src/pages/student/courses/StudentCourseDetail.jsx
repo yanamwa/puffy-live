@@ -1,6 +1,6 @@
 import { studentVisibleModuleIndices } from "../../../utils/studentModuleVisibility.js";
 import { mainQuizScheduleState } from "../../../utils/mainQuizSchedule.js";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import confirmLogout from "../../../utils/confirmLogout.js";
@@ -25,6 +25,7 @@ import {
 } from "./studentCourseData";
 import { requestCourseEnrollmentByCode } from "./courseEnrollment.js";
 import { modulePracticePath } from "../../../services/adaptivePractice.js";
+import { confirmMainQuizAccess } from "../../../services/mainQuizAccess.js";
 import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
 import { tutorialEnrolledCourseDetail } from "../tutorial/studentTutorialExamples.js";
 import {
@@ -572,6 +573,8 @@ function getNestedCourseModules(course) {
 export default function StudentCourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const mainQuizAccessRequest = useRef(null);
+  useEffect(() => () => mainQuizAccessRequest.current?.abort(), [courseId]);
   const tutorial = useStudentTutorial();
   const studentProfile = useStudentProfile({ enabled: !tutorial });
 
@@ -1036,46 +1039,15 @@ export default function StudentCourseDetail() {
       return;
     }
 
-    Swal.fire({
-      title: "Checking Main Quiz",
-      allowOutsideClick: false,
-      showConfirmButton: false,
-      didOpen: () => Swal.showLoading(),
-    });
+    if (mainQuizAccessRequest.current && !mainQuizAccessRequest.current.signal.aborted) return;
+    const request = new AbortController();
+    mainQuizAccessRequest.current = request;
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/lessons/main-quiz/status/${encodeURIComponent(courseRouteId)}/${encodeURIComponent(module.id)}`,
-        {
-          credentials: "include",
-          headers: {
-            Authorization: `Bearer ${getStoredToken()}`,
-          },
-          signal: AbortSignal.timeout(15000),
-        },
-      );
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not check Main Quiz access.");
-      }
-      if (data.status.taken) {
-        await Swal.fire({
-          imageUrl: "/images/reminder.png?v=2", imageWidth: 300, imageAlt: "Quiz reminder", customClass: { popup: "student-reminder-popup", title: "student-reminder-title" },
-          title: "Main Quiz already taken",
-          text: "You have already taken this Main Quiz.",
-          confirmButtonText: "OK",
-        });
-        return;
-      }
-      Swal.close();
-    } catch (error) {
-      await Swal.fire({
-        icon: "info",
-        title: "Main Quiz unavailable",
-        text: error.message,
-        confirmButtonText: "OK",
-      });
-      return;
+      if (!(await confirmMainQuizAccess(courseRouteId, module.id, request.signal))) return;
+    } finally {
+      if (mainQuizAccessRequest.current === request) mainQuizAccessRequest.current = null;
     }
+    if (request.signal.aborted) return;
 
     const mainQuizLessonId = prepareQuizSession({
       scopeId: module.id,

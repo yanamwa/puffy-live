@@ -7,6 +7,7 @@ import {
   FiBell,
   FiBook,
   FiDownload,
+  FiFileText,
   FiGrid,
   FiLogOut,
   FiSettings,
@@ -47,6 +48,11 @@ const mainMenuItems = [
     label: "System Analytics",
     path: "/super-admin/analytics",
     icon: FiActivity,
+  },
+  {
+    label: "Reports",
+    path: "/super-admin/reports",
+    icon: FiFileText,
   },
   {
     label: "Announcements & Notifications",

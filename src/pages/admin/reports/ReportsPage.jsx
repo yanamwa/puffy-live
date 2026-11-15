@@ -6,6 +6,7 @@ import {
 } from "react-icons/fi";
 import { fetchReports, fetchReportConfig } from "../../../services/reportApi";
 import { downloadReportsPdf } from "../../../services/reportPdf";
+import AdminStatCard from "../shared/AdminStatCard.jsx";
 import "./ReportsPage.css";
 
 const FILTERS = [
@@ -74,14 +75,15 @@ function csvCell(v) {
   if (/^\s*[=+\-@\t\r]/.test(value)) value = `'${value}`;
   return `"${value.replace(/"/g, '""')}"`;
 }
-function saveCSV(rows) {
+function saveCSV(rows, filename) {
   const csv = "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const a = document.createElement("a");
-  a.href = url; a.download = `puffybrain-admin-report-${dateString(new Date())}.csv`;
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export default function ReportsPage() {
+export default function ReportsPage({ superAdmin = false }) {
+  const reportOwner = superAdmin ? "Super Admin" : "Admin";
   const [filter, setFilter] = useState("month");
   const [custom, setCustom] = useState(() => ({ start: dateString(new Date()), end: dateString(new Date()) }));
   const [search, setSearch] = useState("");
@@ -187,7 +189,7 @@ export default function ReportsPage() {
     setPdfExporting(true);
     setPdfError("");
     try {
-      await downloadReportsPdf({ data, view, metrics, range, studentRows: matching });
+      await downloadReportsPdf({ data, view, metrics, range, studentRows: matching, reportOwner });
     } catch (err) {
       setPdfError(err.message || "Unable to generate the PDF.");
     } finally {
@@ -198,7 +200,7 @@ export default function ReportsPage() {
   const exportCSV = () => {
     if (!data) return;
     const rows = [
-      ["PuffyBrain Admin Reports"], ["Period", range.start, range.end], ["Generated", data.generatedAt || ""], [],
+      [`PuffyBrain ${reportOwner} Reports`], ["Period", range.start, range.end], ["Generated", data.generatedAt || ""], [],
       ["Overview", "Value", "Scope"], ...metrics.map(m => [m.label, m.value, m.detail]), [],
       ["Courses", "Professor", "Students", "Modules", "Quiz Attempts", "Average Score", "Module Completion"],
       ...view.courseRows.map(c => [c.name, c.professor, c.students, c.modules, c.attempts, pct(c.average), pct(c.completion)]), [],
@@ -210,10 +212,11 @@ export default function ReportsPage() {
       ["Average Score", pct(view.average)], ["Pass Threshold", pct(view.passing)], ["Pass Rate", pct(view.passRate)], [],
       ["Quiz Modes", "Attempts"], ...view.modeRows.map(m => [m.label, m.value]),
     ];
-    saveCSV(rows);
+    const fileOwner = reportOwner.toLowerCase().replaceAll(" ", "-");
+    saveCSV(rows, `puffybrain-${fileOwner}-report-${dateString(new Date())}.csv`);
   };
   return <div className="admin-page reports-page">
-    <section className="reports-dashboard-header"><div><span className="reports-kicker"><FiBarChart2 /> Admin reports</span>
+    <section className="reports-dashboard-header"><div><span className="reports-kicker"><FiBarChart2 /> {reportOwner} reports</span>
       <h1>Reports Dashboard</h1><p>Academic activity, course participation, and student performance across PuffyBrain.</p></div>
       <div className="report-export-actions">
         <button type="button" onClick={exportPDF} disabled={!data || pdfExporting}><FiDownload /> {pdfExporting ? "Generating PDF..." : "Save as PDF"}</button>
@@ -229,7 +232,9 @@ export default function ReportsPage() {
     {loading && !data && <div className="reports-loading">Loading live reports...</div>}
     {error && <div role="alert" style={{ padding: 14, marginBottom: 16, border: "1px solid #dc7777", borderRadius: 8 }}><FiAlertCircle /> {error}{data ? " Showing the last successful results." : ""}</div>}
     {!data ? (!loading && !error && <p>No report data available.</p>) : <>
-      <section className="report-overview">{metrics.map(({ icon: Icon, label, value, detail }) => <article className="report-metric-card" key={label}><span className="report-metric-icon"><Icon /></span><div><p>{label}</p><strong>{value}</strong><small>{detail}</small></div></article>)}</section>
+      <section className="report-overview">
+        {metrics.map(metric => <AdminStatCard key={metric.label} {...metric} />)}
+      </section>
       <Section icon={FiBookOpen} title="Course Reports" subtitle="Current courses, approved enrollment, module completion, and quiz participation.">
         <Table columns={["Course", "Professor", "Students", "Modules", "Quiz Attempts", "Average Score", "Module Completion"]}
           rows={view.courseRows.map(c => ({ key: c.key, cells: [<strong className="table-strong">{c.name}</strong>, c.professor, c.students, c.modules, c.attempts, pct(c.average), pct(c.completion)] }))} empty="No active courses found." />

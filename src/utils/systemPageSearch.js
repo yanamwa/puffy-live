@@ -6,15 +6,16 @@ export function searchSystemPages(role, query) {
     ["User Management", "users", "students professors administrators accounts"],
     ["Course Management", "courses", "syllabus modules"],
     ["Academic Calendar", "academic-calendar", "events dates activities"],
+    ["Reports", "reports", superAdmin ? "academic performance exports" : "analytics statistics"],
     ["Announcements & Notifications", superAdmin ? "announcements" : "notification", "messages announcements notifications"],
     ["Profile", "profile", "account identity"],
     [superAdmin ? "System Settings" : "Settings", "settings", "preferences"],
     ...(superAdmin ? [
       ["Modes Management", "modes", "practice flashcards quizzes"],
-      ["System Analytics", "analytics", "reports statistics"],
+      ["System Analytics", "analytics", "statistics"],
       ["Audit Logs", "audit-logs", "history activity logs"],
       ["Backup and Restore", "backup", "backup restore"],
-    ] : [["Reports", "reports", "analytics statistics"]]),
+    ] : []),
   ];
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (!terms.length) return [];

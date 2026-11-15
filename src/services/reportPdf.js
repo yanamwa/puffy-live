@@ -22,6 +22,7 @@ export async function downloadReportsPdf({
   metrics,
   range,
   studentRows,
+  reportOwner = "Admin",
 }) {
   if (!data) {
     throw new Error("No report data is available.");
@@ -56,7 +57,7 @@ export async function downloadReportsPdf({
   doc.text("PUFFYBRAIN", margin, 15);
 
   doc.setFontSize(10);
-  doc.text("ADMIN REPORTS DASHBOARD", margin, 22);
+  doc.text(`${reportOwner.toUpperCase()} REPORTS DASHBOARD`, margin, 22);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
@@ -300,5 +301,5 @@ export async function downloadReportsPdf({
       ? range.start
       : "report";
 
-  doc.save(`PuffyBrain-Admin-Report-${safeDate}.pdf`);
+  doc.save(`PuffyBrain-${reportOwner.replaceAll(" ", "-")}-Report-${safeDate}.pdf`);
 }

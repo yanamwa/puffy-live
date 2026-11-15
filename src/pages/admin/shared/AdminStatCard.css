@@ -1,0 +1,66 @@
+.users-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--user-stat-columns, 4), minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.admin-stat-card {
+  min-width: 0;
+  min-height: 112px;
+  padding: 17px 18px;
+  background: var(--admin-card);
+  border: 2px solid var(--admin-line);
+  border-radius: 14px;
+  box-shadow: 6px 6px 0 var(--admin-shadow);
+  color: var(--admin-ink);
+  overflow-wrap: anywhere;
+}
+
+.admin-stat-card-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 14px;
+  font-size: 20px;
+}
+
+.admin-stat-card > span,
+.admin-stat-card > strong,
+.admin-stat-card > small {
+  display: block;
+}
+
+.admin-stat-card > span {
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.admin-stat-card > strong {
+  margin-top: 6px;
+  font-size: 26px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.admin-stat-card > small {
+  margin-top: 8px;
+  color: #586274;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+@media (max-width: 1120px) {
+  .users-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .users-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}

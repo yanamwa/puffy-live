@@ -1,6 +1,4 @@
-import Swal from "sweetalert2";
-import { API_BASE } from "../../../config.js";
-import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
+import { confirmMainQuizAccess } from "../../../services/mainQuizAccess.js";
 import { mainQuizScheduleState } from "../../../utils/mainQuizSchedule.js";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
@@ -539,66 +537,37 @@ export default function StudentModuleQuizPage() {
   useEffect(() => {
     if (!isMainQuiz) return;
     const controller = new AbortController();
-    let active = true;
-    Swal.fire({
-      title: "Checking Main Quiz",
-      allowOutsideClick: false,
-      showConfirmButton: false,
-      didOpen: () => Swal.showLoading(),
-    });
-    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    const hasMatchingCourse =
+      scope.scopeType === "main_quiz" && String(scope.courseId) === String(courseId);
+    const quizModuleId = moduleId || (hasMatchingCourse ? scope.scopeId : "");
+    const coursePath = `/student/enrolled-courses/${courseId}`;
     async function checkAccess() {
-      try {
-        const response = await fetch(
-          `${API_BASE}/lessons/main-quiz/status/${encodeURIComponent(courseId)}/${encodeURIComponent(moduleId || scope.scopeId)}`,
-          {
-            credentials: "include",
-            headers: lessonAuthHeaders(),
-            signal: controller.signal,
-          },
-        );
-        const data = await response.json();
-        if (!response.ok || !data.success)
-          throw new Error(data.message || "Could not verify Main Quiz access.");
-        if (controller.signal.aborted) return;
-        if (data.status.taken) {
-          await Swal.fire({
-            imageUrl: "/images/reminder.png?v=2", imageWidth: 300, imageAlt: "Quiz reminder", customClass: { popup: "student-reminder-popup", title: "student-reminder-title" },
-            title: "Main Quiz already taken",
-            text: "You have already taken this Main Quiz.",
-            confirmButtonText: "OK",
-          });
-          navigate(backPath, { replace: true });
-        } else {
-          Swal.close();
-          navigate(
-            `/random-modes-tutorial/lesson/${encodeURIComponent(lessonId)}`,
-            { replace: true },
-          );
-        }
-      } catch (error) {
-        if (!active) return;
-        await Swal.fire({
-          icon: "info",
-          title: "Main Quiz unavailable",
-          text:
-            error.name === "AbortError"
-              ? "The access check timed out. Please try again."
-              : error.message,
-          confirmButtonText: "OK",
-        });
-        navigate(backPath, { replace: true });
-      } finally {
-        window.clearTimeout(timeout);
+      const allowed = quizModuleId && await confirmMainQuizAccess(courseId, quizModuleId, controller.signal);
+      if (controller.signal.aborted) return;
+      if (!allowed) {
+        navigate(coursePath, { replace: true });
+        return;
       }
+
+      const quizLessonId = `${courseId}-${quizModuleId}`;
+      const hasMatchingModule = hasMatchingCourse && String(scope.scopeId) === String(quizModuleId);
+      localStorage.setItem("practiceSource", "module");
+      localStorage.setItem("practiceLessonId", quizLessonId);
+      localStorage.setItem("practiceQuizzes", "[]");
+      localStorage.setItem("practiceScope", JSON.stringify(hasMatchingModule ? scope : {
+        courseId,
+        scopeId: quizModuleId,
+        scopeType: "main_quiz",
+        scopeTitle: "Main Quiz",
+      }));
+      navigate(
+        `/random-modes-tutorial/lesson/${encodeURIComponent(quizLessonId)}`,
+        { replace: true },
+      );
     }
     void checkAccess();
-    return () => {
-      active = false;
-      window.clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [courseId, moduleId, isMainQuiz]);
+    return () => controller.abort();
+  }, [courseId, moduleId, isMainQuiz, navigate, scope]);
 
   useEffect(() => {
     let active = true;

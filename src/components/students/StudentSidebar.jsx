@@ -45,12 +45,11 @@ function normalizeCourse(course) {
   };
 }
 
-export default function StudentSidebar({ collapsed, onCollapsedChange, onLockedAction }) {
+export default function StudentSidebar({ collapsed, onCollapsedChange, locked = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
   const tutorial = useStudentTutorial();
-  const locked = Boolean(onLockedAction);
 
   const [internalCollapsed, setInternalCollapsed] = useState(() => {
     return localStorage.getItem("sidebarCollapsed") === "true";
@@ -167,6 +166,7 @@ export default function StudentSidebar({ collapsed, onCollapsedChange, onLockedA
   return (
     <ResponsiveSidebar
       className={`enrolled-sidebar ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}
+      alwaysOpen={locked}
     >
       {/* =========================
           BRAND
@@ -185,8 +185,8 @@ export default function StudentSidebar({ collapsed, onCollapsedChange, onLockedA
             height: sidebarCollapsed ? 65 : 100,
             objectFit: "contain",
           }}
-          onClick={toggleSidebar}
-          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          onClick={locked ? undefined : toggleSidebar}
+          title={locked ? undefined : sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         />
       </div>
 
@@ -198,8 +198,7 @@ export default function StudentSidebar({ collapsed, onCollapsedChange, onLockedA
         id="student-sidebar-navigation"
         className="side-nav"
         aria-label="Student navigation"
-        onClickCapture={onLockedAction}
-        onAuxClickCapture={onLockedAction}
+        inert={locked}
       >
         <NavLink
           to="/student"
@@ -238,7 +237,7 @@ export default function StudentSidebar({ collapsed, onCollapsedChange, onLockedA
             {!sidebarCollapsed && (
               <svg
                 className={`sidebar-dropdown-arrow ${
-                  enrolledCoursesOpen ? "open" : ""
+                  !locked && enrolledCoursesOpen ? "open" : ""
                 }`}
                 viewBox="0 0 24 24"
                 aria-hidden="true"
@@ -253,7 +252,7 @@ export default function StudentSidebar({ collapsed, onCollapsedChange, onLockedA
             )}
           </button>
 
-          {!sidebarCollapsed && enrolledCoursesOpen && (
+          {!locked && !sidebarCollapsed && enrolledCoursesOpen && (
             <div className="sidebar-enrolled-list">
               {loadingCourses ? (
                 <div className="sidebar-enrolled-message">

@@ -44,9 +44,7 @@
 
 .report-date-filter,
 
-.report-section,
-
-.report-metric-card {
+.report-section {
 
   border: 1.5px solid var(--report-line);
 
@@ -417,158 +415,6 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
 
   gap: 14px;
-
-}
-
-
-
-.report-metric-card {
-
-  min-height: 138px;
-
-  display: flex;
-
-  align-items: flex-start;
-
-  gap: 13px;
-
-  padding: 16px;
-
-}
-
-
-
-.report-metric-icon {
-
-  width: 42px;
-
-  height: 42px;
-
-  flex: 0 0 42px;
-
-  display: grid;
-
-  place-items: center;
-
-  border-radius: 8px;
-
-  background: #eff6ff;
-
-  color: var(--report-blue);
-
-}
-
-
-
-.report-metric-card:nth-child(2) .report-metric-icon,
-
-.report-metric-card:nth-child(5) .report-metric-icon {
-
-  background: #eef8f2;
-
-  color: var(--report-green);
-
-}
-
-
-
-.report-metric-card:nth-child(3) .report-metric-icon {
-
-  background: #fff7e6;
-
-  color: var(--report-gold);
-
-}
-
-
-
-.report-metric-card:nth-child(4) .report-metric-icon {
-
-  background: #f4f2ff;
-
-  color: var(--report-indigo);
-
-}
-
-
-
-.report-metric-card:nth-child(6) .report-metric-icon {
-
-  background: #fff1ed;
-
-  color: var(--report-red);
-
-}
-
-
-
-.report-metric-icon svg {
-
-  width: 20px;
-
-  height: 20px;
-
-}
-
-
-
-.report-metric-card p,
-
-.report-metric-card strong,
-
-.report-metric-card small {
-
-  display: block;
-
-}
-
-
-
-.report-metric-card p {
-
-  min-height: 34px;
-
-  margin: 0;
-
-  color: var(--report-muted);
-
-  font-size: 12px;
-
-  font-weight: 900;
-
-  line-height: 1.35;
-
-}
-
-
-
-.report-metric-card strong {
-
-  margin-top: 6px;
-
-  color: var(--report-ink);
-
-  font-size: 30px;
-
-  font-weight: 900;
-
-  line-height: 1;
-
-}
-
-
-
-.report-metric-card small {
-
-  margin-top: 10px;
-
-  color: #586274;
-
-  font-size: 11px;
-
-  font-weight: 900;
-
-  line-height: 1.35;
 
 }
 
@@ -1343,7 +1189,7 @@
   .report-print-table thead { display: table-header-group; }
   .report-print-table tr { break-inside: avoid; page-break-inside: avoid; }
   .report-section { box-shadow: none !important; break-inside: auto !important; page-break-inside: auto !important; overflow: visible !important; }
-  .report-overview, .report-metric-card, .report-small-metric { break-inside: avoid; }
+  .report-overview, .report-overview .admin-stat-card, .report-small-metric { break-inside: avoid; }
   .admin-sidebar, .admin-header { display: none !important; }
   .admin-layout, .admin-main, .admin-content { display: block !important; height: auto !important; overflow: visible !important; padding: 0 !important; }
 }

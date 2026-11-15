@@ -2,13 +2,71 @@ import { getStoredPracticeSession } from "../practiceSession.js";
 import TutorialBackButton from "../TutorialBackButton.jsx";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getMainQuizStatus } from "../../../../services/mainQuizAccess.js";
 import styles from "./randommodes.module.css";
 
-export default function RandomModesTutorial({ onStart, onBack, startDisabled } = {}) {
+export default function RandomModesTutorial(props) {
+  const { lessonId, deckId } = useParams();
+  const scope = getStoredPracticeSession({ lessonId, deckId })?.scope;
+  if (scope?.scopeType === "main_quiz") {
+    return (
+      <MainQuizTutorialGate key={`${scope.courseId}:${scope.scopeId}`} scope={scope}>
+        <TutorialSlides {...props} isMainQuiz />
+      </MainQuizTutorialGate>
+    );
+  }
+  return <TutorialSlides {...props} />;
+}
+
+function MainQuizTutorialGate({ scope, children }) {
+  const { courseId, scopeId } = scope;
+  const navigate = useNavigate();
+  const [access, setAccess] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getMainQuizStatus(courseId, scopeId, controller.signal)
+      .then((status) => {
+        if (controller.signal.aborted) return;
+        if (status.taken) {
+          setAccess("You have already taken this Main Quiz.");
+        } else {
+          setAccess(status.verificationRequired === false
+            ? true
+            : "Verify your email from the course page to open the Main Quiz tutorial.");
+        }
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) setAccess(error.message);
+      });
+    return () => controller.abort();
+  }, [courseId, scopeId]);
+
+  if (access === true) return children;
+  return (
+    <div className={styles.wrapper}>
+      <div className={styles.headerBox}>
+        <div className={styles.headerTop}>
+          <h1 className={styles.title}>Main Quiz</h1>
+        </div>
+        <p className={styles.subtitle} role="status">
+          {access || "Checking Main Quiz access…"}
+        </p>
+        <button
+          type="button"
+          className={styles.startBtn}
+          onClick={() => navigate(`/student/enrolled-courses/${courseId}`)}
+        >
+          Back to course
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TutorialSlides({ onStart, onBack, startDisabled, isMainQuiz = false }) {
   const navigate = useNavigate();
   const { lessonId, deckId } = useParams();
-  const isMainQuiz = getStoredPracticeSession({ lessonId, deckId })?.scope?.scopeType === "main_quiz";
-
   const [index, setIndex] = useState(0);
 
   const slides = [

@@ -26,6 +26,7 @@ import {
 } from "react-icons/fi";
 import { API_BASE } from "../../../config";
 import { formatUserDisplayId } from "../../../utils/userDisplayId.js";
+import AdminStatCard from "../../admin/shared/AdminStatCard.jsx";
 import "./SuperAdminUserManagementPage.css";
 import Swal from "sweetalert2";
 import { successDialog } from "../../../utils/successDialog.js";
@@ -2163,18 +2164,7 @@ export default function SuperAdminUserManagementPage() {
       </div>
 
       <div className="users-stat-grid">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div className="users-stat-card" key={stat.label}>
-              <div className="users-stat-icon">
-                <Icon />
-              </div>
-              <span>{stat.label}</span>
-              <strong>{stat.value}</strong>
-            </div>
-          );
-        })}
+        {stats.map((stat) => <AdminStatCard key={stat.label} {...stat} />)}
       </div>
 
       <>

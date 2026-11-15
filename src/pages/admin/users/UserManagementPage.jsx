@@ -9,6 +9,7 @@ import {
 } from "react-icons/fi";
 import { API_BASE } from "../../../config";
 import { formatUserDisplayId } from "../../../utils/userDisplayId.js";
+import AdminStatCard from "../shared/AdminStatCard.jsx";
 import "./Users.css";
 import Swal from "sweetalert2";
 import { successDialog } from "../../../utils/successDialog.js";
@@ -419,7 +420,9 @@ export default function UserManagementPage() {
     <div className="users-page-header"><div><h1>Admin User Management</h1><p>Manage registered students, approved professors, and archived accounts.</p></div>
       <div className="users-header-actions"><button className="users-create-btn" type="button" disabled={importBusy} onClick={() => { setNotice(""); setStudentModalOpen(true); }}><FiPlus /> Add Student</button></div>
     </div>
-    <div className="users-stat-grid">{stats.map(stat => { const Icon = stat.icon; return <div className="users-stat-card" key={stat.label}><div className="users-stat-icon"><Icon /></div><span>{stat.label}</span><strong>{stat.value}</strong></div>; })}</div>
+    <div className="users-stat-grid">
+      {stats.map(stat => <AdminStatCard key={stat.label} {...stat} />)}
+    </div>
     <nav className="user-management-tabs" aria-label="User management sections">
       {USER_TABS.map(tab => <button key={tab.id} type="button" className={activeTab === tab.id ? "active" : ""} aria-pressed={activeTab === tab.id} onClick={() => { setActiveTab(tab.id); setYearFilter(""); setCourseFilter(""); setSectionFilter(""); }}>{tab.label}</button>)}
     </nav>

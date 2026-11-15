@@ -17,9 +17,11 @@ import {
   requiresPasswordChange,
   requiresProfessorTutorial,
 } from "../../../utils/passwordPolicy.js";
-import ProfessorTutorial from "../tutorial/ProfessorTutorial.jsx";
+import GuidedTutorial from "../../../components/GuidedTutorial.jsx";
 import {
   getProfessorTutorialStep,
+  professorTutorialStepPath,
+  professorTutorialSteps,
   PROFESSOR_SETTINGS_PATH,
 } from "../tutorial/professorTutorialSteps.js";
 
@@ -600,9 +602,17 @@ export default function ProfessorLayout() {
         </div>
       </main>
       {tutorialStep && (
-        <ProfessorTutorial
+        <GuidedTutorial
           key={authUser.userId}
           step={tutorialStep}
+          steps={professorTutorialSteps}
+          stepPath={professorTutorialStepPath}
+          layoutSelector=".professor-layout"
+          sidebarSelector=".professor-sidebar"
+          sidebarLastLinkSelector=".professor-link:last-child"
+          sidebarLogoutSelector=".professor-logout"
+          scrollPreviewSelector=".professor-sidebar, .professor-header, .professor-content > *"
+          skipDescription="Continue to Settings? You can update your password there whenever you need to."
           onFinish={completeTutorial}
         />
       )}

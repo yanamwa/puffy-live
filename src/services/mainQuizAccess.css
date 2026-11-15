@@ -1,0 +1,20 @@
+.main-quiz-otp-status {
+  min-height: 2.5em;
+  color: #385d80;
+}
+
+.main-quiz-otp-resend {
+  padding: 6px 12px;
+  border: 1px solid #c4d7eb;
+  border-radius: 8px;
+  background: #f1f6fb;
+  color: #214b74;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.main-quiz-otp-resend:disabled {
+  opacity: 0.65;
+  cursor: default;
+}

@@ -64,12 +64,14 @@
 
   object-fit: contain;
 
-  cursor: pointer;
-
   transition: transform 0.2s ease;
 }
 
-.sidebar-logo:hover {
+.enrolled-sidebar .sidebar-logo[title] {
+  cursor: pointer;
+}
+
+.enrolled-sidebar .sidebar-logo[title]:hover {
   transform: scale(1.06);
 }
 
