@@ -1434,3 +1434,80 @@ body .catalog-confirm-popup .swal2-actions button {
   margin: 0;
   min-height: 46px;
 }
+
+/* Match the Generate Module dialog's header, body, and footer. */
+body .swal2-container.catalog-syllabus-alert-overlay {
+  z-index: 2000;
+}
+
+body .swal2-container .swal2-popup.catalog-syllabus-alert,
+body .swal2-container .swal2-popup.catalog-syllabus-alert * {
+  font-family: Arial, sans-serif !important;
+}
+
+body .swal2-container .swal2-popup.catalog-syllabus-alert {
+  width: min(520px, calc(100vw - 32px));
+  border-color: #cbd9e8;
+  color: #294765;
+}
+
+body .catalog-syllabus-alert .swal2-title {
+  min-height: 0;
+  padding: 18px 48px;
+  background: #7fa8d6;
+  color: #182d42 !important;
+  font: 600 18px/1.4 Arial, sans-serif !important;
+}
+
+body .catalog-syllabus-alert .swal2-close {
+  right: 0;
+  height: 61px;
+  margin: 0;
+  color: #101820;
+  font-size: 32px;
+}
+
+body .catalog-syllabus-alert .swal2-html-container {
+  color: #64748b !important;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+body .catalog-syllabus-alert .swal2-actions {
+  border-top-color: #e6e9ed;
+}
+
+body .catalog-syllabus-alert .swal2-actions .swal2-confirm {
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid #7fa8d6;
+  border-radius: 7px;
+  background: #7fa8d6;
+  color: #101820;
+  font: 500 14px/1.4 Arial, sans-serif;
+  cursor: pointer;
+}
+
+body .catalog-syllabus-alert .swal2-actions .swal2-confirm:hover {
+  background: #6995c6;
+}
+
+body .catalog-syllabus-alert .swal2-actions .swal2-confirm:focus-visible {
+  outline: 2px solid #35669a;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  body .catalog-syllabus-alert .swal2-title {
+    font-size: 16px !important;
+  }
+
+  body .catalog-syllabus-alert .swal2-html-container {
+    padding: 18px !important;
+  }
+
+  body .catalog-syllabus-alert .swal2-actions {
+    padding: 14px 18px;
+  }
+}

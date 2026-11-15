@@ -8,11 +8,15 @@ import {
 } from "../../services/catalogApi.js";
 import { CatalogModal, PdfPreview } from "./CatalogModal.jsx";
 
+const unsupportedSyllabusMessage =
+  "The uploaded document is not recognized as a Cavite State University (CvSU) syllabus. Please upload a valid CvSU syllabus.";
+const verificationUnavailable = "SYLLABUS_VERIFICATION_UNAVAILABLE";
+
 function requireValidatedSyllabus(data) {
   if (data.cvsuSyllabusValidated !== true) {
     throw Object.assign(
-      new Error("The server could not verify this as a Cavite State University (CvSU) syllabus."),
-      { code: "INVALID_SYLLABUS" },
+      new Error("The upload server did not return a CvSU verification result. Update the backend and try again."),
+      { code: verificationUnavailable },
     );
   }
 }
@@ -107,11 +111,11 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       normalizeCatalogCode(details.code) !== normalizeCatalogCode(attach.code),
   );
   const pending = useRef(null);
-  const setError = (message, title = "Please check before continuing") => {
+  const setError = (message) => {
     if (!message) return;
     void Swal.fire({
       icon: "warning",
-      title,
+      title: "Please check before continuing",
       text: message,
       confirmButtonText: "OK",
       confirmButtonColor: "#80a9d3",
@@ -123,7 +127,8 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
     });
   };
   const handleUploadError = (error) => {
-    if (error.code !== "INVALID_SYLLABUS") {
+    const unavailable = error.code === verificationUnavailable;
+    if (error.code !== "INVALID_SYLLABUS" && !unavailable) {
       setError(error.message);
       return;
     }
@@ -134,7 +139,18 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
     setMatches([]);
     setAttach(course || null);
     setReviewed(false);
-    setError(error.message, "Invalid syllabus");
+    void Swal.fire({
+      title: unavailable ? "Syllabus Verification Unavailable" : "Unsupported Syllabus",
+      text: unavailable ? error.message : unsupportedSyllabusMessage,
+      confirmButtonText: "OK",
+      showCloseButton: true,
+      allowOutsideClick: false,
+      buttonsStyling: false,
+      customClass: {
+        container: "catalog-confirm-overlay catalog-syllabus-alert-overlay",
+        popup: "catalog-confirm-popup catalog-syllabus-alert",
+      },
+    });
   };
   const duplicateNotice = useRef("");
   useEffect(() => {
