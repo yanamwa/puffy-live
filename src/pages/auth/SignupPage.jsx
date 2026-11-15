@@ -153,9 +153,9 @@ function Signup() {
       return;
     }
 
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailPattern = /^[^\s@]+@[^\s@]+$/;
 
-    if (!emailPattern.test(cleanEmail) || cleanEmail.endsWith("@gmail.co")) {
+    if (!emailPattern.test(cleanEmail)) {
       showInvalidEmail();
       return;
     }
@@ -221,8 +221,10 @@ function Signup() {
       if (!response.ok || !data.success) {
         if (data.code === "INVALID_EMAIL") {
           showInvalidEmail();
+        } else if (response.status >= 500 || !data.message) {
+          showError("Please try again later", "We couldn’t complete your registration right now.");
         } else {
-          showError("Signup Failed", data.message || "Unable to create account.");
+          showError("Check your registration", data.message);
         }
         return;
       }
@@ -261,8 +263,8 @@ function Signup() {
       console.error("SIGNUP ERROR:", error);
 
       showError(
-        "Server Error",
-        "Cannot connect to the server. Make sure your backend is running.",
+        "Please try again later",
+        "We couldn’t complete your registration right now.",
       );
     } finally {
       setIsSigningUp(false);
@@ -308,16 +310,13 @@ function Signup() {
 
                 <input
                   id="professor-email"
-                  type="email"
+                  type="text"
+                  inputMode="email"
                   placeholder="Enter your email"
                   value={email}
                   disabled={isSigningUp}
                   autoComplete="email"
                   onChange={(event) => setEmail(event.target.value)}
-                  onInvalid={(event) => {
-                    event.preventDefault();
-                    showInvalidEmail();
-                  }}
                 />
               </div>
 

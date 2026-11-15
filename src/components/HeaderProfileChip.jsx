@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiRepeat } from "react-icons/fi";
 import Swal from "sweetalert2";
-import { getHomePathForRole } from "../utils/roles.js";
+import { APP_ROLES, getHomePathForRole } from "../utils/roles.js";
+import { getAdminSetupRedirect } from "../pages/admin/tutorial/adminTutorialSteps.js";
 import "./HeaderProfileChip.css";
 
 function MenuIcon({ name }) {
@@ -60,7 +61,11 @@ export default function HeaderProfileChip({
     try {
       const user = await onSwitchRole(switchToRole);
       setOpen(false);
-      navigate(getHomePathForRole(user.role), { replace: true });
+      const home = getHomePathForRole(user.role);
+      const setup = user.role === APP_ROLES.ADMIN
+        ? getAdminSetupRedirect(user, { pathname: home, search: "" })
+        : null;
+      navigate(setup ?? home, { replace: true });
     } catch (error) {
       setOpen(false);
       void Swal.fire({

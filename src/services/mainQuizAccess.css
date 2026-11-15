@@ -18,3 +18,86 @@
   opacity: 0.65;
   cursor: default;
 }
+
+.swal2-popup.main-quiz-otp-popup {
+  width: min(580px, calc(100vw - 32px));
+  padding: 0 0 28px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #fff;
+  color: #484848;
+  font: 1rem/1.45 system-ui, sans-serif;
+}
+
+.main-quiz-otp-popup .swal2-title {
+  padding: 22px 46px;
+  background: #7fa8d2;
+  color: #fff;
+  font-size: clamp(1.3rem, 4vw, 1.875rem);
+}
+
+.main-quiz-otp-popup .swal2-close {
+  color: #fff;
+}
+
+.main-quiz-otp-popup .swal2-html-container {
+  margin: 0 28px;
+  padding: 26px 0;
+  border-bottom: 2px solid #dedede;
+  color: inherit;
+  font-size: 1.15rem;
+}
+
+.main-quiz-otp-popup .swal2-html-container p {
+  margin: 0;
+}
+
+.main-quiz-otp-popup .swal2-input-label {
+  justify-content: flex-start;
+  margin: 12px 32px 8px;
+  color: inherit;
+  font-size: 1.15rem;
+}
+
+.main-quiz-otp-popup .swal2-input {
+  width: auto;
+  min-height: 58px;
+  margin: 0 32px;
+  border: 1px solid #d5d5d5;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.main-quiz-otp-popup .main-quiz-otp-status {
+  min-height: 0;
+  margin: 10px 32px 6px;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.main-quiz-otp-popup .main-quiz-otp-resend {
+  justify-self: start;
+  margin-inline: 32px;
+}
+
+.main-quiz-otp-popup .swal2-actions {
+  width: auto;
+  margin: 16px 22px 0;
+  padding-top: 14px;
+  border-top: 2px solid #dedede;
+  align-self: stretch;
+  gap: 10px;
+}
+
+.main-quiz-otp-popup .swal2-styled {
+  flex: 1;
+  min-height: 54px;
+  margin: 0;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.main-quiz-otp-popup .swal2-cancel {
+  border: 1px solid #aaa;
+  color: #555;
+}

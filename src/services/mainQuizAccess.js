@@ -104,14 +104,18 @@ async function verifyEmail(courseId, moduleId, signal) {
     title: "Verify your account",
     html: '<p>Enter the code sent to your registered email to open the Main Quiz tutorial.</p><p class="main-quiz-otp-status" role="status"></p><button type="button" class="main-quiz-otp-resend">Resend code</button>',
     input: "text",
-    inputLabel: "Six-digit verification code",
+    inputLabel: "Verification code",
     inputAttributes: {
       inputmode: "numeric",
       autocomplete: "one-time-code",
       maxlength: "6",
     },
-    confirmButtonText: "Verify and continue",
-    confirmButtonColor: "#225a90",
+    confirmButtonText: "Verify",
+    confirmButtonColor: "#7fa8d2",
+    cancelButtonColor: "#d9d9d9",
+    customClass: { popup: "main-quiz-otp-popup" },
+    showCloseButton: true,
+    closeButtonAriaLabel: "Close verification",
     showCancelButton: true,
     showLoaderOnConfirm: true,
     allowOutsideClick: false,
@@ -124,6 +128,7 @@ async function verifyEmail(courseId, moduleId, signal) {
       signal?.addEventListener("abort", stopWhenAborted, { once: true });
       status = element.querySelector(".main-quiz-otp-status");
       resendButton = element.querySelector(".main-quiz-otp-resend");
+      Swal.getInput().after(status, resendButton);
       resendButton.addEventListener("click", sendCode);
       timer = window.setInterval(updateResendButton, 1000);
       void sendCode();
