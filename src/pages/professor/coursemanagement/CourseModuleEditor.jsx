@@ -2203,25 +2203,22 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                     }}
                   >
                     <div className={styles.mainQuizSettingsPanel}>
-                      {!tutorialSettingsPreview && (
-                        <button
-                          type="button"
-                          className={styles.settingsDialogClose}
-                          aria-label="Close main quiz settings"
-                          onClick={() =>
-                            mainQuizSettingsDialog.current?.close()
-                          }
-                        >
-                          ×
-                        </button>
-                      )}
-                      <div>
-                        <h4 id="main-quiz-access-title">Main Quiz Access</h4>
-                        <p>
-                          Lock or unlock the main quiz and set when student
-                          access opens and closes.
-                        </p>
-                      </div>
+                      <header className={styles.mainQuizSettingsHeader}>
+                        <h4 id="main-quiz-access-title">Main Quiz Settings</h4>
+                        {!tutorialSettingsPreview && (
+                          <button
+                            type="button"
+                            className={styles.settingsDialogClose}
+                            aria-label="Close main quiz settings"
+                            onClick={() => mainQuizSettingsDialog.current?.close()}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </header>
+                      <p className={styles.mainQuizSettingsIntro}>
+                        Lock or unlock the main quiz and set when student access opens and closes.
+                      </p>
                       {tutorialSettingsPreview && (
                         <div id="main-quiz-settings-tutorial" />
                       )}

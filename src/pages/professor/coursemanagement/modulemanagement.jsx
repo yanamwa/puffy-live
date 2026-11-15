@@ -177,12 +177,16 @@ export default function ModuleManagement() {
     const result = await Swal.fire({
       title: "Archive Course?",
       text: `"${course.title}" will be moved to Archived Courses.`,
-      icon: "warning",
+      customClass: {
+        container: styles.archiveCourseOverlay,
+        popup: styles.archiveCourseDialog,
+      },
+      showCloseButton: true,
+      closeButtonAriaLabel: "Close archive confirmation",
       showCancelButton: true,
       confirmButtonText: "Archive",
       cancelButtonText: "Cancel",
-      confirmButtonColor: "#dc3545",
-      cancelButtonColor: "#6c757d",
+      focusCancel: true,
       reverseButtons: true,
     });
 
