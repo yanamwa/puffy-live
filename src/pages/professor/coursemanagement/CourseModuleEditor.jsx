@@ -13,7 +13,12 @@ import {
 } from "../../../services/quizGenerationUi.js";
 import { notifyLessonGenerated } from "../../../services/lessonNotifications.js";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useOutletContext,
+  useParams,
+} from "react-router-dom";
 import Swal from "sweetalert2";
 
 import { API_BASE } from "../../../config.js";
@@ -307,7 +312,13 @@ function normalizeContentModule(module, index = 0) {
     title: String(module?.title || "").trim() || `Module ${index + 1}`,
     description: String(module?.description || module?.summary || ""),
     topics: Array.isArray(module?.topics)
-      ? [...new Set(module.topics.map((topic) => String(topic || "").trim()).filter(Boolean))]
+      ? [
+          ...new Set(
+            module.topics
+              .map((topic) => String(topic || "").trim())
+              .filter(Boolean),
+          ),
+        ]
       : [],
     learningObjectives: String(
       module?.learningObjectives || module?.learning_objectives || "",
@@ -722,26 +733,58 @@ export default function CourseModuleEditor({ quizManagement = false }) {
   const activeQuiz = assessmentItems[activeQuizIndex] || null;
   const viewingGeneratedMain = isMainAssessment && selectedMainQuiz >= 0;
   const activePageMedia = getLessonPageMedia(activePage);
+  const tosTopics = [
+    ...(mainQuizConfig?.topics || []),
+    ...(moduleDraft?.topics || []),
+    ...(activeQuiz?.topic ? [activeQuiz.topic] : []),
+  ].reduce((topics, value) => {
+    const topic = String(value || "").trim();
+    if (
+      topic &&
+      !topics.some((item) => item.toLowerCase() === topic.toLowerCase())
+    ) {
+      topics.push(topic);
+    }
+    return topics;
+  }, []);
 
   const lessonCount = moduleDraft?.lessonPages?.length || 0;
   const quizCount = assessmentItems.length;
   const printableQuestionGroups = [
-    { type: "multiple_choice", title: "Test 1: Multiple Choice" },
-    { type: "identification", title: "Test 2: Identification" },
-    { type: "true_false", title: "Test 3: True or False" },
+    {
+      type: "multiple_choice",
+      label: "Multiple Choice",
+      directions:
+        "Read each question carefully. Choose the letter of the correct answer and write it on the space provided before each number.",
+    },
+    {
+      type: "true_false",
+      label: "True or False",
+      directions:
+        "Read each statement carefully. Write TRUE if the statement is correct and FALSE if it is incorrect on the space provided before each number.",
+    },
+    {
+      type: "identification",
+      label: "Identification",
+      directions:
+        "Read each statement carefully. Identify what is being asked and write your answer on the space provided before each number. No erasures.",
+    },
   ]
     .map((group) => ({
       ...group,
       questions: assessmentItems.filter((item) => item.type === group.type),
     }))
-    .filter((group) => group.questions.length > 0);
-  let printQuestionNumber = 0;
+    .filter((group) => group.questions.length > 0)
+    .map((group, groupIndex) => ({
+      ...group,
+      title: `Test ${groupIndex + 1}: ${group.label}`,
+    }));
   const numberedPrintableQuestionGroups = printableQuestionGroups.map(
     (group) => ({
       ...group,
-      questions: group.questions.map((question) => ({
+      questions: group.questions.map((question, questionIndex) => ({
         question,
-        number: ++printQuestionNumber,
+        number: questionIndex + 1,
       })),
     }),
   );
@@ -1328,7 +1371,10 @@ export default function CourseModuleEditor({ quizManagement = false }) {
               ...page,
               id: createId("page"),
               title: limit(page?.title || "", TITLE_LIMIT),
-              content: limit(removeLessonPracticeActivities(page?.content), LESSON_LIMIT),
+              content: limit(
+                removeLessonPracticeActivities(page?.content),
+                LESSON_LIMIT,
+              ),
             }))
             .filter((page) => page.title || page.content)
         : [];
@@ -1355,8 +1401,11 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       };
       setGenerationProgress("Generating Quick Recap questions…");
       const recap = await generateModuleRecap({
-        courseId: generationCourse.id, moduleId, title: generatedModule.title,
-        objectives: generatedModule.learningObjectives, pages: generatedPages,
+        courseId: generationCourse.id,
+        moduleId,
+        title: generatedModule.title,
+        objectives: generatedModule.learningObjectives,
+        pages: generatedPages,
         existing: moduleDraft.quizItems || [],
       });
       generatedModule.quizItems = recap.questions.map(normalizeQuizItem);
@@ -1464,7 +1513,10 @@ export default function CourseModuleEditor({ quizManagement = false }) {
             acceptedAnswers.some((accepted) => accepted.length > 150) ||
             acceptedAnswers.some(
               (accepted) =>
-                accepted.normalize("NFKC").replace(/\s+/g, " ").toLowerCase() ===
+                accepted
+                  .normalize("NFKC")
+                  .replace(/\s+/g, " ")
+                  .toLowerCase() ===
                 answer.normalize("NFKC").replace(/\s+/g, " ").toLowerCase(),
             ))
         ) {
@@ -1946,7 +1998,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                       <label>
                         <input
                           type="checkbox"
-                          checked={selectedPageIndexes.includes(activePageIndex)}
+                          checked={selectedPageIndexes.includes(
+                            activePageIndex,
+                          )}
                           onChange={(event) =>
                             setSelectedPageIndexes((current) =>
                               event.target.checked
@@ -2106,9 +2160,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
             {!isMainAssessment ? (
               <div className={styles.moduleAssessmentGrid}>
-                <article
-                  className={styles.moduleAssessmentCard}
-                >
+                <article className={styles.moduleAssessmentCard}>
                   <span
                     className={styles.assessmentFolderAccent}
                     aria-hidden="true"
@@ -2170,7 +2222,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           type="button"
                           className={styles.settingsDialogClose}
                           aria-label="Close main quiz settings"
-                          onClick={() => mainQuizSettingsDialog.current?.close()}
+                          onClick={() =>
+                            mainQuizSettingsDialog.current?.close()
+                          }
                         >
                           ×
                         </button>
@@ -2231,7 +2285,10 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           className={styles.assessmentBackButton}
                           type="button"
                           onClick={() => updateMainQuizSettings("unlockAt", "")}
-                          disabled={tutorialSettingsPreview || !mainQuizSettings.unlockAt}
+                          disabled={
+                            tutorialSettingsPreview ||
+                            !mainQuizSettings.unlockAt
+                          }
                         >
                           Clear Unlock Date
                         </button>
@@ -2255,7 +2312,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           className={styles.assessmentBackButton}
                           type="button"
                           onClick={() => updateMainQuizSettings("lockAt", "")}
-                          disabled={tutorialSettingsPreview || !mainQuizSettings.lockAt}
+                          disabled={
+                            tutorialSettingsPreview || !mainQuizSettings.lockAt
+                          }
                         >
                           Clear Lock Date
                         </button>
@@ -2278,7 +2337,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                         <button
                           type="button"
                           className={styles.assessmentSettingsButton}
-                          onClick={() => mainQuizSettingsDialog.current?.close()}
+                          onClick={() =>
+                            mainQuizSettingsDialog.current?.close()
+                          }
                         >
                           Done
                         </button>
@@ -2421,7 +2482,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           onClick={autoGenerateQuiz}
                           disabled={generatingQuiz}
                         >
-                          {generatingQuiz ? "Generating Main Quiz…" : "Auto Generate"}
+                          {generatingQuiz
+                            ? "Generating Main Quiz…"
+                            : "Auto Generate"}
                         </button>
                       </div>
                     </div>
@@ -2460,10 +2523,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                             </p>
                           ) : (
                             <>
-                              <input
+                              <select
                                 id="main-quiz-question-topic"
-                                className={styles.popupInput}
-                                list="main-quiz-topic-options"
+                                className={styles.popupSelect}
                                 value={activeQuiz.topic || ""}
                                 onChange={(event) =>
                                   updateQuizItem(
@@ -2472,16 +2534,17 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                                     limit(event.target.value, 100),
                                   )
                                 }
-                                placeholder="Enter a specific topic"
-                                maxLength={100}
-                              />
-                              <datalist id="main-quiz-topic-options">
-                                {(moduleDraft?.topics || []).map((topic) => (
-                                  <option key={topic} value={topic} />
+                              >
+                                <option value="">Select a TOS topic</option>
+                                {tosTopics.map((topic) => (
+                                  <option key={topic} value={topic}>
+                                    {topic}
+                                  </option>
                                 ))}
-                              </datalist>
+                              </select>
                               <p className={styles.quizReviewValue}>
-                                Use the question's specific lesson topic so it is grouped correctly in the TOS.
+                                Select the matching topic from this module's
+                                TOS.
                               </p>
                             </>
                           )}
@@ -2635,9 +2698,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                                 <textarea
                                   id="quiz-accepted-answers"
                                   className={styles.popupTextarea}
-                                  value={(activeQuiz.accepted_answers || []).join(
-                                    "\n",
-                                  )}
+                                  value={(
+                                    activeQuiz.accepted_answers || []
+                                  ).join("\n")}
                                   onChange={(event) =>
                                     updateQuizItem(
                                       activeQuizIndex,
@@ -2737,6 +2800,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
             numberedPrintableQuestionGroups.map((group) => (
               <section className={styles.printTestSection} key={group.type}>
                 <h2>{group.title}</h2>
+                <p className={styles.printTestDirections}>{group.directions}</p>
                 <ol className={styles.printQuestionList}>
                   {group.questions.map(({ question, number }, index) => (
                     <li
@@ -2744,15 +2808,14 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                       key={question.id || `${group.type}-${index}`}
                     >
                       <p>
-                        <span>{number}.</span> {" "}
-                        {question.question || "Untitled question"}
-                      </p>
-                      {question.type === "identification" ? (
                         <span
-                          className={styles.printIdentificationLine}
+                          className={styles.printQuestionAnswerBlank}
                           aria-hidden="true"
                         />
-                      ) : (
+                        <span>{number}.</span>{" "}
+                        {question.question || "Untitled question"}
+                      </p>
+                      {question.type === "multiple_choice" && (
                         <ol className={styles.printChoices} type="A">
                           {(question.options || [])
                             .filter((option) => String(option || "").trim())

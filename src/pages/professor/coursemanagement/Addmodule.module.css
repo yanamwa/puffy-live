@@ -5352,7 +5352,9 @@
 }
 
 /* Keep assessment selection controls and question rows aligned within the rail. */
-.courseModuleEditorPage .moduleEditorWorkspace .lessonPageTabs:has(.questionSelectionRow) {
+.courseModuleEditorPage
+  .moduleEditorWorkspace
+  .lessonPageTabs:has(.questionSelectionRow) {
   padding: 10px;
   box-sizing: border-box;
   gap: 6px;
@@ -5405,7 +5407,10 @@
   background: #607fa3;
 }
 
-.courseModuleEditorPage .moduleEditorWorkspace .questionSelectionRow .lessonPageTab {
+.courseModuleEditorPage
+  .moduleEditorWorkspace
+  .questionSelectionRow
+  .lessonPageTab {
   width: auto;
   min-height: 46px;
   margin: 0;
@@ -5428,11 +5433,15 @@
   background: #d94d5c !important;
   color: #fff !important;
 }
-.courseModuleEditorPage .questionSelectionControls .popupAddBtn:hover:not(:disabled) {
+.courseModuleEditorPage
+  .questionSelectionControls
+  .popupAddBtn:hover:not(:disabled) {
   background: #bd3545 !important;
 }
 
-.courseModuleEditorPage .lessonPageEditor .questionSelectionRow:has(.lessonPageTabActive) {
+.courseModuleEditorPage
+  .lessonPageEditor
+  .questionSelectionRow:has(.lessonPageTabActive) {
   background: #7fa8d6;
 }
 
@@ -5594,11 +5603,15 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   background: #7fa8d6;
   color: #182d42;
   text-align: center;
-  font: 500 17px/1.4 Arial, sans-serif;
+  font:
+    500 17px/1.4 Arial,
+    sans-serif;
 }
 .courseModuleEditorPage .generatorOverlay .moduleMaterialBand p,
 .courseModuleEditorPage .generatorOverlay .generatorFilePicker {
-  font: 14px/1.5 Arial, sans-serif;
+  font:
+    14px/1.5 Arial,
+    sans-serif;
 }
 .courseModuleEditorPage .generatorOverlay .settingsDialogClose {
   top: 0;
@@ -5608,12 +5621,16 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   border-radius: 0;
   background: transparent;
   color: #101820;
-  font: 32px Arial, sans-serif;
+  font:
+    32px Arial,
+    sans-serif;
 }
 .courseModuleEditorPage .generatorOverlay .customFileBtn {
   min-height: 38px;
   border-radius: 7px;
-  font: 13px Arial, sans-serif;
+  font:
+    13px Arial,
+    sans-serif;
 }
 .generatorOverlay .generatorDialogFooter {
   display: flex;
@@ -5634,7 +5651,9 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   background: #7fa8d6;
   box-shadow: none;
   color: #101820;
-  font: 400 13px Arial, sans-serif;
+  font:
+    400 13px Arial,
+    sans-serif;
   cursor: pointer;
 }
 .courseModuleEditorPage .generatorDialogFooter .generatorCancel {
@@ -5659,12 +5678,16 @@ body:has(.generatorOverlay) :global(.swal2-container) {
 .courseModuleEditorPage .generatorOverlay .moduleMaterialBand h2 {
   margin: 0 -24px;
   padding: 18px 48px;
-  font: 600 18px/1.4 Arial, sans-serif !important;
+  font:
+    600 18px/1.4 Arial,
+    sans-serif !important;
 }
 .courseModuleEditorPage .generatorOverlay .moduleMaterialBand > p {
   margin: 0 !important;
   color: #64748b;
-  font: 400 14px/1.65 Arial, sans-serif !important;
+  font:
+    400 14px/1.65 Arial,
+    sans-serif !important;
 }
 .courseModuleEditorPage .generatorOverlay .settingsDialogClose {
   height: 61px;
@@ -5687,19 +5710,29 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   padding: 10px 16px;
   border-radius: 7px;
   box-shadow: none !important;
-  font: 600 14px/1.4 Arial, sans-serif !important;
+  font:
+    600 14px/1.4 Arial,
+    sans-serif !important;
 }
 .courseModuleEditorPage .generatorOverlay .generatorFilePicker small {
   color: #64748b;
-  font: 400 12px/1.6 Arial, sans-serif !important;
+  font:
+    400 12px/1.6 Arial,
+    sans-serif !important;
 }
 .courseModuleEditorPage .generatorOverlay .moduleMaterialBand > details {
   margin: 0;
   padding: 14px 16px;
   border-radius: 9px;
 }
-.courseModuleEditorPage .generatorOverlay .moduleMaterialBand > details > summary {
-  font: 600 13px/1.5 Arial, sans-serif !important;
+.courseModuleEditorPage
+  .generatorOverlay
+  .moduleMaterialBand
+  > details
+  > summary {
+  font:
+    600 13px/1.5 Arial,
+    sans-serif !important;
 }
 .generatorOverlay .generatorDialogFooter {
   padding: 16px 24px;
@@ -5707,20 +5740,32 @@ body:has(.generatorOverlay) :global(.swal2-container) {
 }
 .courseModuleEditorPage .generatorOverlay .generatorDialogFooter button {
   min-height: 42px;
-  font: 500 14px/1.4 Arial, sans-serif !important;
+  font:
+    500 14px/1.4 Arial,
+    sans-serif !important;
   border-radius: 7px;
   box-shadow: none !important;
 }
-.courseModuleEditorPage .generatorOverlay .generatorDialogFooter button:disabled {
+.courseModuleEditorPage
+  .generatorOverlay
+  .generatorDialogFooter
+  button:disabled {
   background: #b9cfe7 !important;
   border-color: #b9cfe7 !important;
   color: #fff !important;
   opacity: 1;
 }
 @media (max-width: 480px) {
-  .courseModuleEditorPage .generatorOverlay .moduleMaterialBand { padding: 0 18px 18px; }
-  .courseModuleEditorPage .generatorOverlay .moduleMaterialBand h2 { margin: 0 -18px; font-size: 16px !important; }
-  .generatorOverlay .generatorDialogFooter { padding: 14px 18px; }
+  .courseModuleEditorPage .generatorOverlay .moduleMaterialBand {
+    padding: 0 18px 18px;
+  }
+  .courseModuleEditorPage .generatorOverlay .moduleMaterialBand h2 {
+    margin: 0 -18px;
+    font-size: 16px !important;
+  }
+  .generatorOverlay .generatorDialogFooter {
+    padding: 14px 18px;
+  }
 }
 
 /* Keep print beside the quiz settings in the assessment header. */
@@ -5736,7 +5781,9 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   gap: 12px;
   transform: translateY(-50%);
 }
-.courseModuleEditorPage.assessmentPage .assessmentHeaderActions .assessmentSettingsButton {
+.courseModuleEditorPage.assessmentPage
+  .assessmentHeaderActions
+  .assessmentSettingsButton {
   position: static;
   margin: 0;
   transform: none;
@@ -5830,7 +5877,10 @@ body:has(.generatorOverlay) :global(.swal2-container) {
     display: block !important;
     width: 100%;
     color: #111111;
-    font: 10pt/1.32 Arial, Helvetica, sans-serif;
+    font:
+      10pt/1.32 Arial,
+      Helvetica,
+      sans-serif;
   }
 
   .printExamHeader {
@@ -5839,7 +5889,10 @@ body:has(.generatorOverlay) :global(.swal2-container) {
 
   .printExamHeader h1 {
     margin: 0;
-    font: 700 16pt/1.2 Arial, Helvetica, sans-serif;
+    font:
+      700 16pt/1.2 Arial,
+      Helvetica,
+      sans-serif;
     text-align: center;
   }
 
@@ -5880,8 +5933,17 @@ body:has(.generatorOverlay) :global(.swal2-container) {
 
   .printTestSection h2 {
     margin: 0 0 9pt;
-    font: 700 11pt/1.2 Arial, Helvetica, sans-serif;
+    font:
+      700 11pt/1.2 Arial,
+      Helvetica,
+      sans-serif;
     break-after: avoid;
+  }
+
+  .printTestDirections {
+    margin: -3pt 0 9pt;
+    font-style: italic;
+    line-height: 1.35;
   }
 
   .printQuestionList {
@@ -5906,8 +5968,17 @@ body:has(.generatorOverlay) :global(.swal2-container) {
     overflow-wrap: anywhere;
   }
 
-  .printQuestion > p > span {
+  .printQuestion > p > span:not(.printQuestionAnswerBlank) {
     font-weight: 600;
+  }
+
+  .printQuestionAnswerBlank {
+    display: inline-block;
+    width: 34pt;
+    height: 0.95em;
+    margin-right: 3pt;
+    vertical-align: baseline;
+    border-bottom: 1px solid #222222;
   }
 
   .printChoices {
@@ -5919,14 +5990,6 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   .printChoices li {
     padding-left: 2pt;
     overflow-wrap: anywhere;
-  }
-
-  .printIdentificationLine {
-    display: block;
-    width: 78%;
-    height: 1em;
-    margin: 5pt 0 2pt;
-    border-bottom: 1px solid #333333;
   }
 }
 
@@ -5985,11 +6048,15 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   .addModulePage.courseBuilderPage .courseClassColumn {
     display: contents;
   }
-  .addModulePage.courseBuilderPage .courseIdentityColumn > :global(.catalog-selection) {
+  .addModulePage.courseBuilderPage
+    .courseIdentityColumn
+    > :global(.catalog-selection) {
     grid-column: 1;
     grid-row: 1;
   }
-  .addModulePage.courseBuilderPage .courseClassColumn > .popupField:first-child {
+  .addModulePage.courseBuilderPage
+    .courseClassColumn
+    > .popupField:first-child {
     grid-column: 2;
     grid-row: 1;
   }
@@ -6002,18 +6069,28 @@ body:has(.generatorOverlay) :global(.swal2-container) {
     grid-row: 2;
   }
 }
-.addModulePage.courseBuilderPage .courseIdentityColumn :global(.catalog-selection) {
+.addModulePage.courseBuilderPage
+  .courseIdentityColumn
+  :global(.catalog-selection) {
   gap: 8px;
 }
-.addModulePage.courseBuilderPage .courseIdentityColumn :global(.catalog-selection) > label,
+.addModulePage.courseBuilderPage
+  .courseIdentityColumn
+  :global(.catalog-selection)
+  > label,
 .addModulePage.courseBuilderPage .popupInfoGrid .popupLabel {
   margin: 0 0 8px;
   line-height: 20px;
 }
-.addModulePage.courseBuilderPage .courseIdentityColumn :global(.catalog-selection) > label {
+.addModulePage.courseBuilderPage
+  .courseIdentityColumn
+  :global(.catalog-selection)
+  > label {
   margin-bottom: 0;
 }
-.addModulePage.courseBuilderPage .courseIdentityColumn :global(.catalog-combobox-control),
+.addModulePage.courseBuilderPage
+  .courseIdentityColumn
+  :global(.catalog-combobox-control),
 .addModulePage.courseBuilderPage .popupInfoGrid .popupInput,
 .addModulePage.courseBuilderPage .popupInfoGrid .popupSelect {
   height: 58px;
@@ -6160,14 +6237,20 @@ body:has(.generatorOverlay) :global(.swal2-container) {
     width: 100%;
   }
 
-  .courseModuleEditorPage.assessmentPage .moduleEditorWorkspace > .lessonPageTabs,
-  .courseModuleEditorPage.assessmentPage .moduleEditorWorkspace > .moduleQuizEditorCard {
+  .courseModuleEditorPage.assessmentPage
+    .moduleEditorWorkspace
+    > .lessonPageTabs,
+  .courseModuleEditorPage.assessmentPage
+    .moduleEditorWorkspace
+    > .moduleQuizEditorCard {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
   }
 
-  .courseModuleEditorPage.assessmentPage .moduleEditorWorkspace > .lessonPageTabs {
+  .courseModuleEditorPage.assessmentPage
+    .moduleEditorWorkspace
+    > .lessonPageTabs {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -6197,7 +6280,9 @@ body:has(.generatorOverlay) :global(.swal2-container) {
     padding: 20px;
   }
 
-  .courseModuleEditorPage.assessmentPage .quizEditorFields :is(.popupInput, .popupSelect, .popupTextarea) {
+  .courseModuleEditorPage.assessmentPage
+    .quizEditorFields
+    :is(.popupInput, .popupSelect, .popupTextarea) {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
@@ -6216,11 +6301,16 @@ body:has(.generatorOverlay) :global(.swal2-container) {
     padding: 16px;
   }
 
-  .courseModuleEditorPage.assessmentPage .quizEditorToolbar .moduleEditorBandActions {
+  .courseModuleEditorPage.assessmentPage
+    .quizEditorToolbar
+    .moduleEditorBandActions {
     width: 100%;
   }
 
-  .courseModuleEditorPage.assessmentPage .quizEditorToolbar .moduleEditorBandActions > button {
+  .courseModuleEditorPage.assessmentPage
+    .quizEditorToolbar
+    .moduleEditorBandActions
+    > button {
     flex: 1 1 140px;
     min-width: 0;
     white-space: normal;
