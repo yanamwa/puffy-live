@@ -1733,7 +1733,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
             data-tutorial="generate-module-button"
             onClick={() => setGeneratorOpen(true)}
           >
-            Generate Module
+            Organize Module
           </button>
         )}
       </div>

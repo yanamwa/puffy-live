@@ -1549,7 +1549,7 @@ export default function AddModule() {
 
               <p>
                 {tutorialStep?.id === "course-modules"
-                  ? "Example modules for the tutorial: each module can include lesson pages and quiz questions."
+                  ? "Select Edit Module to add or update lesson pages."
                   : "Add your modules below:"}
               </p>
             </div>
@@ -1596,8 +1596,8 @@ export default function AddModule() {
                         <h3>{module.title || `Module ${moduleIndex + 1}`}</h3>
 
                         <p>
-                          {module.lessonPages.length} lesson page(s) &middot;{" "}
-                          {module.quizItems.length} Quick Recap question(s)
+                          {module.lessonPages.length} lesson{" "}
+                          {module.lessonPages.length === 1 ? "page" : "pages"}
                         </p>
                       </div>
 

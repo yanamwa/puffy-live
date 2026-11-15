@@ -42,17 +42,17 @@ export const professorTutorialSteps = [
     path: "/professor/courses/new",
     target: '[data-tutorial="course-builder-modules"]',
     allowPreviewScroll: true,
-    title: "Add Course Modules",
+    title: "Edit a Module",
     description:
-      "Modules divide a course into teachable units. Each module can have objectives, lesson pages, a practice quiz, and a Main Quiz. The sample modules show how pages and quiz items are counted.",
+      "Select Edit Module to open a module. From there, you can add lesson pages or update existing ones.",
   },
   {
     id: "generate-module",
     path: tutorialModulePath,
     target: '[data-tutorial="generate-module-button"]',
-    title: "Generate a Module",
+    title: "Organize a Module",
     description:
-      "Generate Module opens the material organizer. Add reference files and PuffyBrain can draft a module with lesson pages for you to review. You can also enter the module details yourself.",
+      "Organize Module opens the material organizer. Add PDF files and PuffyBrain can organize them into a module with lesson pages for you to review.",
   },
   {
     id: "add-page",
@@ -69,7 +69,7 @@ export const professorTutorialSteps = [
     target: '[data-tutorial="quiz-management-courses"]',
     title: "Quiz Management",
     description:
-      "Choose a course to see its modules and edit each module’s Main Quiz. Practice quizzes are created for students from lesson content; the Main Quiz is the assessment you manage here.",
+      "Select a course to view its learning modules. Here, you can create, edit, and manage Main Quizzes to assess students’ understanding of the learning materials and their performance in Practice Quizzes.",
   },
   {
     id: "quiz-module",
@@ -87,7 +87,7 @@ export const professorTutorialSteps = [
     popupTarget: "#main-quiz-settings-tutorial",
     title: "Main Quiz Settings",
     description:
-      "Lock Main Quiz blocks student access; unlock it when the class is ready. Set an optional opening time and closing time, or clear either date to remove the schedule. Students can take the Main Quiz after finishing the module.",
+      "Lock the Main Quiz to prevent student access and unlock it when the class is ready. Set an optional opening and closing time to control quiz availability, or clear either date to remove the schedule. Students can only take the Main Quiz once the professor enables it and within the designated availability period, if a schedule is set.",
   },
   {
     id: "quiz-add-question",
@@ -95,7 +95,7 @@ export const professorTutorialSteps = [
     target: '[data-tutorial="add-main-quiz-question"]',
     title: "Add a Question",
     description:
-      "Add Question creates a blank item. Write the prompt, choose multiple choice, identification, or true/false, enter the answer and explanation, then save the quiz.",
+      "Select Add Question to create a new item. Enter the question, choose a question type (Multiple Choice, Identification, or True/False), provide the correct answer and explanation, then save the quiz.",
   },
   {
     id: "quiz-auto-generate-total",
@@ -113,7 +113,7 @@ export const professorTutorialSteps = [
     popupTarget: "#main-quiz-generation-tutorial",
     title: "Question Distribution",
     description:
-      "Choose how many Multiple Choice, Identification, and True/False questions to include. The counts must add up to Total Questions; the assigned counter shows the sum. Questions come from saved lesson pages, and completed Practice Quiz results can personalize them when available.",
+      "Choose the number of Multiple Choice, Identification, and True/False questions. Make sure they add up to the total number of questions. Questions are generated from lesson content and adapted based on available Practice Quiz results.",
   },
   {
     id: "quiz-auto-generate-passing-grade",
@@ -122,7 +122,7 @@ export const professorTutorialSteps = [
     popupTarget: "#main-quiz-generation-tutorial",
     title: "Passing Grade",
     description:
-      "The Main Quiz passing grade is 70%. Required correct answers are calculated from the total and rounded up—for example, 14 correct answers out of 20. This value updates automatically.",
+      "The Main Quiz requires a passing score of 70%. The number of correct answers needed to pass updates automatically based on the total number of questions.",
   },
   {
     id: "analysis",
@@ -146,7 +146,7 @@ export const professorTutorialSteps = [
     target: '[data-tutorial="analysis-main-tab"]',
     title: "Main Quiz Analysis",
     description:
-      "Main Quiz analysis shows performance on the graded course assessment. Compare scores and question results to see whether students can apply the module’s learning objectives.",
+      "Main Quiz Analysis shows students’ overall assessment performance. View scores and question results to identify their strengths and areas for improvement.",
   },
   {
     id: "analysis-responses",
@@ -170,7 +170,7 @@ export const professorTutorialSteps = [
     target: ".professor-content .professor-password-card-header",
     title: "Professor Settings",
     description:
-      "Settings lets you update your password whenever you need to. Professors who created their own accounts can finish the tutorial without changing it.",
+      "Update your password anytime in Settings. Professors who registered their own accounts can complete the tutorial without changing their password.",
   },
 ];
 
