@@ -69,7 +69,7 @@ export const professorTutorialSteps = [
     target: '[data-tutorial="quiz-management-courses"]',
     title: "Quiz Management",
     description:
-      "Select a course to view its learning modules. Here, you can create, edit, and manage Main Quizzes to assess students’ understanding of the learning materials and their performance in Practice Quizzes.",
+      "Select a course to view its learning modules. Main Quiz folders are automatically added when modules are created in Course Management. Here, you can prepare, edit, and manage Main Quizzes for each module.",
   },
   {
     id: "quiz-module",

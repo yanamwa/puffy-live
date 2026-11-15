@@ -204,7 +204,7 @@ export default function StudentTutorial({ step, children }) {
               Step {stepNumber} of {numberedStepIds.length}
             </p>
             <h2 id="student-tutorial-title">{step.title}</h2>
-            <p id="student-tutorial-description">
+            <p id="student-tutorial-description" className="tutorial-step-description">
               {step.description}
               {lastStep &&
                 requiresStudentPasswordChange(user) &&

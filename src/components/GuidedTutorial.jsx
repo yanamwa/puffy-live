@@ -392,7 +392,7 @@ export default function GuidedTutorial({
         <h2 id={`${panelId}-title`}>
           {confirmingSkip ? "Skip the tutorial?" : step.title}
         </h2>
-        <p id={`${panelId}-description`}>
+        <p id={`${panelId}-description`} className="tutorial-step-description">
           {confirmingSkip ? skipDescription : step.description}
         </p>
         {error && (

@@ -71,6 +71,10 @@ body .swal2-container.student-tutorial-skip-confirmation {
   line-height: 1.45;
 }
 
+.student-tutorial-panel .tutorial-step-description {
+  text-align: justify;
+}
+
 .student-tutorial-panel .student-tutorial-progress {
   color: #385d80;
   font-size: 0.8rem;
