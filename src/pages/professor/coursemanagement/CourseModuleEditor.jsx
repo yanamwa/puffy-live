@@ -1,3 +1,4 @@
+import { successDialog } from "../../../utils/successDialog.js";
 import { removeLessonPracticeActivities } from "../../../services/lessonPracticeContent.js";
 import { generateModuleRecap } from "../../../services/moduleRecapGeneration.js";
 import { LessonContentEditor } from "../../../components/lesson/LessonContent.jsx";
@@ -1687,15 +1688,13 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       }
     }
 
-    await Swal.fire({
-      icon: "success",
+    await successDialog.fire({
       title: isQuizWorkspace ? "Quiz Saved" : "Module Saved",
       text: isQuizWorkspace
         ? "Your quiz changes have been saved."
         : recapError
           ? "Your module was saved. Quick Recap could not be generated, so the first practice will cover the module broadly."
           : "Your module changes were added back to the course.",
-      confirmButtonText: "Done",
     });
 
     navigate(

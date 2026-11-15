@@ -1137,11 +1137,11 @@ export default function AddModule() {
       writeCourseBuilderDraft(id, next);
       writeCourseBuilderDraft(next.id, next);
       await successDialog.fire({
-        title: publishing ? "Module uploaded" : "Module removed from students",
+        title: publishing ? "Module Uploaded" : "Module removed from students",
         text: publishing
           ? recap.error
             ? "Students can access the lessons. Quick Recap could not be generated, so their first practice will cover the module broadly."
-            : "This module is available to enrolled students."
+            : "This module is available to enrolled students.\nOther modules keep their upload status."
           : "Student access is off for this module. Its lessons and quizzes are still saved.",
       });
     } catch (error) {
@@ -1343,8 +1343,6 @@ export default function AddModule() {
       }
 
       await successDialog.fire({
-        icon: "success",
-
         title: isEditing ? "Course Updated" : "Course Added",
 
         customClass: {
@@ -1357,7 +1355,6 @@ export default function AddModule() {
             ? `<p>Saved as a draft. Students cannot access it until it is published.</p>${form.status !== "published" ? "<p>Status is set to Draft.</p>" : ""}${missingDetails.length ? `<section><h3>Required before publishing</h3>${detailsList(missingDetails)}</section>` : "<p>The required details are complete. Select Publish to make the course available.</p>"}`
             : "<p>The course is available to students.</p><p>Empty modules can be completed later. Save this published course after adding lessons to make them available to students.</p>"),
 
-        confirmButtonText: "Done",
       });
 
       clearCourseBuilderDraft(id);

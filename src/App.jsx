@@ -21,9 +21,10 @@ function SystemRoutes() {
     return (
       <main className="puffy-maintenance">
         <section>
+          <img src={import.meta.env.BASE_URL + "images/logo.png"} alt="" />
           <h1>PuffyBrain is under maintenance</h1>
-          <p>Please check back shortly.</p>
-          <Link to="/login">Super Admin sign in</Link>
+          <p>Please check back shortly. Thank you.</p>
+          <Link to="/login">Back to login</Link>
         </section>
       </main>
     );

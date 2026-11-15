@@ -381,21 +381,7 @@ function UserAvatar({ user, large = false }) {
 }
 
 function showSuccess(message, title = "Success") {
-  return Swal.fire({
-    imageUrl: "/images/complete.png",
-    imageAlt: "Action completed successfully",
-    imageWidth: 260,
-    imageHeight: 200,
-    customClass: {
-      popup: "professor-decision-dialog users-success-dialog",
-      container: "professor-decision-overlay",
-    },
-    buttonsStyling: false,
-    showCloseButton: true,
-    title,
-    text: message,
-    confirmButtonText: "OK",
-  });
+  return successDialog.fire({ title, text: message });
 }
 
 function showError(message, title = "Error") {
@@ -825,7 +811,7 @@ export default function SuperAdminUserManagementPage() {
       if (data.emailSent === false) {
         showWarning(data.message, "Decision saved — email not sent");
       } else {
-        showSuccess(data.message);
+        showSuccess(data.message, status === "approved" ? "Professor Approved" : "Registration Declined");
       }
     } catch (error) {
       showError(error.message || "Could not update registration.");
@@ -999,7 +985,7 @@ export default function SuperAdminUserManagementPage() {
       updateUserInList(data.user);
       setAdminProfessorId("");
       setAdminModalOpen(false);
-      if (data.emailSent) showSuccess(data.message);
+      if (data.emailSent) showSuccess(data.message, "Admin Access Granted");
       else showWarning(data.message, "Admin Access Granted");
     } catch (error) {
       showError(error.message || "Could not grant admin access.");

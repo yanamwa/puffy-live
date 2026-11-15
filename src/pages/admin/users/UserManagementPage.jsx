@@ -20,7 +20,7 @@ const USER_TABS = [
   { id: "professors", label: "Professors" },
   { id: "archived", label: "Archived Accounts" },
 ];
-const showSuccess = (message, title = "Success") => Swal.fire({ icon: "success", title, text: message });
+const showSuccess = (message, title = "Success") => successDialog.fire({ title, text: message });
 const showError = (message, title = "Error") => Swal.fire({ icon: "error", title, text: message });
 
 // Shared credential result for Create Student and Reset Credentials.

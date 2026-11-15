@@ -1,35 +1,61 @@
 .swal2-popup.puffy-success-dialog {
-  width: min(560px, calc(100vw - 32px));
-  padding: 28px 24px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 0 0 18px;
+  overflow: hidden;
   border-radius: 16px;
-  font-family: inherit;
+  background: #fff;
+  font-family: Arial, sans-serif;
 }
 
 .puffy-success-dialog .swal2-title {
-  padding: 0;
-  color: #294765;
-  font-size: 24px;
+  grid-row: 1;
+  margin: 0;
+  padding: 14px 42px;
+  background: #7fa8d6;
+  color: #fff;
+  font: 700 20px/1.4 Arial, sans-serif;
   text-align: center;
 }
 
-.puffy-success-dialog .swal2-icon {
-  margin: 8px auto 24px;
+.puffy-success-dialog .swal2-close {
+  grid-row: 1;
+  color: #fff;
 }
 
 .puffy-success-dialog .swal2-html-container {
-  margin: 16px auto 0;
-  max-width: 450px;
-  padding: 0;
-  color: #526273;
-  font-size: 16px;
-  line-height: 1.5;
+  margin: 0;
+  padding: 16px 24px;
+  color: #454545;
+  font: 14px/1.45 Arial, sans-serif;
   text-align: center;
   white-space: pre-line;
 }
 
+.puffy-success-dialog .swal2-html-container > p {
+  margin: 0;
+}
+
+.puffy-success-dialog .swal2-image {
+  display: block;
+  width: 132px;
+  height: 108px;
+  margin: 14px auto;
+  object-fit: contain;
+}
+
+.puffy-success-dialog .swal2-actions {
+  width: auto;
+  margin: 0 18px;
+  padding-top: 10px;
+  border-top: 1px solid #dedede;
+}
+
 .puffy-success-dialog .swal2-confirm {
-  min-width: 84px;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
   background: #7fa8d6;
-  border-radius: 6px;
-  font: inherit;
+  color: #fff;
+  border-radius: 999px;
+  font: 700 14px/1.4 Arial, sans-serif;
 }
