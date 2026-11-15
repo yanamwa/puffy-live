@@ -162,20 +162,6 @@ export default function SuperAdminModesManagement() {
   }, [modes, query]);
 
   /* =====================================================
-     OPEN ADD MODE
-  ===================================================== */
-
-  const openAdd = () => {
-    if (saving) {
-      return;
-    }
-
-    setEditingMode(null);
-    setForm(emptyForm);
-    setFormOpen(true);
-  };
-
-  /* =====================================================
      OPEN EDIT MODE
   ===================================================== */
 
@@ -422,17 +408,9 @@ export default function SuperAdminModesManagement() {
         <div>
           <h1>Mode Management</h1>
 
-          <p>Create and manage practice modes for PuffyBrain users.</p>
+          <p>Manage practice modes for PuffyBrain users.</p>
         </div>
 
-        <button
-          className="primary-feature-btn compact"
-          type="button"
-          onClick={openAdd}
-          disabled={saving}
-        >
-          + Add New Mode
-        </button>
       </div>
 
       {/* =================================================

@@ -14,7 +14,7 @@ export function searchSystemPages(role, query) {
       ["Modes Management", "modes", "practice flashcards quizzes"],
       ["System Analytics", "analytics", "statistics"],
       ["Audit Logs", "audit-logs", "history activity logs"],
-      ["Backup and Restore", "backup", "backup restore"],
+      ["Backup", "backup", "database backup"],
     ] : []),
   ];
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);

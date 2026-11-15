@@ -197,6 +197,15 @@ export default function AppRoutes() {
           />
 
           <Route
+            path="/super-admin/notifications"
+            element={
+              <SuperAdminLayout>
+                <ProfessorNotifications />
+              </SuperAdminLayout>
+            }
+          />
+
+          <Route
             path="/super-admin/announcements"
             element={
               <SuperAdminLayout>
@@ -323,6 +332,15 @@ export default function AppRoutes() {
             element={
               <AdminLayout>
                 <SettingsPage />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/admin/notifications"
+            element={
+              <AdminLayout>
+                <ProfessorNotifications />
               </AdminLayout>
             }
           />

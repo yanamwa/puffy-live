@@ -55,7 +55,7 @@ const mainMenuItems = [
     icon: FiFileText,
   },
   {
-    label: "Announcements & Notifications",
+    label: "Announcements",
     path: "/super-admin/announcements",
     icon: FiBell,
   },
@@ -65,7 +65,7 @@ const mainMenuItems = [
     icon: FiShield,
   },
   {
-    label: "Backup and Restore",
+    label: "Backup",
     path: "/super-admin/backup",
     icon: FiDownload,
   },

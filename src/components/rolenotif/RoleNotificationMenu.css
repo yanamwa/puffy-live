@@ -958,3 +958,17 @@ body .student-notification-dialog .swal2-actions .swal2-confirm { min-height: 52
 #root .professor-layout .professor-header .role-notification-unread-dot {
   align-self: center;
 }
+.role-notification-menu[data-role="admin"] .role-notification-item {
+  flex: 0 0 auto;
+  height: auto;
+  max-height: none;
+  box-sizing: border-box;
+}
+
+.role-notification-menu[data-role="admin"] .role-notification-copy {
+  overflow-wrap: anywhere;
+}
+
+.role-notification-menu[data-role="admin"] .role-notification-copy small {
+  line-height: 1.4;
+}

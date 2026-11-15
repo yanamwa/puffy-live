@@ -6410,3 +6410,9 @@ body:has(.generatorOverlay) :global(.swal2-container) {
     white-space: normal;
   }
 }
+
+.mainQuizScheduleInputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 8px;
+}

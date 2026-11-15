@@ -182,7 +182,7 @@
 
   border-radius: 999px;
 
-  background: var(--report-green);
+  background: #5984b3;
 
   color: #ffffff;
 
@@ -194,7 +194,7 @@
 
   font-weight: 900;
 
-  box-shadow: 3px 3px 0 rgba(25, 135, 84, 0.22);
+  box-shadow: 3px 3px 0 rgba(51, 83, 119, 0.22);
 
   transition:
 
@@ -208,7 +208,7 @@
 
 .report-export-actions button:hover {
 
-  background: #12673f;
+  background: #466f9e;
 
   transform: translateY(-1px);
 
@@ -1169,13 +1169,37 @@
 /* Append these rules to the END of ReportsPage.css */
 .report-paginated-table { width: 100%; min-width: 0; }
 .report-print-table { display: none; }
-.report-pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 16px 18px; border-top: 1px solid #e5e7eb; }
-.report-pagination-info { font-size: 12px; color: #6b7280; }
-.report-pagination-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.report-pagination-controls label { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.report-pagination-controls select, .report-pagination-controls button { border: 1px solid #d1d5db; border-radius: 7px; background: #fff; color: #374151; padding: 7px 10px; font-size: 12px; }
-.report-pagination-controls button { cursor: pointer; }
-.report-pagination-controls button:disabled { opacity: .45; cursor: not-allowed; }
+.report-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px;
+  border-top: 1px solid #d8e3ef;
+}
+
+.report-pagination button {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #cbdced;
+  border-radius: 8px;
+  background: #fff;
+  color: #294765;
+  font: 14px/1.4 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.report-pagination button[aria-current="page"] {
+  border-color: #7fa8d6;
+  background: #7fa8d6;
+  color: #fff;
+}
+
+.report-pagination button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
 .report-table-wrap { width: 100%; overflow-x: auto; }
 @media print {
   @page { size: A4 landscape; margin: 12mm; }

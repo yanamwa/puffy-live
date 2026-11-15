@@ -9,8 +9,8 @@ const API_BASE_URL = API_BASE;
 const REFRESH_INTERVAL_MS = 30000;
 
 const notificationSets = {
-  admin: { viewAllPath: "/admin/notification" },
-  superAdmin: { viewAllPath: "/super-admin/announcements" },
+  admin: { viewAllPath: "/admin/notifications" },
+  superAdmin: { viewAllPath: "/super-admin/notifications" },
   professor: { viewAllPath: "/professor/notifications" },
   student: { viewAllPath: "/student/notifications" },
 };
@@ -327,7 +327,7 @@ export default function RoleNotificationMenu({ role = "admin" }) {
   };
 
   return (
-    <div className="role-notification-menu" ref={menuRef}>
+    <div className="role-notification-menu" data-role={role} ref={menuRef}>
       <button
         type="button"
         className={`role-notification-button ${isOpen ? "active" : ""}`}

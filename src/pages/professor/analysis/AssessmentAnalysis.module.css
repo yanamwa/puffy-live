@@ -392,7 +392,7 @@
 
 .performanceGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(155px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -1579,7 +1579,6 @@
 
   .courseGrid,
   .metricGrid,
-  .performanceGrid,
   .pieGrid,
   .analysisGrid {
     grid-template-columns: 1fr;

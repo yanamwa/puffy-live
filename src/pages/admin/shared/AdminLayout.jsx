@@ -95,7 +95,7 @@ const mainMenuItems = [
   },
 
   {
-    label: "Announcements & Notifications",
+    label: "Announcements",
 
     path: "/admin/notification",
 

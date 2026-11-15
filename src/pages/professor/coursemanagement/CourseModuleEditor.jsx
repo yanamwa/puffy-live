@@ -241,6 +241,56 @@ function normalizeDateTimeLocal(value) {
   return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
 }
 
+const quizScheduleTimes = Array.from({ length: 288 }, (_, index) => {
+  const minutes = index * 5;
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+});
+
+function QuizScheduleField({ label, value, minimum, disabled, onChange }) {
+  const [savedDate = "", savedTime = ""] = value.split("T");
+  const [date, setDate] = useState(savedDate);
+  const [minimumDate, minimumTime] = minimum.split("T");
+  const time = date === savedDate ? savedTime : "";
+  const times = [...new Set([...quizScheduleTimes, minimumTime, time].filter(Boolean))].sort();
+
+  return (
+    <div className={styles.mainQuizTimerField}>
+      <span>{label} date and time</span>
+      <div className={styles.mainQuizScheduleInputs}>
+        <input
+          className={styles.popupInput}
+          aria-label={`${label} date`}
+          type="date"
+          min={minimumDate}
+          value={date}
+          disabled={disabled}
+          onChange={(event) => {
+            if (event.target.validity.valid) setDate(event.target.value);
+          }}
+        />
+        <select
+          className={styles.popupInput}
+          aria-label={`${label} time`}
+          value={time}
+          disabled={disabled || !date || date < minimumDate}
+          onChange={(event) => onChange(`${date}T${event.target.value}`)}
+        >
+          <option value="" disabled>Select time</option>
+          {times.map((option) => (
+            <option
+              key={option}
+              value={option}
+              disabled={date === minimumDate && option < minimumTime}
+            >
+              {option}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 function normalizeMainQuizSettings(module = {}) {
   const settings = parseSettingsObject(
     module?.mainQuizSettings || module?.main_quiz_settings,
@@ -517,6 +567,14 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
   const generationCourseRef = useRef(null);
   const mainQuizSettingsDialog = useRef(null);
+  const [scheduleClock, setScheduleClock] = useState(() => Date.now());
+  useEffect(() => {
+    if (!isMainAssessment) return;
+    const timer = window.setInterval(() => {
+      if (mainQuizSettingsDialog.current?.open) setScheduleClock(Date.now());
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isMainAssessment]);
   const [generatorOpen, setGeneratorOpen] = useState(false);
   useEffect(() => {
     if (!generatorOpen) return;
@@ -798,6 +856,10 @@ export default function CourseModuleEditor({ quizManagement = false }) {
     activeQuizPageEnd,
   );
   const mainQuizSettings = normalizeMainQuizSettings(moduleDraft || {});
+  const scheduleMinimum = normalizeDateTimeLocal(new Date(scheduleClock).toISOString());
+  const lockMinimum = mainQuizSettings.unlockAt >= scheduleMinimum
+    ? normalizeDateTimeLocal(new Date(new Date(mainQuizSettings.unlockAt).getTime() + 60_000).toISOString())
+    : scheduleMinimum;
   const mainQuizUnlockLabel = formatDateTimeLabel(mainQuizSettings.unlockAt);
   const tutorialSettingsPreview = tutorialStep?.id === "quiz-settings";
 
@@ -845,6 +907,16 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
   const updateMainQuizSettings = async (field, value) => {
     if (!moduleDraft || !courseDraft) {
+      return;
+    }
+
+    if ((field === "unlockAt" || field === "lockAt") && value &&
+        value < normalizeDateTimeLocal(new Date().toISOString())) {
+      await showMainQuizSettingsNotice({
+        icon: "error",
+        title: "Choose a current or future time",
+        text: "The selected date and time has already passed.",
+      });
       return;
     }
 
@@ -1720,7 +1792,10 @@ export default function CourseModuleEditor({ quizManagement = false }) {
               className={styles.assessmentSettingsButton}
               type="button"
               data-tutorial="main-quiz-settings"
-              onClick={() => mainQuizSettingsDialog.current?.showModal()}
+              onClick={() => {
+                setScheduleClock(Date.now());
+                mainQuizSettingsDialog.current?.showModal();
+              }}
             >
               Main Quiz Settings
             </button>
@@ -2248,21 +2323,14 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                             : "Unlock Main Quiz"}
                         </button>
 
-                        <label className={styles.mainQuizTimerField}>
-                          Unlock date and time
-                          <input
-                            className={styles.popupInput}
-                            type="datetime-local"
-                            value={mainQuizSettings.unlockAt}
-                            disabled={tutorialSettingsPreview}
-                            onChange={(event) =>
-                              updateMainQuizSettings(
-                                "unlockAt",
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </label>
+                        <QuizScheduleField
+                          key={`unlockAt:${mainQuizSettings.unlockAt}`}
+                          label="Unlock"
+                          value={mainQuizSettings.unlockAt}
+                          minimum={scheduleMinimum}
+                          disabled={tutorialSettingsPreview}
+                          onChange={(value) => updateMainQuizSettings("unlockAt", value)}
+                        />
 
                         <button
                           className={styles.assessmentBackButton}
@@ -2275,22 +2343,14 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                         >
                           Clear Unlock Date
                         </button>
-                        <label className={styles.mainQuizTimerField}>
-                          Lock date and time
-                          <input
-                            className={styles.popupInput}
-                            type="datetime-local"
-                            value={mainQuizSettings.lockAt}
-                            min={mainQuizSettings.unlockAt || undefined}
-                            disabled={tutorialSettingsPreview}
-                            onChange={(event) =>
-                              updateMainQuizSettings(
-                                "lockAt",
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </label>
+                        <QuizScheduleField
+                          key={`lockAt:${mainQuizSettings.lockAt}`}
+                          label="Lock"
+                          value={mainQuizSettings.lockAt}
+                          minimum={lockMinimum}
+                          disabled={tutorialSettingsPreview}
+                          onChange={(value) => updateMainQuizSettings("lockAt", value)}
+                        />
                         <button
                           className={styles.assessmentBackButton}
                           type="button"

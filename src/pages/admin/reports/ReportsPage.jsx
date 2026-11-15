@@ -1,28 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  FiActivity, FiBarChart2, FiBookOpen, FiCalendar, FiDownload,
-  FiFileText, FiLayers, FiPrinter, FiSearch, FiShield,
+  FiActivity, FiBarChart2, FiBookOpen, FiCalendar,
+  FiLayers, FiPrinter, FiSearch, FiShield,
   FiUserCheck, FiUsers, FiAlertCircle,
 } from "react-icons/fi";
 import { fetchReports, fetchReportConfig } from "../../../services/reportApi";
-import { downloadReportsPdf } from "../../../services/reportPdf";
 import AdminStatCard from "../shared/AdminStatCard.jsx";
 import "./ReportsPage.css";
 
 const FILTERS = [
   ["today", "Today"], ["week", "This Week"], ["month", "This Month"],
-  ["semester", "Semester"], ["school-year", "School Year"], ["custom", "Custom Date Range"],
 ];
 const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
 const pct = value => value == null || !Number.isFinite(Number(value)) ? "N/A" : `${Number(value).toFixed(1).replace(/\.0$/, "")}%`;
 const dateString = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const validDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s || "") && !Number.isNaN(Date.parse(`${s}T00:00:00Z`)) && new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s;
-const isAcademic = f => f === "semester" || f === "school-year";
-function getRange(filter, custom, settings) {
-  if (filter === "custom") return custom;
-  if (filter === "semester") return { start: settings?.semesterStartDate || "", end: settings?.semesterEndDate || "" };
-  if (filter === "school-year") return { start: settings?.schoolYearStartDate || "", end: settings?.schoolYearEndDate || "" };
-  const now = new Date();
+function getRange(filter, now) {
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if (filter === "week") start.setDate(start.getDate() - (start.getDay() + 6) % 7);
   if (filter === "month") start.setDate(1);
@@ -34,11 +26,13 @@ function Section({ icon: Icon, title, subtitle, action, children }) {
       <div><h2>{title}</h2><p>{subtitle}</p></div>{action}</div>{children}
   </section>;
 }
-function Table({ columns, rows, empty = "No records found." }) {
+function Table({ columns, rows, empty = "No records found.", paginate = true }) {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const pageSize = 10;
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
+  const firstPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+  const pageNumbers = Array.from({ length: Math.min(totalPages, 5) }, (_, index) => firstPage + index);
   const start = (currentPage - 1) * pageSize;
   const visibleRows = rows.slice(start, start + pageSize);
   const renderTable = (tableRows, print = false) => <table className="report-table">
@@ -49,76 +43,47 @@ function Table({ columns, rows, empty = "No records found." }) {
   return <div className="report-paginated-table">
     <div className="report-table-wrap">{renderTable(visibleRows)}</div>
     <div className="report-print-table">{renderTable(rows, true)}</div>
-    {rows.length > 0 && <div className="report-pagination">
-      <span className="report-pagination-info">Showing {start + 1}–{Math.min(start + pageSize, rows.length)} of {rows.length} records</span>
-      <div className="report-pagination-controls">
-        <label>Rows per page <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}>
-          <option value={10}>10</option><option value={25}>25</option><option value={50}>50</option>
-        </select></label>
-        <button type="button" disabled={currentPage === 1} onClick={() => setPage(1)}>First</button>
+    {paginate && rows.length > 0 && (
+      <nav className="report-pagination" aria-label={`${columns[0]} report pages`}>
         <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button>
-        <span>{currentPage} / {totalPages}</span>
+        {pageNumbers.map((number) => (
+          <button key={number} type="button" aria-label={`Page ${number}`}
+            aria-current={number === currentPage ? "page" : undefined}
+            onClick={() => setPage(number)}>
+            {number}
+          </button>
+        ))}
         <button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>Next</button>
-        <button type="button" disabled={currentPage === totalPages} onClick={() => setPage(totalPages)}>Last</button>
-      </div>
-    </div>}
+      </nav>
+    )}
   </div>;
-}
-function Bars({ items }) {
-  const max = Math.max(1, ...items.map(x => number(x.value)));
-  return <div className="report-bars">{items.length ? items.map((item, i) =>
-    <div className="report-bar-row" key={`${item.label}-${i}`}><div><span>{item.label}</span><strong>{item.value}</strong></div>
-      <i><b style={{ width: `${100 * number(item.value) / max}%` }} /></i></div>) : <p>No activity recorded for this period.</p>}</div>;
-}
-function csvCell(v) {
-  let value = String(v ?? "");
-  if (/^\s*[=+\-@\t\r]/.test(value)) value = `'${value}`;
-  return `"${value.replace(/"/g, '""')}"`;
-}
-function saveCSV(rows, filename) {
-  const csv = "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  const a = document.createElement("a");
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export default function ReportsPage({ superAdmin = false }) {
   const reportOwner = superAdmin ? "Super Admin" : "Admin";
   const [filter, setFilter] = useState("month");
-  const [custom, setCustom] = useState(() => ({ start: dateString(new Date()), end: dateString(new Date()) }));
   const [search, setSearch] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reportSettings, setReportSettings] = useState(null);
-  const [configLoaded, setConfigLoaded] = useState(false);
-  const [configError, setConfigError] = useState("");
   const [clockDay, setClockDay] = useState(() => dateString(new Date()));
-  const range = useMemo(() => getRange(filter, custom, reportSettings), [filter, custom, reportSettings, clockDay]);
-  const academicFilter = isAcademic(filter);
-  const valid = validDate(range.start) && validDate(range.end) && range.start <= range.end;
-
+  const range = useMemo(() => getRange(filter, new Date(clockDay + "T00:00:00")), [filter, clockDay]);
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
     async function loadConfig() {
       try {
         const settings = await fetchReportConfig({ signal: controller.signal });
-        if (active) { setReportSettings(settings); setConfigError(""); }
-      } catch (e) {
-        if (active && e.name !== "AbortError") setConfigError(e.message || "Report configuration unavailable.");
-      } finally { if (active) setConfigLoaded(true); }
+        if (active) setReportSettings(settings);
+      } catch {
+        // The report response can provide the passing threshold.
+      }
     }
     loadConfig();
     return () => { active = false; controller.abort(); };
   }, []);
 
   useEffect(() => {
-    if (academicFilter && !configLoaded) { setLoading(true); return; }
-    if (!valid) {
-      setError(academicFilter ? configError || "Configure valid academic start and end dates in System Settings." : "Select a valid start and end date.");
-      setLoading(false); setData(null); return;
-    }
     let active = true;
     let busy = false;
     const controller = new AbortController();
@@ -138,7 +103,7 @@ export default function ReportsPage({ superAdmin = false }) {
     const timer = setInterval(() => { setClockDay(dateString(new Date())); load(); }, 20000);
     document.addEventListener("visibilitychange", onVisible);
     return () => { active = false; controller.abort(); clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
-  }, [range.start, range.end, valid, academicFilter, configLoaded, configError]);
+  }, [range.start, range.end]);
 
   const view = useMemo(() => {
     const r = data || {};
@@ -181,53 +146,14 @@ export default function ReportsPage({ superAdmin = false }) {
     { label: "Quiz Attempts", value: view.totalAttempts, detail: "Selected date range", icon: FiActivity },
     { label: "Average Quiz Score", value: pct(view.average), detail: "Scored attempts in selected period", icon: FiBarChart2 },
   ];
-  const [pdfExporting, setPdfExporting] = useState(false);
-  const [pdfError, setPdfError] = useState("");
-
-  const exportPDF = async () => {
-    if (!data || pdfExporting) return;
-    setPdfExporting(true);
-    setPdfError("");
-    try {
-      await downloadReportsPdf({ data, view, metrics, range, studentRows: matching, reportOwner });
-    } catch (err) {
-      setPdfError(err.message || "Unable to generate the PDF.");
-    } finally {
-      setPdfExporting(false);
-    }
-  };
-
-  const exportCSV = () => {
-    if (!data) return;
-    const rows = [
-      [`PuffyBrain ${reportOwner} Reports`], ["Period", range.start, range.end], ["Generated", data.generatedAt || ""], [],
-      ["Overview", "Value", "Scope"], ...metrics.map(m => [m.label, m.value, m.detail]), [],
-      ["Courses", "Professor", "Students", "Modules", "Quiz Attempts", "Average Score", "Module Completion"],
-      ...view.courseRows.map(c => [c.name, c.professor, c.students, c.modules, c.attempts, pct(c.average), pct(c.completion)]), [],
-      ["Students", "Course", "Scored Attempts", "Average Score", "Modules Completed", "Attention Required"],
-      ...matching.map(s => [s.name, s.course, s.attempts, pct(s.avg), `${s.completed}/${s.total}`, s.intervention ? "Yes" : "No"]), [],
-      ["Professors", "Courses", "Modules", "Unique Students", "Quiz Attempts"],
-      ...view.professors.map(p => [p.name, p.courses, p.modules, p.students, p.quizAttempts]), [],
-      ["Quiz Summary", "Value"], ["Attempts", view.totalAttempts], ["Scored Attempts", view.scored],
-      ["Average Score", pct(view.average)], ["Pass Threshold", pct(view.passing)], ["Pass Rate", pct(view.passRate)], [],
-      ["Quiz Modes", "Attempts"], ...view.modeRows.map(m => [m.label, m.value]),
-    ];
-    const fileOwner = reportOwner.toLowerCase().replaceAll(" ", "-");
-    saveCSV(rows, `puffybrain-${fileOwner}-report-${dateString(new Date())}.csv`);
-  };
   return <div className="admin-page reports-page">
     <section className="reports-dashboard-header"><div><span className="reports-kicker"><FiBarChart2 /> {reportOwner} reports</span>
       <h1>Reports Dashboard</h1><p>Academic activity, course participation, and student performance across PuffyBrain.</p></div>
       <div className="report-export-actions">
-        <button type="button" onClick={exportPDF} disabled={!data || pdfExporting}><FiDownload /> {pdfExporting ? "Generating PDF..." : "Save as PDF"}</button>
-        <button type="button" onClick={exportCSV} disabled={!data}><FiFileText /> Export CSV</button>
         <button type="button" onClick={() => window.print()} disabled={!data}><FiPrinter /> Print Report</button>
       </div></section>
     <section className="report-date-filter"><div className="report-date-filter-heading"><FiCalendar /> Date Filter</div>
       <div className="report-range-filter">{FILTERS.map(([id, label]) => <button key={id} type="button" className={filter === id ? "active" : ""} onClick={() => setFilter(id)}>{label}</button>)}</div>
-      {filter === "custom" && <div className="report-custom-range"><label><span>Start</span><input type="date" value={custom.start} onChange={e => setCustom(v => ({ ...v, start: e.target.value }))} /></label>
-        <label><span>End</span><input type="date" value={custom.end} onChange={e => setCustom(v => ({ ...v, end: e.target.value }))} /></label></div>}
-      <p style={{ marginTop: 10, fontSize: 13 }}>Quiz activity and scores use the selected dates. Account, course, enrollment, and module totals reflect current records.</p>
     </section>
     {loading && !data && <div className="reports-loading">Loading live reports...</div>}
     {error && <div role="alert" style={{ padding: 14, marginBottom: 16, border: "1px solid #dc7777", borderRadius: 8 }}><FiAlertCircle /> {error}{data ? " Showing the last successful results." : ""}</div>}
@@ -249,12 +175,25 @@ export default function ReportsPage({ superAdmin = false }) {
           rows={view.professors.map(p => ({ key: p.id, cells: [<strong className="table-strong">{p.name}</strong>, p.courses, p.modules, p.students, p.quizAttempts] }))} empty="No active professors found." />
       </Section>
       <Section icon={FiActivity} title="Quiz Participation" subtitle="Real quiz attempts and assessment activity within the selected date range.">
-        <div className="report-quiz-summary">
-          {[["Attempts", view.totalAttempts], ["Scored Attempts", view.scored], ["Average Score", pct(view.average)], ["Passing Threshold", pct(view.passing)], ["Pass Rate", pct(view.passRate)]].map(([label, value]) =>
-            <div className="report-small-metric tone-blue" key={label}><span>{label}</span><strong>{value}</strong></div>)}
+        <Table
+          paginate={false}
+          columns={["Attempts", "Scored Attempts", "Average Score", "Passing Threshold", "Pass Rate"]}
+          rows={[{ key: "quiz-summary", cells: [view.totalAttempts, view.scored, pct(view.average), pct(view.passing), pct(view.passRate)] }]}
+        />
+        <div className="report-analytics-grid two-column">
+          <div>
+            <h3>Quiz Mode Activity</h3>
+            <Table columns={["Quiz Mode", "Attempts"]}
+              rows={view.modeRows.map(({ label, value }) => ({ key: label, cells: [label, value] }))}
+              empty="No quiz activity in this date range." />
+          </div>
+          <div>
+            <h3>Attempts by Date</h3>
+            <Table columns={["Date", "Attempts"]}
+              rows={view.participation.map(({ label, value }) => ({ key: label, cells: [label, value] }))}
+              empty="No quiz attempts in this date range." />
+          </div>
         </div>
-        <div className="report-analytics-grid two-column"><div className="report-chart-block"><h3>Quiz Mode Activity</h3><Bars items={view.modeRows} /></div>
-          <div className="report-chart-block"><h3>Attempts by Date</h3><Bars items={view.participation} /></div></div>
       </Section>
       <Section icon={FiAlertCircle} title="Students Needing Attention" subtitle={view.passing == null ? "Configure the university reporting threshold in System Settings to enable attention flags." : `Students with a recorded course quiz average below the configured ${pct(view.passing)} reporting threshold. This is an advisory flag, not a final grade.`}>
         <Table columns={["Student", "Course", "Average Score", "Quiz Attempts"]}
