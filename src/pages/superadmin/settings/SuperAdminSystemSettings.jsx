@@ -9,7 +9,6 @@ import {
   FiRefreshCw,
   FiSave,
   FiSettings,
-  FiSliders,
   FiTool,
   FiUserCheck,
   FiUsers,
@@ -22,9 +21,6 @@ import "./SuperAdminSystemSettings.css";
 ===================================================== */
 
 const defaultSettings = {
-  academicYear: "",
-  semester: "1st Semester",
-
   maintenanceMode: false,
 
   requirePasswordChange: true,
@@ -127,6 +123,7 @@ export default function SuperAdminSystemSettings() {
 
   const [notice, setNotice] = useState("");
 
+  const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [saving, setSaving] = useState(false);
@@ -174,6 +171,7 @@ export default function SuperAdminSystemSettings() {
 
         const loadedSettings = getEditableSettings(data.settings);
 
+        setLoaded(true);
         setSettings(loadedSettings);
         setSavedSettings(loadedSettings);
       } catch (error) {
@@ -227,7 +225,7 @@ export default function SuperAdminSystemSettings() {
   ===================================================== */
 
   const handleSave = async () => {
-    if (!hasChanges || saving || loading) {
+    if (!loaded || !hasChanges || saving || loading) {
       return;
     }
 
@@ -324,7 +322,7 @@ export default function SuperAdminSystemSettings() {
   ===================================================== */
 
   const handleReset = async () => {
-    if (!hasChanges || saving || loading) {
+    if (!loaded || !hasChanges || saving || loading) {
       return;
     }
 
@@ -372,7 +370,7 @@ export default function SuperAdminSystemSettings() {
             type="button"
             className="super-settings-reset-button"
             onClick={handleReset}
-            disabled={!hasChanges || loading || saving}
+            disabled={!loaded || !hasChanges || loading || saving}
           >
             <FiRefreshCw aria-hidden="true" />
             Reset
@@ -382,7 +380,7 @@ export default function SuperAdminSystemSettings() {
             type="button"
             className="super-settings-save-button"
             onClick={handleSave}
-            disabled={!hasChanges || loading || saving}
+            disabled={!loaded || !hasChanges || loading || saving}
           >
             <FiSave aria-hidden="true" />
 
@@ -401,46 +399,6 @@ export default function SuperAdminSystemSettings() {
           <span>{notice}</span>
         </div>
       )}
-
-      {/* ===============================================
-          GENERAL SYSTEM SETTINGS
-      =============================================== */}
-
-      <SettingsSection
-        icon={FiSliders}
-        eyebrow="General"
-        title="General System Settings"
-        description="Set the default academic period for new classes and the current academic year for calendars."
-      >
-        <div className="super-settings-form-grid">
-          <label className="super-settings-field">
-            <span>Academic Year</span>
-
-            <input
-              type="text"
-              value={settings.academicYear}
-              onChange={(event) =>
-                updateSetting("academicYear", event.target.value)
-              }
-            />
-          </label>
-
-          <label className="super-settings-field">
-            <span>Semester</span>
-
-            <select
-              value={settings.semester}
-              onChange={(event) =>
-                updateSetting("semester", event.target.value)
-              }
-            >
-              <option>1st Semester</option>
-              <option>2nd Semester</option>
-              <option>Summer</option>
-            </select>
-          </label>
-        </div>
-      </SettingsSection>
 
       {/* ===============================================
           ACCOUNT CONFIGURATION

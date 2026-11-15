@@ -65,12 +65,6 @@ const mainMenuItems = [
     icon: FiGrid,
   },
   {
-    label: "Academic Calendar",
-    path: "/admin/academic-calendar",
-    icon: FiCalendar,
-  },
-
-  {
     label: "User Management",
 
     path: "/admin/users",
@@ -84,6 +78,12 @@ const mainMenuItems = [
     path: "/admin/courses",
 
     icon: FiBook,
+  },
+
+  {
+    label: "Academic Calendar",
+    path: "/admin/academic-calendar",
+    icon: FiCalendar,
   },
 
   {

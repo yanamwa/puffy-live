@@ -147,6 +147,11 @@ export default function ReportsPage({ superAdmin = false }) {
     { label: "Average Quiz Score", value: pct(view.average), detail: "Scored attempts in selected period", icon: FiBarChart2 },
   ];
   return <div className="admin-page reports-page">
+    <header className="report-print-heading">
+      <p>PuffyBrain</p>
+      <h1>Academic Activity and Performance Report</h1>
+      <p>{reportOwner} · Quiz activity from {range.start} to {range.end}</p>
+    </header>
     <section className="reports-dashboard-header"><div><span className="reports-kicker"><FiBarChart2 /> {reportOwner} reports</span>
       <h1>Reports Dashboard</h1><p>Academic activity, course participation, and student performance across PuffyBrain.</p></div>
       <div className="report-export-actions">
@@ -180,7 +185,7 @@ export default function ReportsPage({ superAdmin = false }) {
           columns={["Attempts", "Scored Attempts", "Average Score", "Passing Threshold", "Pass Rate"]}
           rows={[{ key: "quiz-summary", cells: [view.totalAttempts, view.scored, pct(view.average), pct(view.passing), pct(view.passRate)] }]}
         />
-        <div className="report-analytics-grid two-column">
+        <div className="report-analytics-grid two-column report-quiz-breakdown">
           <div>
             <h3>Quiz Mode Activity</h3>
             <Table columns={["Quiz Mode", "Attempts"]}

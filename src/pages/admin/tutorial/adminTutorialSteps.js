@@ -26,7 +26,7 @@ export const adminTutorialSteps = [
     path: "/admin/users",
     title: "User Management",
     description:
-      "Manage student and professor accounts. You can create accounts, import student rosters, reset credentials, and manage archived accounts here.",
+      "Manage student and professor accounts, import student rosters, and manage archived accounts.",
   },
   {
     id: "courses",
@@ -47,7 +47,7 @@ export const adminTutorialSteps = [
     path: "/admin/notification",
     title: "Announcements & Notifications",
     description:
-      "Create announcements for your audience and review messages you have already sent.",
+      "Create and send announcements to students, professors, and the Super Admin. You can also review previously posted announcements.",
   },
   {
     id: "profile",

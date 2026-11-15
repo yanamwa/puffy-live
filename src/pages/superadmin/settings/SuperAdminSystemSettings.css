@@ -225,8 +225,7 @@
 
   border-bottom: 1px solid #e6eae7;
 
-  background:
-    linear-gradient(135deg, rgba(37, 113, 78, 0.05), transparent 60%), #ffffff;
+  background: #fff;
 }
 
 .super-settings-card-icon {
@@ -240,7 +239,7 @@
 
   border-radius: 12px;
 
-  background: #eaf4ee;
+  background: transparent;
 
   color: #2563eb;
 }
