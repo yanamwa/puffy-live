@@ -128,7 +128,7 @@ function TutorialSlides({ onStart, onBack, startDisabled, isMainQuiz = false }) 
 
   return (
     <div className={styles.wrapper}>
-      <TutorialBackButton onBack={onBack} />
+      {!isMainQuiz && <TutorialBackButton onBack={onBack} />}
 
       {/* HEADER */}
 
