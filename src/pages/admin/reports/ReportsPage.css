@@ -1222,6 +1222,14 @@
   background: transparent;
 }
 
+.report-analytics-grid.report-quiz-breakdown {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.report-quiz-breakdown .report-table {
+  min-width: 0;
+}
+
 .report-quiz-breakdown > div {
   min-width: 0;
   padding: 14px;

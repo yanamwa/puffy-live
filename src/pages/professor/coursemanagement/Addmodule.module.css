@@ -6416,3 +6416,15 @@ body:has(.generatorOverlay) :global(.swal2-container) {
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 8px;
 }
+
+.mainQuizClockInputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(44px, 1fr)) minmax(60px, 1fr);
+  gap: 6px;
+}
+
+@media (max-width: 480px) {
+  .mainQuizScheduleInputs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

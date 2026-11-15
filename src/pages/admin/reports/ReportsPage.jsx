@@ -185,7 +185,7 @@ export default function ReportsPage({ superAdmin = false }) {
           columns={["Attempts", "Scored Attempts", "Average Score", "Passing Threshold", "Pass Rate"]}
           rows={[{ key: "quiz-summary", cells: [view.totalAttempts, view.scored, pct(view.average), pct(view.passing), pct(view.passRate)] }]}
         />
-        <div className="report-analytics-grid two-column report-quiz-breakdown">
+        <div className="report-analytics-grid report-quiz-breakdown">
           <div>
             <h3>Quiz Mode Activity</h3>
             <Table columns={["Quiz Mode", "Attempts"]}

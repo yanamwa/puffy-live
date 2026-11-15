@@ -241,52 +241,55 @@ function normalizeDateTimeLocal(value) {
   return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
 }
 
-const quizScheduleTimes = Array.from({ length: 288 }, (_, index) => {
-  const minutes = index * 5;
-  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
-});
-
 function QuizScheduleField({ label, value, minimum, disabled, onChange }) {
   const [savedDate = "", savedTime = ""] = value.split("T");
+  const [savedHour, savedMinute] = savedTime.split(":");
   const [date, setDate] = useState(savedDate);
-  const [minimumDate, minimumTime] = minimum.split("T");
-  const time = date === savedDate ? savedTime : "";
-  const times = [...new Set([...quizScheduleTimes, minimumTime, time].filter(Boolean))].sort();
+  const [hour, setHour] = useState(savedTime ? String(Number(savedHour) % 12 || 12) : "");
+  const [minute, setMinute] = useState(savedMinute ?? "");
+  const [period, setPeriod] = useState(Number(savedHour) >= 12 ? "PM" : "AM");
+  const minimumDate = minimum.split("T")[0];
+  const validTime = /^\d{1,2}$/.test(hour) && Number(hour) >= 1 && Number(hour) <= 12 &&
+    /^\d{1,2}$/.test(minute) && Number(minute) <= 59;
+  const hour24 = Number(hour) % 12 + (period === "PM" ? 12 : 0);
+  const candidate = `${date}T${String(hour24).padStart(2, "0")}:${minute.padStart(2, "0")}`;
+  const past = Boolean(date && validTime && candidate < minimum);
 
   return (
     <div className={styles.mainQuizTimerField}>
       <span>{label} date and time</span>
       <div className={styles.mainQuizScheduleInputs}>
-        <input
-          className={styles.popupInput}
-          aria-label={`${label} date`}
-          type="date"
-          min={minimumDate}
-          value={date}
-          disabled={disabled}
+        <input className={styles.popupInput} aria-label={`${label} date`} type="date"
+          min={minimumDate} value={date} disabled={disabled}
           onChange={(event) => {
             if (event.target.validity.valid) setDate(event.target.value);
           }}
         />
-        <select
-          className={styles.popupInput}
-          aria-label={`${label} time`}
-          value={time}
-          disabled={disabled || !date || date < minimumDate}
-          onChange={(event) => onChange(`${date}T${event.target.value}`)}
-        >
-          <option value="" disabled>Select time</option>
-          {times.map((option) => (
-            <option
-              key={option}
-              value={option}
-              disabled={date === minimumDate && option < minimumTime}
-            >
-              {option}
-            </option>
-          ))}
-        </select>
+        <div className={styles.mainQuizClockInputs}>
+          <input className={styles.popupInput} aria-label={`${label} hour (1 to 12)`}
+            inputMode="numeric" maxLength={2} placeholder="HH" value={hour}
+            disabled={disabled} onChange={(event) => setHour(event.target.value.replace(/\D/g, ""))}
+          />
+          <input className={styles.popupInput} aria-label={`${label} minute (00 to 59)`}
+            inputMode="numeric" maxLength={2} placeholder="MM" value={minute}
+            disabled={disabled} onChange={(event) => setMinute(event.target.value.replace(/\D/g, ""))}
+          />
+          <select className={styles.popupInput} aria-label={`${label} AM or PM`}
+            value={period} disabled={disabled} onChange={(event) => setPeriod(event.target.value)}>
+            <option>AM</option>
+            <option>PM</option>
+          </select>
+        </div>
       </div>
+      {!disabled && (date || hour || minute) && candidate !== value && (
+        <>
+          {past && <small>Choose a date and time on or after {formatDateTimeLabel(minimum)}.</small>}
+          <button type="button" className={styles.assessmentBackButton}
+            disabled={!date || !validTime || past} onClick={() => onChange(candidate)}>
+            Apply {label} Time
+          </button>
+        </>
+      )}
     </div>
   );
 }
