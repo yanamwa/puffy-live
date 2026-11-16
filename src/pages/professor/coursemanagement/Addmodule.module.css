@@ -4873,16 +4873,50 @@
   font: 15px/1.4 Arial, sans-serif;
 }
 
-.courseModuleEditorPage .mainQuizSettingsDialog .mainQuizTimerField .popupInput {
+.mainQuizScheduleInputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(176px, 1fr);
+  gap: 10px;
+}
+
+.mainQuizClockInputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(72px, 1.3fr);
+  gap: 8px;
+}
+
+.mainQuizScheduleInput {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  min-height: 42px;
-  border: 1px solid #aaa;
-  border-radius: 6px;
-  background: #eee;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #aabaca;
+  border-radius: 8px;
+  background: #f7faff;
   color: #171717;
   font: inherit;
+}
+
+.mainQuizClockInputs input {
+  padding-inline: 4px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mainQuizScheduleInput:focus-visible {
+  outline: 2px solid #6f98c7;
+  outline-offset: 1px;
+}
+
+.mainQuizScheduleInput:disabled {
+  opacity: 0.65;
+}
+
+@media (max-width: 480px) {
+  .mainQuizScheduleInputs {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .courseModuleEditorPage.assessmentPage .mainQuizSettingsDialog .assessmentBackButton {
@@ -6277,23 +6311,5 @@ body:has(.generatorOverlay) :global(.swal2-container) {
     flex: 1 1 140px;
     min-width: 0;
     white-space: normal;
-  }
-}
-
-.mainQuizScheduleInputs {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: 8px;
-}
-
-.mainQuizClockInputs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(44px, 1fr)) minmax(60px, 1fr);
-  gap: 6px;
-}
-
-@media (max-width: 480px) {
-  .mainQuizScheduleInputs {
-    grid-template-columns: minmax(0, 1fr);
   }
 }

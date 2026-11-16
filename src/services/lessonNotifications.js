@@ -47,15 +47,16 @@ function showLessonGenerationSummary(pages) {
     icon: "success",
     title: "Module Generation Completed",
     html: content,
-    customClass: {
-      popup: "lessonGenerationSummary",
-      confirmButton: "lessonGenerationSummaryDone",
-    },
+    customClass: { popup: "lessonGenerationSummary" },
     confirmButtonText: "Done",
     buttonsStyling: false,
     allowOutsideClick: false,
     didOpen: (popup) => {
       popup.parentElement.style.zIndex = "1000000";
+      if (popup.scrollHeight > popup.clientHeight) {
+        popup.focus({ preventScroll: true });
+        popup.scrollTop = 0;
+      }
     },
   });
 }

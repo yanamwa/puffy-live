@@ -260,22 +260,22 @@ function QuizScheduleField({ label, value, minimum, disabled, onChange }) {
     <div className={styles.mainQuizTimerField}>
       <span>{label} date and time</span>
       <div className={styles.mainQuizScheduleInputs}>
-        <input className={styles.popupInput} aria-label={`${label} date`} type="date"
+        <input className={styles.mainQuizScheduleInput} aria-label={`${label} date`} type="date"
           min={minimumDate} value={date} disabled={disabled}
           onChange={(event) => {
             if (event.target.validity.valid) setDate(event.target.value);
           }}
         />
         <div className={styles.mainQuizClockInputs}>
-          <input className={styles.popupInput} aria-label={`${label} hour (1 to 12)`}
+          <input className={styles.mainQuizScheduleInput} aria-label={`${label} hour (1 to 12)`}
             inputMode="numeric" maxLength={2} placeholder="HH" value={hour}
             disabled={disabled} onChange={(event) => setHour(event.target.value.replace(/\D/g, ""))}
           />
-          <input className={styles.popupInput} aria-label={`${label} minute (00 to 59)`}
+          <input className={styles.mainQuizScheduleInput} aria-label={`${label} minute (00 to 59)`}
             inputMode="numeric" maxLength={2} placeholder="MM" value={minute}
             disabled={disabled} onChange={(event) => setMinute(event.target.value.replace(/\D/g, ""))}
           />
-          <select className={styles.popupInput} aria-label={`${label} AM or PM`}
+          <select className={styles.mainQuizScheduleInput} aria-label={`${label} AM or PM`}
             value={period} disabled={disabled} onChange={(event) => setPeriod(event.target.value)}>
             <option>AM</option>
             <option>PM</option>

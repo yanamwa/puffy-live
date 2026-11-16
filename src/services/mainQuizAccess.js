@@ -111,8 +111,8 @@ async function verifyEmail(courseId, moduleId, signal) {
       maxlength: "6",
     },
     confirmButtonText: "Verify",
-    confirmButtonColor: "#7fa8d6",
-    cancelButtonColor: "#fff",
+    buttonsStyling: false,
+    reverseButtons: true,
     customClass: {
       container: "main-quiz-otp-overlay",
       popup: "main-quiz-otp-popup",
@@ -181,7 +181,9 @@ export async function confirmMainQuizAccess(courseId, moduleId, signal) {
     title: "Checking Main Quiz",
     allowOutsideClick: false,
     showConfirmButton: false,
-    didOpen: () => Swal.showLoading(),
+    didOpen(element) {
+      if (Swal.getPopup() === element) Swal.showLoading();
+    },
   });
   const popup = Swal.getPopup();
   const ownsPopup = () => Swal.getPopup() === popup;
