@@ -932,20 +932,6 @@
   overflow: hidden !important;
 }
 
-:global(.swal2-html-container) {
-  width: 100% !important;
-
-  box-sizing: border-box !important;
-
-  margin: 0 !important;
-
-  padding: 0 28px !important;
-
-  text-align: center !important;
-
-  font-family: Georgia, "Times New Roman", serif !important;
-}
-
 :global(.quiz-popup-title) {
   margin: 14px 0 24px !important;
 

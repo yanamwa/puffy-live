@@ -684,34 +684,8 @@
 
 /* ===== SWEETALERT ===== */
 
-:global(.swal2-html-container) {
-  padding: 0 !important;
-  margin: 0 !important;
-  overflow: visible !important;
-}
-
-:global(.swal2-popup) {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
 .swalPopup {
   width: 410px !important;
-  border-radius: 18px !important;
-  padding: 0 0 28px !important;
-  overflow: hidden !important;
-  font-family: "Jersey 15", sans-serif !important;
-  background: #eeeeee !important;
-}
-
-.swalTitle {
-  width: 100% !important;
-  background: #c99af5 !important;
-  color: #000 !important;
-  font-size: 30px !important;
-  margin: 0 0 24px !important;
-  padding: 18px 0 16px !important;
-  text-align: center !important;
 }
 
 .swalHtml {
@@ -720,7 +694,7 @@
   align-items: center !important;
   gap: 13px !important;
   width: 100% !important;
-  padding: 0 !important;
+  padding: 16px 0 !important;
   margin: 0 !important;
 }
 
@@ -777,31 +751,6 @@
 .swalActions {
   margin-top: 22px !important;
   gap: 12px !important;
-}
-
-.swalConfirmBtn,
-.swalCancelBtn {
-  border-radius: 9px !important;
-  padding: 11px 24px !important;
-  font-size: 17px !important;
-  font-family: "Jersey 15", sans-serif !important;
-  cursor: pointer !important;
-  font-style: normal;
-  font-weight: normal;
-}
-
-.swalConfirmBtn {
-  background: #6e5b98 !important;
-  color: white !important;
-  border: 2px solid #552489 !important;
-  box-shadow: 0 5px 0 #4b3677 !important;
-}
-
-.swalCancelBtn {
-  background: #808080 !important;
-  color: white !important;
-  border: 2px solid #363636 !important;
-  box-shadow: 0 5px 0 #535353 !important;
 }
 
 /* ===== VIEW MODE MODAL ===== */

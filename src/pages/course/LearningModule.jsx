@@ -387,16 +387,6 @@ function LearningModule() {
     }
 
     Swal.fire({
-      customClass: {
-        popup: styles.swalPopup,
-        title: styles.swalTitle,
-        htmlContainer: styles.swalText,
-        confirmButton: styles.swalConfirmBtn,
-        cancelButton: styles.swalCancelBtn,
-        image: styles.swalImage,
-        actions: styles.swalActions,
-      },
-      buttonsStyling: false,
       title: "Add this course?",
       text: "You need to add this course to My Courses before studying.",
       imageUrl: "/images/asking.png",
@@ -423,16 +413,6 @@ function LearningModule() {
     }
 
     Swal.fire({
-      customClass: {
-        popup: styles.swalPopup,
-        title: styles.swalTitle,
-        htmlContainer: styles.swalText,
-        confirmButton: styles.swalConfirmBtn,
-        cancelButton: styles.swalCancelBtn,
-        image: styles.swalImage,
-        actions: styles.swalActions,
-      },
-      buttonsStyling: false,
       title: "Add this course?",
       text: "You need to add this course to My Courses before practicing.",
       imageUrl: "/images/asking.png",

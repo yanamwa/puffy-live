@@ -1,0 +1,109 @@
+/* Shared SweetAlert dialog layout. Toasts keep their compact grid. */
+.swal2-popup:where(:not(.swal2-toast)) {
+  --swal2-confirm-button-background-color: #3d6692;
+  --swal2-cancel-button-background-color: #fff;
+
+  grid-template-columns: minmax(0, 1fr);
+  width: min(480px, calc(100vw - 32px));
+  max-width: min(100%, calc(100vw - 32px));
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #cbd9e8;
+  border-radius: 16px;
+  background: #fff;
+  color: #294765;
+  box-shadow: 0 24px 64px rgb(24 45 66 / 24%);
+}
+
+.swal2-popup:where(:not(.swal2-toast)) > * {
+  grid-column: 1;
+}
+
+.swal2-popup:where(:not(.swal2-toast)) > :where(.swal2-title) {
+  grid-row: 1;
+  margin: 0;
+  padding: 14px 52px;
+  background: #7fa8d6;
+  color: #182d42;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.swal2-popup:where(:not(.swal2-toast)) > :where(.swal2-close) {
+  position: absolute;
+  inset: 4px 8px auto auto;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  color: #182d42;
+  font-size: 28px;
+}
+
+.swal2-popup:where(:not(.swal2-toast)) > :where(.swal2-icon) {
+  margin: 18px auto 0;
+}
+
+.swal2-popup:where(:not(.swal2-toast)) > :where(.swal2-image) {
+  max-width: calc(100% - 40px);
+  height: auto;
+  margin: 16px auto 0;
+  object-fit: contain;
+}
+
+.swal2-popup:where(:not(.swal2-toast)) > :where(.swal2-html-container) {
+  min-width: 0;
+  margin: 0;
+  padding: 16px 24px;
+  color: #45586a;
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.swal2-popup:where(:not(.swal2-toast)) > :where(.swal2-actions) {
+  gap: 8px;
+  width: auto;
+  margin: 0;
+  padding: 14px 18px;
+  border-top: 1px solid #e6e9ed;
+}
+
+.swal2-popup:where(:not(.swal2-toast)) > :where(.swal2-actions) > :where(button) {
+  flex: 1 1 auto;
+  min-height: 42px;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.swal2-popup:where(:not(.swal2-toast)) :where(.swal2-confirm) {
+  background-color: var(--swal2-confirm-button-background-color);
+}
+
+.swal2-popup:where(:not(.swal2-toast)) :where(.swal2-cancel) {
+  border-color: #cbd9e8;
+  background-color: var(--swal2-cancel-button-background-color);
+  color: #294765;
+}
+
+.swal2-popup:where(:not(.swal2-toast)) :where(.swal2-actions button, .swal2-close):focus-visible {
+  outline: 2px solid #365f89;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .swal2-popup:where(:not(.swal2-toast)) > :where(.swal2-html-container) {
+    padding-inline: 16px;
+  }
+}

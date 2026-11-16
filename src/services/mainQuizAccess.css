@@ -25,6 +25,7 @@
 }
 
 .main-quiz-otp-popup .swal2-close {
+  inset: 0 0 auto auto;
   width: 44px;
   height: 61px;
   color: #101820;

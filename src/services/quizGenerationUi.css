@@ -335,13 +335,7 @@
   line-height: 1.4;
 }
 .quizGeneratorPopup.practiceGeneratorPopup .swal2-close {
-  grid-column: 1;
-  grid-row: 1;
-  justify-self: end;
-  z-index: 1;
-  width: 44px;
-  height: 50px;
-  margin: 0;
+  inset: 0 0 auto auto;
   color: #101820;
   font:
     32px Arial,

@@ -148,11 +148,8 @@ export default function ModeManagement() {
 
   const swalClasses = {
     popup: styles.swalPopup,
-    title: styles.swalTitle,
     htmlContainer: styles.swalHtml,
     actions: styles.swalActions,
-    confirmButton: styles.swalConfirmBtn,
-    cancelButton: styles.swalCancelBtn,
   };
 
   const handleAddMode = async () => {
@@ -230,10 +227,8 @@ export default function ModeManagement() {
       title: "View Mode",
       customClass: {
         popup: styles.swalPopup,
-        title: styles.swalTitle,
         htmlContainer: styles.swalHtml,
         actions: styles.swalActions,
-        confirmButton: styles.swalConfirmBtn,
       },
       buttonsStyling: false,
       html: `

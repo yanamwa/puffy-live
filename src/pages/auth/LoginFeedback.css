@@ -10,7 +10,6 @@ body .swal2-popup.login-feedback-popup {
   padding: 0;
   overflow: hidden;
   border: 1px solid #cbd9e8;
-  border-top: 36px solid #7fa8d6;
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 24px 64px rgba(24, 45, 66, 0.24);
@@ -26,9 +25,6 @@ body .login-feedback-popup .swal2-image {
 }
 
 body .login-feedback-popup .swal2-title {
-  padding: 0 24px;
-  margin: 8px 0 0;
-  color: #5f86b1;
   font-size: 24px;
   line-height: 1.4;
 }

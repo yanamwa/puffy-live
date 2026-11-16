@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap");
+@import "./utils/popup.css";
 
 body {
   margin: 0;
@@ -186,15 +187,6 @@ body .logout-confirm-dialog .logout-confirm-cancel:hover {
   body .logout-confirm-dialog .logout-confirm-cancel {
     width: 100%;
   }
-}
-
-/* Keep popup cancellation actions neutral across page themes. */
-body .swal2-popup .swal2-actions .swal2-cancel,
-body .swal2-popup .swal2-actions .enroll-cancel-btn,
-body .swal2-popup .swal2-actions .swal2-cancel:hover,
-body .swal2-popup .swal2-actions .enroll-cancel-btn:hover {
-  background: #fff !important;
-  background-color: #fff !important;
 }
 
 /* Shared sidebar artwork sizing across roles. */
