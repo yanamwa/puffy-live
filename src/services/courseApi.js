@@ -7,7 +7,8 @@ import {
   stampCourseForProfessor,
 } from "../pages/professor/professorData.js";
 
-const COURSE_REQUEST_TIMEOUT_MS = 5000;
+const COURSE_REQUEST_TIMEOUT_MS = 15000;
+const COURSE_WRITE_TIMEOUT_MS = 120000;
 
 function isEnabled(value) {
   return value === true || value === 1 || value === "1" || value === "true";
@@ -431,9 +432,16 @@ async function parseResponse(response) {
 async function requestCourse(url, options = {}) {
   let response;
   const controller = new AbortController();
+
+  const method = String(options.method || "GET").toUpperCase();
+
+  const timeoutMs = ["POST", "PUT", "PATCH", "DELETE"].includes(method)
+    ? COURSE_WRITE_TIMEOUT_MS
+    : COURSE_REQUEST_TIMEOUT_MS;
+
   const timeoutId = globalThis.setTimeout(
     () => controller.abort(),
-    COURSE_REQUEST_TIMEOUT_MS,
+    timeoutMs,
   );
 
   try {

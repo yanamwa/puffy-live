@@ -25,6 +25,30 @@ const CODE_LIMIT = 24;
 const LONG_LIMIT = 750;
 const LESSON_LIMIT = 6000;
 
+function showCourseSaveError(error, title, fallbackMessage) {
+  if ([0, 408, 504].includes(error?.status)) {
+    return Swal.fire({
+      title: "Try Again",
+      text: "PuffyBrain couldn’t connect to the server. Check your internet connection and try again later.",
+      confirmButtonText: "OK",
+      showCloseButton: true,
+      allowOutsideClick: false,
+      buttonsStyling: false,
+      customClass: {
+        container: "catalog-confirm-overlay catalog-syllabus-alert-overlay",
+        popup: "catalog-confirm-popup catalog-syllabus-alert",
+      },
+    });
+  }
+
+  return Swal.fire({
+    icon: "error",
+    title,
+    text: error?.message || fallbackMessage,
+    confirmButtonText: "OK",
+  });
+}
+
 function createId(prefix = "item") {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -1145,11 +1169,7 @@ export default function AddModule() {
           : "Student access is off for this module. Its lessons and quizzes are still saved.",
       });
     } catch (error) {
-      await Swal.fire({
-        icon: "error",
-        title: "Upload failed",
-        text: error.message || "Please try again.",
-      });
+      await showCourseSaveError(error, "Upload failed", "Please try again.");
     } finally {
       courseSaveInFlight.current = false;
       setIsSaving(false);
@@ -1366,15 +1386,11 @@ export default function AddModule() {
         navigate("/professor/courses");
         return;
       }
-      await Swal.fire({
-        icon: "error",
-
-        title: isEditing ? "Update Failed" : "Save Failed",
-
-        text: error.message || "Could not save course.",
-
-        confirmButtonText: "OK",
-      });
+      await showCourseSaveError(
+        error,
+        isEditing ? "Update Failed" : "Save Failed",
+        "Could not save course.",
+      );
     } finally {
       courseSaveInFlight.current = false;
       setIsSaving(false);
