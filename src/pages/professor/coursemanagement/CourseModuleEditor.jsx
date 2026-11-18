@@ -1673,7 +1673,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
             );
           setMainQuizConfig(data.config);
         }
-        await saveCourse(updatedCourse);
+        await saveCourse(updatedCourse, { fallback: !(Number(savedId) > 0) });
       } catch (error) {
         await Swal.fire({
           icon: "error",
@@ -1693,7 +1693,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       text: isQuizWorkspace
         ? "Your quiz changes have been saved."
         : recapError
-          ? "Your module was saved. Quick Recap could not be generated, so the first practice will cover the module broadly."
+          ? `Your module was saved without Quick Recap. ${recapError}`
           : "Your module changes were added back to the course.",
     });
 

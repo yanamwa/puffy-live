@@ -1,5 +1,5 @@
 import Swal from "sweetalert2";
-import { findArchivedCatalogCodeMatches, findCatalogCodeMatches, normalizeCatalogCode } from "../../services/catalogDuplicates.js";
+import { normalizeCatalogCode } from "../../services/catalogDuplicates.js";
 import CoverageModules from "./CoverageModules.jsx";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -152,29 +152,10 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       },
     });
   };
-  const duplicateNotice = useRef("");
-  useEffect(() => {
-    const code = normalizeCatalogCode(details.code);
-    if (duplicateNotice.current !== code) duplicateNotice.current = "";
-    if (
-      course ||
-      !matches.some((match) => normalizeCatalogCode(match.code) === code) ||
-      duplicateNotice.current === code
-    ) return;
-    duplicateNotice.current = code;
-    Swal.fire({
-      icon: "warning",
-      title: "Course code already exists",
-      text: "Return to Course Management and select the existing course to upload a new syllabus version.",
-      confirmButtonText: "OK",
-      confirmButtonColor: "#80a9d3",
-      didOpen: () => {
-        Swal.getContainer().style.zIndex = "2000";
-      },
-    }).then((result) => {
-      if (result.isConfirmed) onClose();
-    });
-  }, [course, details.code, matches, onClose]);
+  const applyMatches = (found = []) => {
+    setMatches(found);
+    setAttach(course || (found.length === 1 ? found[0] : null));
+  };
   useEffect(
     () => () => discardUpload(pending.current),
     [],
@@ -195,7 +176,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       setUpload(data);
       setReviewed(false);
       setDetails(data.suggestions);
-      setMatches(data.matches || []);
+      applyMatches(data.matches);
     } catch (error) {
       handleUploadError(error);
     } finally {
@@ -212,7 +193,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       requireValidatedSyllabus(data);
       setUpload({ ...upload, ...data });
       setDetails(data.suggestions);
-      setMatches(data.matches || []);
+      applyMatches(data.matches);
     } catch (error) {
       handleUploadError(error);
     } finally {
@@ -223,68 +204,32 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
     setDetails({ ...details, coverage_modules });
     setReviewed(false);
   };
-  const save = async (activate) => {
-    if (courseMismatch) return;
-    if ((activate || attach?.status === "active") && !reviewed) {
-      setError(
-        "Confirm review before activating or adding a version to an active course.",
-      );
+  const save = async () => {
+    if (courseMismatch || (!attach && matches.length)) return;
+    if (!reviewed) {
+      setError("Confirm that you reviewed the syllabus before submitting.");
       return;
     }
     setBusy(true);
     try {
-      // Always check the current code again, even before the debounced lookup finishes.
-      if (!attach) {
-        const existing = await findCatalogCodeMatches(
-          details.code,
-          catalogRequest,
-        );
-        setMatches(existing);
-        if (existing.length) {
-          duplicateNotice.current = "";
-          return;
-        }
-        const archived = await findArchivedCatalogCodeMatches(details.code, catalogRequest);
-        if (archived.length) {
-          const previous = archived[0];
-          const choice = await Swal.fire({
-            icon: "question",
-            title: `Restore archived ${previous.code}?`,
-            text: `${previous.title}. Restore this course and keep its syllabus history, or create a separate course with the same code. Restoring adds your uploaded PDF as a new syllabus version when you save.${archived.length > 1 ? " The most recently archived match will be restored." : ""}`,
-            showDenyButton: true,
-            showCancelButton: true,
-            confirmButtonText: "Restore archived course",
-            denyButtonText: "Create new course",
-            cancelButtonText: "Back",
-            confirmButtonColor: "#80a9d3",
-            denyButtonColor: "#576b80",
-            didOpen: () => { Swal.getContainer().style.zIndex = "2000"; },
-          });
-          if (choice.isConfirmed) {
-            setAttach(previous);
-            setReviewed(false);
-            return;
-          }
-          if (!choice.isDenied) return;
-        }
-      }
-      const saved = await catalogRequest("", {
+      await catalogRequest("", {
         method: "POST",
         body: JSON.stringify({
           coverage_modules: details.coverage_modules,
           uploadId: upload.uploadId,
           catalogId: attach?.catalog_id,
-          restoreArchived: Boolean(attach?.archived_at),
-          activate,
           reviewed,
         }),
       });
       pending.current = null;
       notifyCatalogChanged();
-      onSaved(saved.generationQueued ? "Course saved and activated. Draft lessons are generating in the background." : attach?.archived_at ? "Course restored and syllabus version saved." : attach ? "Syllabus version saved." : "Catalog course saved.");
+      onSaved("Syllabus submitted for super admin review.");
     } catch (e) {
       handleUploadError(e);
-      if (e.matches) setMatches(e.matches);
+      if (e.matches) {
+        applyMatches(e.matches);
+        setReviewed(false);
+      }
     } finally {
       setBusy(false);
     }
@@ -350,9 +295,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
             <div className="catalog-note">
               <strong>Existing course</strong>
               <p>
-                This code matches an existing catalog course, ignoring spaces
-                and letter case. Select it to add a syllabus version instead of
-                creating a duplicate.
+                This syllabus matches an existing catalog course.
               </p>
               {matches.map((match) => (
                 <label className="catalog-check" key={match.catalog_id}>
@@ -360,7 +303,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
                     type="radio"
                     name="existing-course"
                     checked={attach?.catalog_id === match.catalog_id}
-                    disabled={!!match.archived_at || busy}
+                    disabled={busy}
                     onChange={() => {
                       setAttach(match);
                       setReviewed(false);
@@ -383,11 +326,6 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
               This PDF will be added to {attach.code} — {attach.title}. Existing
               PDFs and professor class selections are preserved. Use Edit
               Details to change the catalog information.
-            </p>
-          )}
-          {attach?.archived_at && (
-            <p className="catalog-note" role="status">
-              Saving will restore {attach.code} and add this PDF as a new syllabus version.
             </p>
           )}
           <div className="catalog-review">
@@ -431,8 +369,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
           </div>
           {!reviewed && (
             <p className="catalog-note">
-              To activate this course or save a version to an active course,
-              tick the review confirmation above.
+              Confirm review before submitting the syllabus for approval.
             </p>
           )}
           <div className="catalog-actions">
@@ -447,21 +384,11 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
             <button
               type="button"
               className="catalog-button catalog-save-draft"
-              disabled={busy || courseMismatch}
-              onClick={() => save(false)}
+              disabled={busy || !reviewed || courseMismatch || (!attach && matches.length > 0)}
+              onClick={save}
             >
-              {attach ? "Save Syllabus Version" : "Save Draft"}
+              {attach ? "Submit Syllabus Version" : "Submit Syllabus"}
             </button>
-            {(!attach || attach.status === "draft") && (
-              <button
-                type="button"
-                className="catalog-button catalog-save-activate"
-                disabled={busy || courseMismatch}
-                onClick={() => save(true)}
-              >
-                Save and Activate
-              </button>
-            )}
             {busy && <span role="status">Saving…</span>}
           </div>
         </>

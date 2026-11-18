@@ -16,7 +16,7 @@ import {
 } from "../utils/roles.js";
 
 const AuthContext = createContext(null);
-const SESSION_IDLE_TIMEOUT_MS = 20 * 60 * 1000;
+const SESSION_IDLE_TIMEOUT_MS = 90 * 60 * 1000;
 const ACTIVITY_STORAGE_KEY = "puffy-last-activity";
 const ACTIVITY_WRITE_INTERVAL_MS = 30 * 1000;
 
@@ -52,7 +52,10 @@ function isSessionIdleExpired() {
 }
 
 function readStoredUser() {
-  if (isSessionIdleExpired()) {
+  if (
+    isSessionIdleExpired() ||
+    getTokenExpiration(readStoredToken()) <= Date.now()
+  ) {
     clearStoredSession();
     return null;
   }
@@ -76,6 +79,29 @@ function readStoredToken() {
     sessionStorage.getItem("authToken") ||
     ""
   );
+}
+
+export function readSessionTokenClaims(token) {
+  if (!token) return null;
+
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      Math.ceil(normalizedPayload.length / 4) * 4,
+      "=",
+    );
+    return JSON.parse(atob(paddedPayload));
+  } catch {
+    return null;
+  }
+}
+
+function getTokenExpiration(token) {
+  const expiresAt = readSessionTokenClaims(token)?.exp;
+  return Number.isFinite(expiresAt) ? expiresAt * 1000 : Infinity;
 }
 
 function getSessionToken(data) {
@@ -334,7 +360,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!user || !readStoredToken()) return undefined;
+    const sessionToken = readStoredToken();
+    if (!user || !sessionToken) return undefined;
+    const expiresAt = getTokenExpiration(sessionToken);
 
     const storedActivity = Number(localStorage.getItem(ACTIVITY_STORAGE_KEY));
     if (!Number.isFinite(storedActivity) || storedActivity <= 0) {
@@ -342,23 +370,32 @@ export function AuthProvider({ children }) {
     }
     let activityRequestInFlight = false;
 
-    const expireIfIdle = () => {
-      if (!readStoredToken()) {
+    const checkSessionExpiration = () => {
+      const token = readStoredToken();
+      if (!token) {
         setUser(null);
-        return;
+        return "";
+      }
+
+      const currentExpiration =
+        token === sessionToken ? expiresAt : getTokenExpiration(token);
+      if (currentExpiration <= Date.now()) {
+        clearStoredSession();
+        setUser(null);
+        return "";
       }
 
       if (isSessionIdleExpired()) {
         void logout();
+        return "";
       }
+
+      return token;
     };
 
     const recordActivity = () => {
-      if (!readStoredToken()) return;
-      if (isSessionIdleExpired()) {
-        void logout();
-        return;
-      }
+      const token = checkSessionExpiration();
+      if (!token) return;
 
       const now = Date.now();
       const lastActivity = Number(localStorage.getItem(ACTIVITY_STORAGE_KEY));
@@ -371,8 +408,7 @@ export function AuthProvider({ children }) {
 
       localStorage.setItem(ACTIVITY_STORAGE_KEY, String(now));
 
-      const token = readStoredToken();
-      if (!token || activityRequestInFlight) return;
+      if (activityRequestInFlight) return;
 
       activityRequestInFlight = true;
       fetch(`${API_BASE}/activity`, {
@@ -401,7 +437,7 @@ export function AuthProvider({ children }) {
         event.key === "token" ||
         event.key === "authToken"
       ) {
-        expireIfIdle();
+        checkSessionExpiration();
       }
     };
 
@@ -416,16 +452,27 @@ export function AuthProvider({ children }) {
       window.addEventListener(eventName, recordActivity, { passive: true }),
     );
     window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("focus", checkSessionExpiration);
+    document.addEventListener("visibilitychange", checkSessionExpiration);
 
-    const timeoutId = window.setInterval(expireIfIdle, 15 * 1000);
-    expireIfIdle();
+    const idleCheckId = window.setInterval(checkSessionExpiration, 15 * 1000);
+    const expirationTimerId = Number.isFinite(expiresAt)
+      ? window.setTimeout(
+          checkSessionExpiration,
+          Math.max(0, expiresAt - Date.now()),
+        )
+      : undefined;
+    checkSessionExpiration();
 
     return () => {
       activityEvents.forEach((eventName) =>
         window.removeEventListener(eventName, recordActivity),
       );
       window.removeEventListener("storage", handleStorageChange);
-      window.clearInterval(timeoutId);
+      window.removeEventListener("focus", checkSessionExpiration);
+      document.removeEventListener("visibilitychange", checkSessionExpiration);
+      window.clearInterval(idleCheckId);
+      window.clearTimeout(expirationTimerId);
     };
   }, [user, logout]);
 

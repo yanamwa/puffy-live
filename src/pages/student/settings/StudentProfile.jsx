@@ -301,40 +301,6 @@ export default function StudentProfile() {
   const joinByCourseCode = () =>
     requestCourseEnrollmentByCode(courseCode, { onSubmitted: closeJoinModal });
 
-  const shareProfile = async () => {
-    const profileLink = `${window.location.origin}/student/profile`;
-
-    try {
-      await navigator.clipboard.writeText(profileLink);
-
-      await Swal.fire({
-        icon: "success",
-
-        title: "Profile Link Copied",
-
-        text: "Your profile link has been copied.",
-
-        confirmButtonColor: "#7FA8D6",
-
-        timer: 1600,
-
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      console.error("Unable to copy profile link:", error);
-
-      await Swal.fire({
-        icon: "error",
-
-        title: "Unable to Copy Link",
-
-        text: "Unable to copy the profile link.",
-
-        confirmButtonColor: "#7FA8D6",
-      });
-    }
-  };
-
   const changeProfilePicture = async (event) => {
     const selectedFile = event.target.files?.[0];
 
@@ -558,54 +524,6 @@ export default function StudentProfile() {
                     </p>
 
                   </div>
-
-                  <button
-                    type="button"
-
-                    className="student-profile-share-button"
-
-                    onClick={shareProfile}
-
-                    title="Copy profile link"
-
-                    aria-label="Copy profile link"
-                  >
-
-                    <svg
-                      viewBox="0 0 24 24"
-
-                      aria-hidden="true"
-                    >
-
-                      <circle
-                        cx="18"
-
-                        cy="5"
-
-                        r="2.5"
-                      />
-
-                      <circle
-                        cx="6"
-
-                        cy="12"
-
-                        r="2.5"
-                      />
-
-                      <circle
-                        cx="18"
-
-                        cy="19"
-
-                        r="2.5"
-                      />
-                                              <path d="m8.2 10.8 7.5-4.4" />
-                                              <path d="m8.2 13.2 7.5 4.4" />   
-
-                    </svg>
-
-                  </button>
 
                 </div>
 

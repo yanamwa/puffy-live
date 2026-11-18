@@ -1,10 +1,10 @@
 import ContentDownloads from "../../../components/catalog/ContentDownloads.jsx";
 import LessonContent from "../../../components/lesson/LessonContent.jsx";
-import { findCatalogCodeMatches } from "../../../services/catalogDuplicates.js";
 import { readCoverage } from "../../../components/catalog/CoverageModules.jsx";
 import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { FiUpload } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { getUserRole } from "../../../utils/roles.js";
 import {
@@ -15,11 +15,7 @@ import {
   CatalogModal,
   PdfPreview,
 } from "../../../components/catalog/CatalogModal.jsx";
-import SyllabusWizard, {
-  CatalogFields,
-} from "../../../components/catalog/SyllabusWizard.jsx";
 import { ProfessorClassDetails } from "./ModuleManagementPage.jsx";
-import { archiveCourseById } from "../../../services/courseApi.js";
 import "./Modules.css";
 import "../../superadmin/SuperAdminDashboard.css";
 import "../../../components/catalog/catalog.css";
@@ -99,7 +95,7 @@ function Pagination({ page, total, onChange }) {
     </div>
   );
 }
-function ClassesTable({ records, onView, onArchive, busy }) {
+function ClassesTable({ records, onView, busy }) {
   return (
     <div className="admin-modules-table-wrap">
       <table className="admin-modules-table">
@@ -139,20 +135,6 @@ function ClassesTable({ records, onView, onArchive, busy }) {
                   >
                     View
                   </button>
-                  {onArchive && (
-                    <button
-                      className={
-                        "catalog-button catalog-class-state " +
-                        (row.archived
-                          ? "catalog-class-restore"
-                          : "catalog-class-archive")
-                      }
-                      disabled={busy}
-                      onClick={() => onArchive(row)}
-                    >
-                      {row.archived ? "Restore Class" : "Archive Class"}
-                    </button>
-                  )}
                 </div>
               </td>
             </tr>
@@ -199,17 +181,15 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
     };
   }, [id, page]);
   useEffect(() => {
-    if (!data?.versions?.some(v => ["queued", "running"].includes(v.generation_status))) return;
+    if (
+      data?.course.status !== "active" ||
+      data.course.archived_at ||
+      !data.versions.some((version) => ["queued", "running"].includes(version.generation_status))
+    ) return;
     let active = true;
     const timer = setInterval(() => catalogRequest("/" + id).then(result => { if (active) setData(result); }).catch(e => { if (active) setError(e.message); }), 5000);
     return () => { active = false; clearInterval(timer); };
   }, [id, data]);
-  const retryLessons = async versionId => {
-    try {
-      await catalogRequest(`/versions/${versionId}/retry-lessons`, {method:"POST"});
-      setData(await catalogRequest("/" + id));
-    } catch(e) { setError(e.message); }
-  };
   return (
     <CatalogModal
       title="Course Details"
@@ -243,7 +223,7 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
               ],
               [
                 "Status",
-                `${data.course.status}${data.course.archived_at ? " (archived)" : ""}`,
+                data.course.archived_at ? "Archived" : data.course.status === "active" ? "Active" : "Inactive",
               ],
             ].map(([label, value]) => (
               <div key={label} className={label === "Description" ? "course-description-field" : ""}>
@@ -305,7 +285,7 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
                     <td className="course-syllabus-file">
                       {v.filename}
                       {v.generation_status && <p role="status">Draft lessons: {v.generation_status === "completed" ? "Ready for professor review" : v.generation_status}</p>}
-                      {v.generation_status === "failed" && <><p role="alert">{v.generation_error}</p><button className="catalog-button" onClick={() => retryLessons(v.version_id)}>Retry lesson generation</button></>}
+                      {v.generation_status === "failed" && <p role="alert">{v.generation_error}</p>}
                       {readCoverage(v.coverage_modules).length > 0 && <button type="button" className="catalog-button" onClick={() => setLessonVersion(v)}>View lessons ({readCoverage(v.coverage_modules).length} modules)</button>}
                     </td>
                     <td>{date(v.uploaded_at)}</td>
@@ -348,98 +328,12 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
     </CatalogModal>
   );
 }
-function EditDetails({ course, onClose, onSaved }) {
-  const [value, setValue] = useState(course),
-    [reviewed, setReviewed] = useState(false),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const save = async (event) => {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const matches = await findCatalogCodeMatches(
-        value.code,
-        catalogRequest,
-        course.catalog_id,
-      );
-      if (matches.length)
-        throw new Error(
-          `Course code ${value.code.trim()} already exists. Choose a different code.`,
-        );
-      if (course.status === "active" && !reviewed)
-        throw new Error(
-          "Tick the review confirmation before saving changes to an active course.",
-        );
-      await catalogRequest("/" + course.catalog_id, {
-        method: "PATCH",
-        body: JSON.stringify({ ...value, action: "edit", reviewed }),
-      });
-      notifyCatalogChanged();
-      onSaved("Course details updated.");
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <CatalogModal
-      title="Edit Course Details"
-      variant="details catalog-course-record"
-      busy={busy}
-      onClose={onClose}
-    >
-      <form className="catalog-edit-form" onSubmit={save}>
-        {error && (
-          <p className="catalog-error" role="alert">
-            {error}
-          </p>
-        )}
-        <CatalogFields
-          value={value}
-          onChange={(v) => {
-            setValue(v);
-            setReviewed(false);
-          }}
-        />
-        <p className="catalog-note">
-          Existing professor classes keep their saved official details and
-          syllabus version.
-        </p>
-        <label className="catalog-check">
-          <input
-            type="checkbox"
-            checked={reviewed}
-            onChange={(e) => setReviewed(e.target.checked)}
-          />{" "}
-          I have reviewed these details.
-        </label>
-        <div className="catalog-actions">
-          <button
-            className="catalog-button catalog-cancel"
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-          >
-            Cancel
-          </button>
-          <button
-            className="catalog-button catalog-save-details"
-            type="submit"
-            disabled={busy}
-          >
-            Save Details
-          </button>
-        </div>
-      </form>
-    </CatalogModal>
-  );
-}
-
 export default function CourseManagementPage() {
-  const { user } = useAuth(),
-    superAdmin = getUserRole(user) === "super_admin";
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const role = getUserRole(user);
+  const superAdmin = role === "super_admin";
+  const canUpload = role === "admin";
   const [tab, setTab] = useState("catalog"),
     [q, setQ] = useState(""),
     [program, setProgram] = useState(""),
@@ -499,18 +393,6 @@ export default function CourseManagementPage() {
     };
   }, [tab, q, program, status, page, revision]);
   const close = useCallback(() => setDialog(null), []);
-  const saved = (message) => {
-    setDialog(null);
-    refresh();
-    Swal.fire({
-      confirmButtonColor: "#7fa8d6",
-      cancelButtonColor: "#7d8798",
-      icon: "success",
-      title: message,
-      timer: 1600,
-      showConfirmButton: false,
-    });
-  };
   const viewClass = async (id) => {
     setBusy(true);
     try {
@@ -528,122 +410,53 @@ export default function CourseManagementPage() {
       setBusy(false);
     }
   };
-  const archiveClass = async (course) => {
+  const updateStatus = async (course) => {
+    const activating = course.status !== "active";
+    const action = activating ? "activate" : "deactivate";
+    const statusLabel = activating ? "active" : "inactive";
     const answer = await Swal.fire({
       customClass: { popup: "catalog-confirm-popup", container: "catalog-confirm-overlay" },
       showCloseButton: true,
       confirmButtonColor: "#7fa8d6",
       cancelButtonColor: "#7d8798",
-      title: course.archived
-        ? "Restore professor class?"
-        : "Archive professor class?",
-      text: course.archived
-        ? "Restore this class to active classes?"
-        : "The archive reason will be emailed to the professor assigned to this class.",
-      ...(!course.archived && {
-        input: "textarea",
-        inputLabel: "Reason for archiving",
-        inputAttributes: { maxlength: "1000" },
-        inputValidator: (value) => value.trim() ? undefined : "Enter a reason for archiving this class.",
-      }),
-      showCancelButton: true,
-      confirmButtonText: course.archived ? "Restore Class" : "Archive Class",
-    });
-    if (!answer.isConfirmed) return;
-    setBusy(true);
-    try {
-      const result = await archiveCourseById(course.course_id, !course.archived, {
-        fallback: false,
-        archiveReason: course.archived ? undefined : answer.value.trim(),
-      });
-      refresh();
-      if (typeof result.emailSent === "boolean") {
-        Swal.fire({
-          icon: result.emailSent ? "success" : "warning",
-          title: "Class archived",
-          text: result.message,
-        });
-      }
-    } catch (e) {
-      Swal.fire({
-        confirmButtonColor: "#7fa8d6",
-        cancelButtonColor: "#7d8798",
-        icon: "error",
-        title: "Could not update class",
-        text: e.message,
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-  const action = async (course, action) => {
-    const activation = action === "activate";
-    const answer = await Swal.fire({
-      ...(!activation && {
-        customClass: { popup: "catalog-confirm-popup", container: "catalog-confirm-overlay" },
-        showCloseButton: true,
-      }),
-      confirmButtonColor: "#7fa8d6",
-      cancelButtonColor: "#7d8798",
-      title: activation
-        ? "Activate reviewed course?"
-        : action === "archive"
-          ? "Archive catalog course?"
-          : "Restore catalog course?",
-      text: activation
+      title: activating ? "Activate course?" : "Deactivate course?",
+      text: activating
         ? "Review the course details and syllabus before confirming activation."
-        : action === "archive"
-          ? "This archives the catalog course and its active professor classes. Professors will receive in-app and email notifications. Only an administrator can restore these classes; records remain available under Archived."
-          : "The course will retain its previous draft or active status.",
+        : "Professors will no longer be able to select this catalog course for new classes.",
       showCancelButton: true,
-      confirmButtonText: activation
-        ? "I reviewed it — Activate"
-        : action === "archive"
-          ? "Archive"
-          : "Restore",
-      ...(activation
-        ? {
-            input: "checkbox",
-            inputPlaceholder:
-              "I have reviewed the course information and syllabus.",
-            inputValidator: (value) =>
-              !value ? "Review confirmation is required." : undefined,
-          }
-        : {}),
+      confirmButtonText: activating ? "Activate" : "Deactivate",
+      ...(activating && {
+        input: "checkbox",
+        inputPlaceholder: "I have reviewed the course information and syllabus.",
+        inputValidator: (value) =>
+          !value ? "Review confirmation is required." : undefined,
+      }),
     });
     if (!answer.isConfirmed) return;
     setBusy(true);
     try {
-      const updateResult = await catalogRequest("/" + course.catalog_id, {
+      const result = await catalogRequest("/" + course.catalog_id, {
         method: "PATCH",
-        body: JSON.stringify({ action, reviewed: activation }),
+        body: JSON.stringify({ action, reviewed: activating }),
       });
       notifyCatalogChanged();
-      refresh();
-      const emailSent = Number(updateResult.emailNotificationsSent || 0);
-      const emailFailed = Number(updateResult.emailNotificationsFailed || 0);
+      const notificationMessages = {
+        sent: "The syllabus uploader was notified by email.",
+        failed: "The status changed, but the email could not be sent.",
+        unavailable: "The status changed, but no uploader email was available.",
+      };
+      const needsAttention = ["failed", "unavailable"].includes(result.notification);
       Swal.fire({
         confirmButtonColor: "#7fa8d6",
-        cancelButtonColor: "#7d8798",
-        icon: emailFailed ? "warning" : "success",
-        title: action === "archive" ? "Catalog course archived" : "Course updated",
-        text:
-          action === "archive"
-            ? emailFailed
-              ? `${emailSent} professor email${emailSent === 1 ? " was" : "s were"} sent; ${emailFailed} could not be sent. The in-app notifications are still available.`
-              : emailSent
-                ? `${emailSent} professor notification email${emailSent === 1 ? " was" : "s were"} sent.`
-                : Number(updateResult.archivedClassCount) === 0
-                  ? "The catalog course was archived. There were no active professor classes to notify."
-                  : "The course was archived, but no professor email addresses were available for notification."
-            : "The course status was updated.",
-        timer: emailFailed ? undefined : 2200,
-        showConfirmButton: Boolean(emailFailed),
+        icon: needsAttention ? "warning" : "success",
+        title: result.changed ? `Course is now ${statusLabel}` : `Course is already ${statusLabel}`,
+        text: notificationMessages[result.notification],
+        timer: needsAttention ? undefined : 2200,
+        showConfirmButton: needsAttention,
       });
     } catch (e) {
       Swal.fire({
         confirmButtonColor: "#7fa8d6",
-        cancelButtonColor: "#7d8798",
         icon: "error",
         title: "Could not update course",
         text: e.message,
@@ -669,22 +482,24 @@ export default function CourseManagementPage() {
       <div className="super-dashboard-welcome catalog-heading super-page-heading">
         <div>
           <h1>Course Management</h1>
-          <p>Manage course information, syllabi, and professor classes.</p>
+          <p>{superAdmin ? "Review syllabi and manage catalog course status." : "Upload syllabi and view catalog courses."}</p>
         </div>
-        <button
-          className="catalog-button catalog-upload-syllabus"
-          type="button"
-          onClick={() => setDialog({ type: "upload" })}
-        >
-          <FiUpload aria-hidden="true" />
-          Upload Syllabus
-        </button>
+        {canUpload && (
+          <button
+            className="catalog-button catalog-upload-syllabus"
+            type="button"
+            onClick={() => navigate("/admin/syllabi")}
+          >
+            <FiUpload aria-hidden="true" />
+            Upload Syllabus
+          </button>
+        )}
       </div>
       <div className="catalog-summary">
         {[
           ["Total Catalog Courses", "total"],
           ["Active Catalog Courses", "active"],
-          ["Draft Catalog Courses", "draft"],
+          ["Inactive Catalog Courses", "inactive"],
           ["Professor Classes", "classes"],
         ].map(([label, key]) => (
           <article className="dashboard-summary-card" key={key}>
@@ -761,7 +576,7 @@ export default function CourseManagementPage() {
                 ]
               : [
                   ["active", "Active"],
-                  ["draft", "Draft"],
+                  ["inactive", "Inactive"],
                 ]
             ).map(([value, label]) => (
               <option key={value} value={value}>
@@ -788,7 +603,6 @@ export default function CourseManagementPage() {
             <ClassesTable
               records={data.records}
               onView={viewClass}
-              onArchive={archiveClass}
               busy={busy}
             />
           ) : (
@@ -821,7 +635,7 @@ export default function CourseManagementPage() {
                           <span
                             className={`admin-module-status ${course.status === "active" ? "publish" : "draft"}`}
                           >
-                            {course.status === "active" ? "Active" : "Draft"}
+                            {course.status === "active" ? "Active" : "Inactive"}
                           </span>
                         )}
                       </td>
@@ -836,42 +650,23 @@ export default function CourseManagementPage() {
                           >
                             View
                           </button>
-                          {tab === "archived" ? (
+                          {tab === "catalog" && superAdmin && (
                             <button
                               disabled={busy}
-                              className="catalog-button catalog-action-restore"
-                              onClick={() => action(course, "restore")}
+                              className={`catalog-button ${course.status === "active" ? "catalog-action-deactivate" : "catalog-action-activate"}`}
+                              onClick={() => updateStatus(course)}
                             >
-                              Restore
+                              {course.status === "active" ? "Deactivate" : "Activate"}
                             </button>
-                          ) : (
-                            <>
-                              <button
-                                className="catalog-button catalog-action-edit"
-                                disabled={busy}
-                                onClick={() =>
-                                  setDialog({ type: "edit", course })
-                                }
-                              >
-                                Edit Details
-                              </button>
-                              {course.status === "draft" && (
-                                <button
-                                  disabled={busy}
-                                  className="catalog-button catalog-action-activate"
-                                  onClick={() => action(course, "activate")}
-                                >
-                                  Activate
-                                </button>
-                              )}
-                              <button
-                                disabled={busy}
-                                className="catalog-button catalog-action-archive"
-                                onClick={() => action(course, "archive")}
-                              >
-                                Archive
-                              </button>
-                            </>
+                          )}
+                          {tab === "catalog" && canUpload && (
+                            <button
+                              disabled={busy}
+                              className="catalog-button catalog-action-upload-version"
+                              onClick={() => navigate("/admin/syllabi")}
+                            >
+                              Upload Syllabus
+                            </button>
                           )}
                         </div>
                       </td>
@@ -882,7 +677,7 @@ export default function CourseManagementPage() {
                       <td colSpan={5} className="admin-modules-empty">
                         {tab === "archived"
                           ? "No archived catalog courses found."
-                          : "No catalog courses found. Upload a syllabus to get started."}
+                          : "No catalog courses found."}
                       </td>
                     </tr>
                   )}
@@ -894,16 +689,6 @@ export default function CourseManagementPage() {
         </>
       )}
       </section>
-      {dialog?.type === "upload" && (
-        <SyllabusWizard
-          course={dialog.course}
-          onClose={close}
-          onSaved={saved}
-        />
-      )}
-      {dialog?.type === "edit" && (
-        <EditDetails course={dialog.course} onClose={close} onSaved={saved} />
-      )}
       {dialog?.type === "view" && (
         <CatalogDetails
           id={dialog.id}

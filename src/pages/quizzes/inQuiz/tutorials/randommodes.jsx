@@ -28,13 +28,7 @@ function MainQuizTutorialGate({ scope, children }) {
     getMainQuizStatus(courseId, scopeId, controller.signal)
       .then((status) => {
         if (controller.signal.aborted) return;
-        if (status.taken) {
-          setAccess("You have already taken this Main Quiz.");
-        } else {
-          setAccess(status.verificationRequired === false
-            ? true
-            : "Verify your email from the course page to open the Main Quiz tutorial.");
-        }
+        setAccess(status.taken ? "You have already taken this Main Quiz." : true);
       })
       .catch((error) => {
         if (!controller.signal.aborted) setAccess(error.message);

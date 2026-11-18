@@ -15,6 +15,8 @@ test("Course Management switches between catalog, classes and archive without re
   globalThis.__courseTabTest = harness;
   const mocks = {
     react: `export function useState(initial){const h=globalThis.__courseTabTest,i=h.cursor++;if(!(i in h.slots))h.slots[i]=typeof initial==='function'?initial():initial;return [h.slots[i],v=>{h.slots[i]=typeof v==='function'?v(h.slots[i]):v;}];} export const useEffect=fn=>globalThis.__courseTabTest.effects.push(fn);export const useCallback=fn=>fn;`,
+    router: `export const useNavigate=()=>()=>{};`,
+    icons: `export const FiUpload=()=>null;`,
     auth: `export const useAuth=()=>({user:{role:globalThis.__courseTabTest.role}});`,
     api: `export const catalogRequest=async()=>{throw new Error('Unexpected network request');};export const notifyCatalogChanged=()=>{};`,
     courseApi: `export const archiveCourseById=()=>{};`,
@@ -48,8 +50,12 @@ test("Course Management switches between catalog, classes and archive without re
             builder.onResolve({ filter: /.*/ }, (args) => {
               const name = args.path;
               const key =
-                name === "react"
-                  ? "react"
+                name === "react-router-dom"
+                  ? "router"
+                  : name === "react-icons/fi"
+                  ? "icons"
+                  : name === "react"
+                    ? "react"
                   : name === "sweetalert2"
                     ? "swal"
                     : name.endsWith("/AuthContext.jsx")
@@ -145,7 +151,18 @@ test("Course Management switches between catalog, classes and archive without re
           status: "active",
         },
       ]);
-      assert.match(renderToStaticMarkup(tree()), /Catalog course/);
+      const catalog = renderToStaticMarkup(tree());
+      assert.match(catalog, /Catalog course/);
+      assert.doesNotMatch(catalog, /Edit Details|>Archive<|>Restore</);
+      if (role === "super_admin") {
+        assert.match(catalog, />Deactivate</);
+        assert.doesNotMatch(catalog, /Upload Syllabus/);
+        complete("catalog", [{ catalog_id: 2, title: "Inactive course", status: "inactive" }]);
+        assert.match(renderToStaticMarkup(tree()), />Activate</);
+      } else {
+        assert.match(catalog, /Upload Syllabus/);
+        assert.doesNotMatch(catalog, />(?:Activate|Deactivate)</);
+      }
       tabButton(tree(), "Professor Classes").props.onClick();
       assert.match(renderToStaticMarkup(tree()), /Loading professor classes/);
       complete("classes", [

@@ -299,13 +299,24 @@ export default function ModuleManagement() {
           <p>Create and manage courses for your students.</p>
         </div>
 
-        <button
-          type="button"
-          className={styles.addBtn}
-          onClick={() => navigate("/professor/courses/new")}
-        >
-          + Add new course
-        </button>
+        <div className={styles.pageActions}>
+          {!previewOnly && !showExamples && (
+            <button
+              type="button"
+              className={styles.addBtn}
+              onClick={() => navigate("/professor/syllabi")}
+            >
+              Upload Syllabus
+            </button>
+          )}
+          <button
+            type="button"
+            className={styles.addBtn}
+            onClick={() => navigate("/professor/courses/new")}
+          >
+            + Add new course
+          </button>
+        </div>
       </div>
 
       {/* =====================================

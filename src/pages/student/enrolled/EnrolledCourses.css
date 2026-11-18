@@ -3839,45 +3839,6 @@ a.course-folder:focus-visible {
   font-weight: 600;
 }
 
-.student-profile-share-button {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
-
-  display: grid;
-  place-items: center;
-
-  padding: 0;
-
-  border: 1px solid #cfdbd4;
-  border-radius: 12px;
-
-  background: #f2f8f4;
-  color: #25714e;
-
-  cursor: pointer;
-
-  transition:
-    background 160ms ease,
-    transform 160ms ease;
-}
-
-.student-profile-share-button:hover {
-  background: #e3f1e8;
-  transform: translateY(-2px);
-}
-
-.student-profile-share-button svg {
-  width: 19px;
-  height: 19px;
-
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 /* ==================================================
    INFORMATION SECTIONS
 ================================================== */
@@ -5389,13 +5350,11 @@ npm .student-module-section-description {
 .student-identity-overline,
 .student-identity-number,
 .student-info-section-icon,
-.student-profile-share-button,
 .student-password-toggle,
 .match-success {
   color: var(--student-theme-accent);
 }
 
-.student-profile-share-button,
 .student-password-toggle,
 .student-info-section-icon,
 .student-identity-role,
@@ -5434,7 +5393,6 @@ npm .student-module-section-description {
 
 .student-search-input:focus,
 .password-input-wrapper:focus-within,
-.student-profile-share-button:hover,
 .student-password-toggle:hover {
   border-color: var(--student-theme-morning-breeze);
   box-shadow: 0 0 0 3px rgba(127, 168, 214, 0.18);

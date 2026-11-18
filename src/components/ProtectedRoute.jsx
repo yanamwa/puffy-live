@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { readSessionTokenClaims, useAuth } from "../context/AuthContext";
 import {
   requiresProfessorTutorial,
   requiresStudentTutorial,
@@ -64,30 +64,6 @@ function getStoredToken() {
   );
 }
 
-function getTokenUser(token) {
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const payload = token.split(".")[1];
-
-    if (!payload) {
-      return null;
-    }
-
-    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const paddedPayload = normalizedPayload.padEnd(
-      Math.ceil(normalizedPayload.length / 4) * 4,
-      "=",
-    );
-
-    return JSON.parse(atob(paddedPayload));
-  } catch {
-    return null;
-  }
-}
-
 function isTemporaryExpired(user) {
   const isTemporary =
     user?.isTemporary === true ||
@@ -125,7 +101,7 @@ function clearStoredAuth() {
 export default function ProtectedRoute() {
   const { user } = useAuth();
   const token = getStoredToken();
-  const tokenUser = getTokenUser(token);
+  const tokenUser = readSessionTokenClaims(token);
   const storedUser = getStoredUser();
   const currentUser = user || storedUser || tokenUser;
   const location = useLocation();

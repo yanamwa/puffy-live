@@ -10,6 +10,7 @@ import { API_BASE } from "../../../config.js";
 
 import {
   FiCalendar,
+  FiFileText,
   FiGrid,
   FiUsers,
   FiBook,
@@ -72,6 +73,11 @@ const mainMenuItems = [
     icon: FiUsers,
   },
 
+  {
+    label: "Syllabus Management",
+    path: "/admin/syllabi",
+    icon: FiFileText,
+  },
   {
     label: "Course Management",
 

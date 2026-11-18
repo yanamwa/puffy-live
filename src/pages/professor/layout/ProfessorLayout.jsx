@@ -27,6 +27,7 @@ import {
 
 import {
   FiBookOpen,
+  FiFileText,
   FiGrid,
   FiClipboard,
   FiLogOut,
@@ -62,6 +63,11 @@ const menuItems = [
     label: "Dashboard",
     path: "/professor/dashboard",
     icon: FiGrid,
+  },
+  {
+    label: "Syllabus Management",
+    path: "/professor/syllabi",
+    icon: FiFileText,
   },
   {
     label: "Course Management",

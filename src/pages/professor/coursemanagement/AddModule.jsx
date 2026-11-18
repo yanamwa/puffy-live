@@ -1164,7 +1164,7 @@ export default function AddModule() {
         title: publishing ? "Module Uploaded" : "Module removed from students",
         text: publishing
           ? recap.error
-            ? "Students can access the lessons. Quick Recap could not be generated, so their first practice will cover the module broadly."
+              ? `Students can access the lessons. Quick Recap could not be generated. ${recap.error}`
             : "This module is available to enrolled students.\nOther modules keep their upload status."
           : "Student access is off for this module. Its lessons and quizzes are still saved.",
       });

@@ -4,7 +4,8 @@ export function searchSystemPages(role, query) {
   const pages = [
     ["Dashboard", "dashboard", "home overview"],
     ["User Management", "users", "students professors administrators accounts"],
-    ["Course Management", "courses", "syllabus modules"],
+    ["Syllabus Management", "syllabi", "syllabus approval uploads history"],
+    ["Course Management", "courses", "classes modules"],
     ["Academic Calendar", "academic-calendar", "events dates activities"],
     ["Reports", "reports", superAdmin ? "academic performance exports" : "analytics statistics"],
     ["Announcements & Notifications", superAdmin ? "announcements" : "notification", "messages announcements notifications"],

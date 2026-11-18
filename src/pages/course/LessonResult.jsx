@@ -780,12 +780,18 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
     };
   }, [lessonId, deckId, practiceResult]);
 
+  const isPracticeResult = Boolean(practiceResult);
+
   useEffect(() => {
+    const blockedControlKeys = isPracticeResult
+      ? ["u", "s", "p"]
+      : ["c", "v", "x", "u", "s", "p"];
+
     const blockKeys = (e) => {
       const key = e.key.toLowerCase();
 
       if (
-        (e.ctrlKey && ["c", "v", "x", "u", "s", "p"].includes(key)) ||
+        (e.ctrlKey && blockedControlKeys.includes(key)) ||
         e.key === "PrintScreen"
       ) {
         e.preventDefault();
@@ -796,9 +802,11 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
     const blockCopy = (e) => e.preventDefault();
 
     document.addEventListener("keydown", blockKeys);
-    document.addEventListener("copy", blockCopy);
-    document.addEventListener("cut", blockCopy);
-    document.addEventListener("paste", blockCopy);
+    if (!isPracticeResult) {
+      document.addEventListener("copy", blockCopy);
+      document.addEventListener("cut", blockCopy);
+      document.addEventListener("paste", blockCopy);
+    }
 
     return () => {
       document.removeEventListener("keydown", blockKeys);
@@ -806,7 +814,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
       document.removeEventListener("cut", blockCopy);
       document.removeEventListener("paste", blockCopy);
     };
-  }, []);
+  }, [isPracticeResult]);
 
   const percentage =
     results.total > 0 ? Math.round((results.score / results.total) * 100) : 0;

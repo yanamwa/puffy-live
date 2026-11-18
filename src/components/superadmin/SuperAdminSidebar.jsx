@@ -30,6 +30,11 @@ const mainMenuItems = [
     icon: FiUsers,
   },
   {
+    label: "Syllabus Management",
+    path: "/super-admin/syllabi",
+    icon: FiFileText,
+  },
+  {
     label: "Course Management",
     path: "/super-admin/courses",
     icon: FiBook,

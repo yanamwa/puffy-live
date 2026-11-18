@@ -1,4 +1,5 @@
 import RecentMainQuizResults from "../../../components/students/RecentMainQuizResults.jsx";
+import PracticeProgress from "../../../components/students/PracticeProgress.jsx";
 import {
   calendarDateKey,
   eventsOnDate,
@@ -518,6 +519,7 @@ export default function StudentHome() {
             </section>
 
             <RecentMainQuizResults />
+            {!tutorial && <PracticeProgress />}
           </main>
 
           <aside className="student-home-profile-panel">

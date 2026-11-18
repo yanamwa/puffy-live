@@ -907,13 +907,13 @@
   color: #991b1b;
 }
 
-/* catalog-action-archive */
-.catalog-button.catalog-action-archive {
+/* catalog-action-deactivate */
+.catalog-button.catalog-action-deactivate {
   background: #fff1f2;
   border-color: #fda4af;
   color: #b42336;
 }
-.catalog-button.catalog-action-archive:hover {
+.catalog-button.catalog-action-deactivate:hover {
   background: #fee2e2;
   border-color: #f87171;
   color: #991b1b;

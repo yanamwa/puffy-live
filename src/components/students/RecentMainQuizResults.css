@@ -81,11 +81,15 @@
   gap: 7px;
   font-size: 14px;
 }
-.home-results-outcome.passed {
+.home-results-outcome.passed,
+.home-results-outcome.higher {
   color: #198754;
+  background: #edf6f1;
 }
-.home-results-outcome.failed {
+.home-results-outcome.failed,
+.home-results-outcome.lower {
   color: #c53c43;
+  background: #fff0f1;
 }
 .home-results-outcome > span {
   width: 16px;
@@ -138,11 +142,48 @@
 .home-results-table th { background: #f3f7fc; color: #5f7895; padding: 12px; font-weight: 600; }
 .home-results-table td { padding: 18px 12px; }
 .home-results-table .home-results-outcome { padding: 6px 10px; border-radius: 999px; font-weight: 600; }
-.home-results-outcome.passed { background: #edf6f1; }
-.home-results-outcome.failed { background: #fff0f1; }
 .home-results-view-all:hover { color: #406b9b; text-decoration: underline; }
 .home-results-view-all:focus-visible, .home-results-pagination button:focus-visible { outline: 2px solid #7fa8d6; outline-offset: 3px; }
 @media (max-width: 600px) {
   .home-recent-quiz-results { padding: 20px 16px; }
   .home-recent-quiz-results .home-section-header h2 { font-size: 22px; }
+}
+
+.home-practice-progress .home-results-table {
+  min-width: 540px;
+}
+
+.home-practice-progress .home-results-table th:first-child {
+  width: 38%;
+}
+
+.home-practice-progress .home-results-score {
+  width: 19%;
+  white-space: nowrap;
+}
+
+.home-results-outcome.neutral {
+  background: #f3f7fc;
+}
+
+.home-practice-progress td .home-results-view-all {
+  margin-top: 4px;
+}
+
+.home-practice-progress .home-practice-history-row td {
+  background: #f3f7fc;
+}
+
+.home-practice-history-row ol {
+  margin: 0;
+  padding-inline-start: 26px;
+}
+
+.home-practice-history-row li + li {
+  margin-top: 8px;
+}
+
+.home-practice-history-row time {
+  margin-inline-start: 16px;
+  font-size: 14px;
 }

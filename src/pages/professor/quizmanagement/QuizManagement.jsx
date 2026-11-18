@@ -114,6 +114,15 @@ export default function QuizManagement() {
               )
               .map((item) => {
                 const itemId = item.id || item.course_id;
+                const moduleCount =
+                  item.moduleCount ??
+                  item.module_count ??
+                  item.contentModules?.length ??
+                  item.content_modules?.length ??
+                  item.learningModules?.length ??
+                  item.learning_modules?.length ??
+                  item.modules ??
+                  0;
                 const description = Array.from(String(item.summary || item.description || item.subject || ""));
                 const dateValue =
                   item.createdAt ||
@@ -148,21 +157,10 @@ export default function QuizManagement() {
                     <span className={styles.divider} />
                     <span className={styles.stats}>
                       <span>
-                        {item.moduleCount ??
-                          item.module_count ??
-                          item.contentModules?.length ??
-                          item.modules ??
-                          0}{" "}
-                        Modules
+                        {moduleCount} Modules
                       </span>
                       <span>
-                        {Array.isArray(item.quizItems)
-                          ? item.quizItems.length
-                          : (item.quizzes ??
-                            item.quizCount ??
-                            item.quiz_count ??
-                            0)}{" "}
-                        Quizzes
+                        {moduleCount} Main {moduleCount === 1 ? "Quiz" : "Quizzes"}
                       </span>
                     </span>
                   </button>

@@ -25,6 +25,7 @@ import AdminLayout from "../pages/admin/shared/AdminLayout";
 import DashboardPage from "../pages/admin/dashboard/DashboardPage";
 import UserManagementPage from "../pages/admin/users/UserManagementPage";
 import CourseManagementPage from "../pages/admin/modules/CourseManagementPage.jsx";
+import SyllabusManagementPage from "../pages/shared/SyllabusManagementPage.jsx";
 import NotificationPage from "../pages/admin/notification/NotificationPage";
 import DecksPage from "../pages/admin/decks/DecksPage";
 import ReportsPage from "../pages/admin/reports/ReportsPage";
@@ -188,6 +189,14 @@ export default function AppRoutes() {
             }
           />
           <Route
+            path="/super-admin/syllabi"
+            element={
+              <SuperAdminLayout>
+                <SyllabusManagementPage />
+              </SuperAdminLayout>
+            }
+          />
+          <Route
             path="/super-admin/courses"
             element={
               <SuperAdminLayout>
@@ -296,6 +305,14 @@ export default function AppRoutes() {
           />
 
           <Route
+            path="/admin/syllabi"
+            element={
+              <AdminLayout>
+                <SyllabusManagementPage />
+              </AdminLayout>
+            }
+          />
+          <Route
             path="/admin/courses"
             element={
               <AdminLayout>
@@ -388,6 +405,7 @@ export default function AppRoutes() {
             />
             <Route path="dashboard" element={<ProfessorHome />} />
             <Route path="courses" element={<ModuleManagement />} />
+            <Route path="syllabi" element={<SyllabusManagementPage />} />
             <Route path="quizzes" element={<QuizManagement />} />
             <Route
               path="quizzes/:id/modules/:moduleId"

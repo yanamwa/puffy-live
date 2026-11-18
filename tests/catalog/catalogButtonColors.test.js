@@ -60,7 +60,7 @@ test("Course Management button colors have one independent owner per action", ()
     "retry",
     "page-previous",
     "page-next",
-    "action-archive",
+    "action-deactivate",
     "action-restore",
     "action-activate",
     "class-view",
