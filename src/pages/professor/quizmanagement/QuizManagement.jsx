@@ -78,9 +78,11 @@ export default function QuizManagement() {
           Back to courses
         </ManagementBackBar>
       )}
-      <header className={`${styles.header} quiz-management-heading professor-section-heading`}>
-        <h1>Quiz Management</h1>
-        <p>Manage Main Quizzes by course and module. The system creates adaptive practice for each student.</p>
+      <header className={`${styles.header} quiz-management-heading professor-section-heading professor-management-heading`}>
+        <div>
+          <h1>Quiz Management</h1>
+          <p>Manage Main Quizzes by course and module. The system creates adaptive practice for each student.</p>
+        </div>
       </header>
       {courseId && (
         <section className="quiz-course-heading" aria-label="Selected course">

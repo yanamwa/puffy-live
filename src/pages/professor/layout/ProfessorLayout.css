@@ -4055,6 +4055,73 @@
 .professor-layout .professor-section-heading .professor-settings-eyebrow { display: none; }
 @media(max-width: 600px) { .professor-layout .professor-section-heading { padding: 20px; } }
 
+/* Match the Syllabus Management heading card on the three management pages. */
+#root .professor-layout .professor-management-heading {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  min-width: 0;
+  min-height: 108px;
+  margin: 0 0 24px;
+  padding: 24px;
+  border: 1.5px solid #b9c1cc;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 6px 6px 0 #c5cbd4;
+}
+#root .professor-layout .professor-management-heading > div {
+  min-width: 0;
+}
+#root .professor-layout .professor-management-heading h1 {
+  margin: 0;
+  color: #191b2a;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+#root .professor-layout .professor-management-heading p {
+  margin: 6px 0 0;
+  color: #7d8798;
+  font-size: 14px;
+  line-height: 1.5;
+}
+#root .professor-layout .professor-management-heading-actions {
+  flex-shrink: 0;
+  margin: 0;
+}
+#root .professor-layout .professor-management-heading-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid #7fa9d6;
+  border-radius: 14px;
+  background: #7fa9d6;
+  box-shadow: 0 5px 0 #6088b2;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+#root .professor-layout .professor-management-heading-actions button:hover {
+  background: #6f98c7;
+}
+@media (max-width: 600px) {
+  #root .professor-layout .professor-management-heading {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+  }
+  #root .professor-layout .professor-management-heading-actions {
+    align-self: flex-start;
+    max-width: 100%;
+  }
+}
+
 /* Keep mobile header controls on one aligned action row. */
 @media (max-width: 767px) {
   #root .professor-layout header.professor-header.responsive-role-header {

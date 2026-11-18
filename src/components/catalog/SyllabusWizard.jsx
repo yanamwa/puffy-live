@@ -237,10 +237,40 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
   return (
     <CatalogModal
       title={course ? "Upload New Syllabus Version" : "Upload Syllabus"}
-      variant="details"
+      variant="details catalog-syllabus-wizard"
       wide
       busy={busy}
       onClose={onClose}
+      footer={
+        <>
+          {upload && !reviewed && (
+            <p className="catalog-review-hint">
+              Confirm review before submitting the syllabus for approval.
+            </p>
+          )}
+          <div className="catalog-actions">
+            {busy && <span role="status">Processing syllabus.</span>}
+            <button
+              type="button"
+              className="catalog-button catalog-cancel"
+              disabled={busy}
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            {upload && (
+              <button
+                type="button"
+                className="catalog-button catalog-save-draft"
+                disabled={busy || !reviewed || courseMismatch || (!attach && matches.length > 0)}
+                onClick={save}
+              >
+                {attach ? "Submit Syllabus Version" : "Submit Syllabus"}
+              </button>
+            )}
+          </div>
+        </>
+      }
     >
       <p className="catalog-note">
         {upload
@@ -367,41 +397,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
               </label>
             </div>
           </div>
-          {!reviewed && (
-            <p className="catalog-note">
-              Confirm review before submitting the syllabus for approval.
-            </p>
-          )}
-          <div className="catalog-actions">
-            <button
-              type="button"
-              className="catalog-button catalog-cancel"
-              disabled={busy}
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="catalog-button catalog-save-draft"
-              disabled={busy || !reviewed || courseMismatch || (!attach && matches.length > 0)}
-              onClick={save}
-            >
-              {attach ? "Submit Syllabus Version" : "Submit Syllabus"}
-            </button>
-            {busy && <span role="status">Saving…</span>}
-          </div>
         </>
-      )}
-      {!upload && (
-        <button
-          type="button"
-          className="catalog-button catalog-cancel"
-          disabled={busy}
-          onClick={onClose}
-        >
-          Cancel
-        </button>
       )}
     </CatalogModal>
   );

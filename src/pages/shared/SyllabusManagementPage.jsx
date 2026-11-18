@@ -282,7 +282,7 @@ export default function SyllabusManagementPage() {
           <h1>Syllabus Management</h1>
           <p>
             {superAdmin
-              ? "Review submitted syllabi and manage course approval."
+              ? "Review syllabus submissions, activate or deactivate courses, and view syllabus history."
               : "Upload syllabi and track their approval status."}
           </p>
         </div>

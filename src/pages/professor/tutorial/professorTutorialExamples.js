@@ -9,6 +9,7 @@ export const tutorialCourseExamples = [
     moduleCount: 5,
     lessonPageCount: 18,
     quizCount: 25,
+    moduleQuizCount: 5,
     createdAt: "Sep 3, 2026",
   },
   {
@@ -21,6 +22,7 @@ export const tutorialCourseExamples = [
     moduleCount: 6,
     lessonPageCount: 21,
     quizCount: 30,
+    moduleQuizCount: 6,
     createdAt: "Sep 4, 2026",
   },
   {
@@ -33,6 +35,7 @@ export const tutorialCourseExamples = [
     moduleCount: 4,
     lessonPageCount: 10,
     quizCount: 10,
+    moduleQuizCount: 2,
     createdAt: "Sep 7, 2026",
   },
   {
@@ -45,6 +48,7 @@ export const tutorialCourseExamples = [
     moduleCount: 3,
     lessonPageCount: 8,
     quizCount: 5,
+    moduleQuizCount: 1,
     createdAt: "Sep 8, 2026",
   },
 ];

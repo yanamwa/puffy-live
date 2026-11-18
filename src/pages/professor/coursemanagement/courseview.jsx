@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 import styles from "./courseview.module.css";
 import StudentIdentityCard from "../../../components/students/StudentIdentityCard";
 import { API_BASE } from "../../../config.js";
+import { countModuleQuizzes } from "../../../utils/moduleQuizCount.js";
 
 const API_BASE_URL = API_BASE;
 
@@ -771,8 +772,7 @@ export default function CourseView() {
   const moduleCount =
     course.moduleCount ?? course.module_count ?? course.modules ?? 0;
 
-  const quizCount =
-    course.quizzes ?? course.quizCount ?? course.quiz_count ?? 0;
+  const quizCount = countModuleQuizzes(course);
 
   const studentCount = enrolledStudents.length;
 
@@ -842,7 +842,9 @@ export default function CourseView() {
 
           <span>{moduleCount} Modules</span>
 
-          <span>{quizCount} Quizzes</span>
+          <span>
+            {quizCount} module {quizCount === 1 ? "quiz" : "quizzes"}
+          </span>
         </div>
       </div>
 

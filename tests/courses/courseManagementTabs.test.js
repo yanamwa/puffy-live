@@ -154,15 +154,13 @@ test("Course Management switches between catalog, classes and archive without re
       const catalog = renderToStaticMarkup(tree());
       assert.match(catalog, /Catalog course/);
       assert.doesNotMatch(catalog, /Edit Details|>Archive<|>Restore</);
-      if (role === "super_admin") {
-        assert.match(catalog, />Deactivate</);
-        assert.doesNotMatch(catalog, /Upload Syllabus/);
-        complete("catalog", [{ catalog_id: 2, title: "Inactive course", status: "inactive" }]);
-        assert.match(renderToStaticMarkup(tree()), />Activate</);
-      } else {
-        assert.match(catalog, /Upload Syllabus/);
-        assert.doesNotMatch(catalog, />(?:Activate|Deactivate)</);
-      }
+      assert.match(catalog, />Active</);
+      assert.match(catalog, />View</);
+      assert.doesNotMatch(catalog, /Upload Syllabus|>(?:Activate|Deactivate)</);
+      complete("catalog", [{ catalog_id: 2, title: "Inactive course", status: "inactive" }]);
+      const inactiveCatalog = renderToStaticMarkup(tree());
+      assert.match(inactiveCatalog, />Inactive</);
+      assert.doesNotMatch(inactiveCatalog, /Upload Syllabus|>(?:Activate|Deactivate)</);
       tabButton(tree(), "Professor Classes").props.onClick();
       assert.match(renderToStaticMarkup(tree()), /Loading professor classes/);
       complete("classes", [

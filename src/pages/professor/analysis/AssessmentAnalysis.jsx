@@ -200,12 +200,14 @@ export default function AssessmentAnalysis() {
 
   return (
     <section className={styles.page}>
-      <header className={`${styles.header} professor-section-heading`}>
-        <h1>Assessment Analysis</h1>
-        <p>
-          Review your courses at a glance, then open a course to explore student
-          performance.
-        </p>
+      <header className={`${styles.header} professor-section-heading professor-management-heading`}>
+        <div>
+          <h1>Assessment Analysis</h1>
+          <p>
+            Review your courses at a glance, then open a course to explore student
+            performance.
+          </p>
+        </div>
       </header>
       {loading ? (
         <div className={styles.message} role="status">

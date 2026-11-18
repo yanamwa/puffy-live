@@ -6,6 +6,7 @@ import {
   fetchCourseEnrollmentCount,
 } from "../../../services/courseApi.js";
 import { tutorialCourseExamples } from "../tutorial/professorTutorialExamples.js";
+import { countModuleQuizzes } from "../../../utils/moduleQuizCount.js";
 import styles from "./modulemanage.module.css";
 import Swal from "sweetalert2";
 
@@ -292,23 +293,14 @@ export default function ModuleManagement() {
           PAGE HEADER
       ====================================== */}
 
-      <div className={`${styles.pageTop} professor-section-heading`}>
+      <header className={`${styles.pageTop} professor-section-heading professor-management-heading`}>
         <div className={styles.titleSection}>
           <h1 className={styles.pageTitle}>Course Management</h1>
 
           <p>Create and manage courses for your students.</p>
         </div>
 
-        <div className={styles.pageActions}>
-          {!previewOnly && !showExamples && (
-            <button
-              type="button"
-              className={styles.addBtn}
-              onClick={() => navigate("/professor/syllabi")}
-            >
-              Upload Syllabus
-            </button>
-          )}
+        <div className={`${styles.pageActions} professor-management-heading-actions`}>
           <button
             type="button"
             className={styles.addBtn}
@@ -317,7 +309,7 @@ export default function ModuleManagement() {
             + Add new course
           </button>
         </div>
-      </div>
+      </header>
 
       {/* =====================================
           SEARCH
@@ -370,6 +362,9 @@ export default function ModuleManagement() {
         ) : (
           <div className={styles.moduleGrid}>
             {shownCourses.map((course) => {
+              const moduleQuizCount = showExamples
+                ? course.moduleQuizCount
+                : countModuleQuizzes(course);
               const archiveSource = getArchiveSource(course);
               const administratorArchived =
                 archiveSource === "Admin" || archiveSource === "Super Admin";
@@ -444,7 +439,8 @@ export default function ModuleManagement() {
                   </span>
 
                   <span>
-                    {course.quizzes || course.quizCount || 0} quiz items
+                    {moduleQuizCount} module{" "}
+                    {moduleQuizCount === 1 ? "quiz" : "quizzes"}
                   </span>
                 </div>
 

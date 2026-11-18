@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { catalogPdf } from "../../services/catalogApi.js";
 import "../../pages/admin/modules/Modules.css";
 import "./catalog.css";
@@ -10,8 +11,16 @@ export function CatalogModal({
   wide = false,
   busy = false,
   variant = "",
+  footer,
 }) {
   const ref = useRef(null);
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
   useEffect(() => {
     const previous = document.activeElement,
       node = ref.current;
@@ -48,7 +57,7 @@ export function CatalogModal({
       previous?.focus();
     };
   }, [onClose, busy]);
-  return (
+  return createPortal(
     <div className="admin-module-modal-backdrop catalog-backdrop">
       <section
         className={`admin-module-modal catalog-modal ${wide ? "catalog-wide" : ""} ${variant ? `catalog-${variant}` : ""}`}
@@ -71,8 +80,10 @@ export function CatalogModal({
           </button>
         </header>
         <div className="catalog-modal-body">{children}</div>
+        {footer && <footer className="catalog-modal-footer">{footer}</footer>}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 export function PdfPreview({ path }) {

@@ -3,14 +3,7 @@ import LessonContent from "../../../components/lesson/LessonContent.jsx";
 import { readCoverage } from "../../../components/catalog/CoverageModules.jsx";
 import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import { FiUpload } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../../context/AuthContext.jsx";
-import { getUserRole } from "../../../utils/roles.js";
-import {
-  catalogRequest,
-  notifyCatalogChanged,
-} from "../../../services/catalogApi.js";
+import { catalogRequest } from "../../../services/catalogApi.js";
 import {
   CatalogModal,
   PdfPreview,
@@ -329,11 +322,6 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
   );
 }
 export default function CourseManagementPage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const role = getUserRole(user);
-  const superAdmin = role === "super_admin";
-  const canUpload = role === "admin";
   const [tab, setTab] = useState("catalog"),
     [q, setQ] = useState(""),
     [program, setProgram] = useState(""),
@@ -410,61 +398,6 @@ export default function CourseManagementPage() {
       setBusy(false);
     }
   };
-  const updateStatus = async (course) => {
-    const activating = course.status !== "active";
-    const action = activating ? "activate" : "deactivate";
-    const statusLabel = activating ? "active" : "inactive";
-    const answer = await Swal.fire({
-      customClass: { popup: "catalog-confirm-popup", container: "catalog-confirm-overlay" },
-      showCloseButton: true,
-      confirmButtonColor: "#7fa8d6",
-      cancelButtonColor: "#7d8798",
-      title: activating ? "Activate course?" : "Deactivate course?",
-      text: activating
-        ? "Review the course details and syllabus before confirming activation."
-        : "Professors will no longer be able to select this catalog course for new classes.",
-      showCancelButton: true,
-      confirmButtonText: activating ? "Activate" : "Deactivate",
-      ...(activating && {
-        input: "checkbox",
-        inputPlaceholder: "I have reviewed the course information and syllabus.",
-        inputValidator: (value) =>
-          !value ? "Review confirmation is required." : undefined,
-      }),
-    });
-    if (!answer.isConfirmed) return;
-    setBusy(true);
-    try {
-      const result = await catalogRequest("/" + course.catalog_id, {
-        method: "PATCH",
-        body: JSON.stringify({ action, reviewed: activating }),
-      });
-      notifyCatalogChanged();
-      const notificationMessages = {
-        sent: "The syllabus uploader was notified by email.",
-        failed: "The status changed, but the email could not be sent.",
-        unavailable: "The status changed, but no uploader email was available.",
-      };
-      const needsAttention = ["failed", "unavailable"].includes(result.notification);
-      Swal.fire({
-        confirmButtonColor: "#7fa8d6",
-        icon: needsAttention ? "warning" : "success",
-        title: result.changed ? `Course is now ${statusLabel}` : `Course is already ${statusLabel}`,
-        text: notificationMessages[result.notification],
-        timer: needsAttention ? undefined : 2200,
-        showConfirmButton: needsAttention,
-      });
-    } catch (e) {
-      Swal.fire({
-        confirmButtonColor: "#7fa8d6",
-        icon: "error",
-        title: "Could not update course",
-        text: e.message,
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
   const changeTab = (value) => {
     if (value === tab) return;
     // Effects run after render: clear the old table before changing its schema.
@@ -482,18 +415,8 @@ export default function CourseManagementPage() {
       <div className="super-dashboard-welcome catalog-heading super-page-heading">
         <div>
           <h1>Course Management</h1>
-          <p>{superAdmin ? "Review syllabi and manage catalog course status." : "Upload syllabi and view catalog courses."}</p>
+          <p>View the course catalog, professor classes, enrolled students, and archived courses.</p>
         </div>
-        {canUpload && (
-          <button
-            className="catalog-button catalog-upload-syllabus"
-            type="button"
-            onClick={() => navigate("/admin/syllabi")}
-          >
-            <FiUpload aria-hidden="true" />
-            Upload Syllabus
-          </button>
-        )}
       </div>
       <div className="catalog-summary">
         {[
@@ -650,24 +573,6 @@ export default function CourseManagementPage() {
                           >
                             View
                           </button>
-                          {tab === "catalog" && superAdmin && (
-                            <button
-                              disabled={busy}
-                              className={`catalog-button ${course.status === "active" ? "catalog-action-deactivate" : "catalog-action-activate"}`}
-                              onClick={() => updateStatus(course)}
-                            >
-                              {course.status === "active" ? "Deactivate" : "Activate"}
-                            </button>
-                          )}
-                          {tab === "catalog" && canUpload && (
-                            <button
-                              disabled={busy}
-                              className="catalog-button catalog-action-upload-version"
-                              onClick={() => navigate("/admin/syllabi")}
-                            >
-                              Upload Syllabus
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
