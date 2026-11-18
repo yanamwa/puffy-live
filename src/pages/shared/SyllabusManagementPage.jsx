@@ -20,7 +20,7 @@ import "./SyllabusManagementPage.css";
 
 const tabs = [
   ["syllabi", "Syllabi"],
-  ["approval", "Syllabus Approval"],
+  ["activation", "Syllabus Activation"],
   ["history", "Syllabus History"],
 ];
 const formatDate = (value) => (value ? new Date(value).toLocaleString() : "—");
@@ -30,29 +30,21 @@ const period = (record) =>
 const statusLabel = (record) =>
   record.archived_at
     ? "Archived"
-    : record.status === "draft"
-      ? "Pending Approval"
-      : record.status === "active"
-        ? "Active"
-        : record.status === "rejected"
-          ? "Rejected"
-          : "Inactive";
+    : record.status === "active"
+      ? "Active"
+      : "Inactive";
 
-const statusActions = {
-  draft: [
-    ["approve", "Approve"],
-    ["reject", "Reject"],
-  ],
-  active: [["deactivate", "Deactivate"]],
-  inactive: [["activate", "Activate"]],
-};
 const actionsFor = (record) =>
-  record.archived_at ? [] : statusActions[record.status] || [];
+  record.archived_at
+    ? []
+    : record.status === "active"
+      ? [["deactivate", "Deactivate"]]
+      : [["activate", "Activate"]];
 
 function StatusBadge({ record }) {
   return (
     <span
-      className={`syllabus-status syllabus-status-${record.archived_at ? "archived" : record.status}`}
+      className={`syllabus-status syllabus-status-${statusLabel(record).toLowerCase()}`}
     >
       {statusLabel(record)}
     </span>
@@ -98,8 +90,8 @@ function SyllabusDetails({ id, onClose, canManage, onStatus, busy }) {
               ["Version", `#${record.version_id}`],
               ["Uploaded by", record.uploader],
               ["Submitted", formatDate(record.uploaded_at)],
-              ["Course reviewed by", record.reviewer || "Awaiting review"],
-              ["Course reviewed", formatDate(record.reviewed_at)],
+              ["Status updated by", record.reviewer || "Not set"],
+              ["Status updated", formatDate(record.reviewed_at)],
             ].map(([label, value]) => (
               <div key={label}>
                 <dt>{label}</dt>
@@ -207,31 +199,18 @@ export default function SyllabusManagementPage() {
     setSelectedId(null);
   };
   const updateStatus = async (record, action) => {
-    const approving = action === "approve";
     const prompts = {
-      approve: {
-        title: "Approve this syllabus?",
-        text: `${record.code} - ${record.title} will be approved and made active for new classes.`,
-        confirm: "Approve",
-        success: "Syllabus approved and course active",
-      },
-      reject: {
-        title: "Reject this syllabus?",
-        text: `${record.code} will stay unavailable for new classes. The uploader can revise and submit a new syllabus.`,
-        confirm: "Reject",
-        success: "Syllabus rejected",
-      },
       activate: {
-        title: "Activate this course?",
-        text: `${record.code} will become available for new classes using its approved syllabus.`,
+        title: "Activate this syllabus?",
+        text: `${record.code} - ${record.title} will appear in the course catalog and become available for new classes.`,
         confirm: "Activate",
-        success: "Course is active",
+        success: "Syllabus is active",
       },
       deactivate: {
-        title: "Make this course inactive?",
-        text: `${record.code} will become unavailable for new classes. Its syllabus approval will be retained.`,
+        title: "Deactivate this syllabus?",
+        text: `${record.code} will be hidden from catalog selection for new classes.`,
         confirm: "Deactivate",
-        success: "Course is inactive",
+        success: "Syllabus is inactive",
       },
     };
     const prompt = prompts[action];
@@ -239,14 +218,6 @@ export default function SyllabusManagementPage() {
     const result = await Swal.fire({
       title: prompt.title,
       text: prompt.text,
-      input: approving ? "checkbox" : undefined,
-      inputPlaceholder: approving
-        ? "I have reviewed the syllabus and module outline."
-        : undefined,
-      inputValidator: approving
-        ? (value) =>
-            value ? undefined : "Confirm your review before approving."
-        : undefined,
       showCancelButton: true,
       confirmButtonText: prompt.confirm,
       confirmButtonColor: "#7fa8d6",
@@ -262,7 +233,6 @@ export default function SyllabusManagementPage() {
         method: "PATCH",
         body: JSON.stringify({
           action,
-          reviewed: approving,
           versionId: record.version_id,
         }),
       });
@@ -289,7 +259,7 @@ export default function SyllabusManagementPage() {
       refresh();
       Swal.fire({
         icon: "error",
-        title: "Could not update course",
+        title: "Could not update syllabus",
         text: failure.message,
         confirmButtonColor: "#7fa8d6",
       });
@@ -315,8 +285,8 @@ export default function SyllabusManagementPage() {
           <h1>Syllabus Management</h1>
           <p>
             {superAdmin
-              ? "Approve or reject syllabus submissions, manage course availability, and view syllabus history."
-              : "Upload syllabi and track their approval status."}
+              ? "Activate or deactivate syllabi to manage catalog visibility, and view syllabus history."
+              : "Upload syllabi and track whether they are active in the course catalog."}
           </p>
         </div>
         {canUpload && (
@@ -333,7 +303,6 @@ export default function SyllabusManagementPage() {
         {[
           ["Current Submissions", "total"],
           ["Active Courses", "active"],
-          ["Pending Approval", "pending"],
           ["Inactive Courses", "inactive"],
         ].map(([label, key]) => (
           <article className="dashboard-summary-card" key={key}>
@@ -392,23 +361,19 @@ export default function SyllabusManagementPage() {
             <option>BSIT</option>
             <option>BSCS</option>
           </select>
-          {view !== "approval" && (
-            <select
-              aria-label="Course status filter"
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">All statuses</option>
-              <option value="pending">Pending Approval</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="rejected">Rejected</option>
-              {view === "history" && <option value="archived">Archived</option>}
-            </select>
-          )}
+          <select
+            aria-label="Course status filter"
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            {view === "history" && <option value="archived">Archived</option>}
+          </select>
         </div>
         {error ? (
           <div className="catalog-error" role="alert">
@@ -465,9 +430,7 @@ export default function SyllabusManagementPage() {
                             disabled={busy}
                             onClick={() => setSelectedId(record.version_id)}
                           >
-                            {superAdmin && view === "approval"
-                              ? "Review"
-                              : "View"}
+                            View
                           </button>
                           {superAdmin &&
                             view !== "history" &&
@@ -489,11 +452,9 @@ export default function SyllabusManagementPage() {
                   {!data.records.length && (
                     <tr>
                       <td colSpan={6} className="admin-modules-empty">
-                        {view === "approval"
-                          ? "No syllabi are awaiting approval."
-                          : view === "history"
-                            ? "No syllabus uploads found."
-                            : "No syllabi found."}
+                        {view === "history"
+                          ? "No syllabus uploads found."
+                          : "No syllabi found."}
                       </td>
                     </tr>
                   )}

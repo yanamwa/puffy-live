@@ -14,7 +14,7 @@ import "../../superadmin/SuperAdminDashboard.css";
 import "../../../components/catalog/catalog.css";
 
 const date = (value) => (value ? new Date(value).toLocaleString() : "—");
-const catalogStatus = (course) => course.archived_at ? "Archived" : ({ draft: "Pending Approval", active: "Active", inactive: "Inactive", rejected: "Rejected" }[course.status] || "Pending Approval");
+const catalogStatus = (course) => course.archived_at ? "Archived" : course.status === "active" ? "Active" : "Inactive";
 const syllabusPeriod = (version) =>
   [version.academic_year, version.semester].filter(Boolean).join(" / ") ||
   "Not set";
@@ -501,8 +501,6 @@ export default function CourseManagementPage() {
               : [
                   ["active", "Active"],
                   ["inactive", "Inactive"],
-                  ["draft", "Pending Approval"],
-                  ["rejected", "Rejected"],
                 ]
             ).map(([value, label]) => (
               <option key={value} value={value}>

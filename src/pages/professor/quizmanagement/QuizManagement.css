@@ -9,30 +9,25 @@
 }
 
 .quiz-management .management-back-bar {
-  min-height: 24px;
-  margin: 0 0 16px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  min-height: 36px;
+  margin: -34px -42px 24px;
+  padding: 7px 18px;
+  border-bottom: 1px solid #c4c4c4;
+  background: #d9d9d9;
 }
 
 .quiz-management .quiz-management-heading {
   box-sizing: border-box;
 }
 
-.quiz-management .quiz-course-heading {
-  margin: 0 0 24px;
-  padding: 0 0 16px;
-  border-bottom: 1px solid #c6cbd2;
-}
-
-.quiz-management .quiz-selected-course {
-  margin: 0;
-  color: #294765;
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
+#root .professor-layout .quiz-management-eyebrow {
+  display: inline-flex;
+  margin-bottom: 7px;
+  color: var(--professor-theme-accent, #5f86b1);
+  font-size: 12px !important;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .quiz-management .quiz-management-content {
@@ -59,9 +54,6 @@
 }
 .quiz-management .quiz-course-envelope::after {
   inset: 0 13px 4px 0;
-}
-.quiz-management .quiz-course-envelope strong {
-  overflow-wrap: anywhere;
 }
 
 .quiz-management .quiz-module-list {
@@ -97,21 +89,24 @@
   border-radius: 18px;
 }
 
-.quiz-management .quiz-module-list .quiz-management-folder h3 {
+#root .professor-layout .quiz-management .quiz-course-envelope strong,
+#root .professor-layout .quiz-management .quiz-management-folder h3 {
   margin: 0 0 8px;
   padding: 0;
-  color: #333333;
+  color: var(--professor-ink, #5f6064);
   font-family: inherit;
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.3;
+  font-size: 28px !important;
+  font-weight: 750 !important;
+  line-height: 1.15;
   overflow-wrap: anywhere;
 }
 
-.quiz-management .quiz-module-list .quiz-management-folder p {
+#root .professor-layout .quiz-management .quiz-course-description,
+#root .professor-layout .quiz-management .quiz-management-folder p {
   margin: 4px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
+  color: var(--professor-muted, #858d9b);
+  font-size: 15px !important;
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
@@ -141,6 +136,12 @@
   text-align: center;
   box-shadow: 0 3px 0 #5f86b1;
   margin-left: auto;
+}
+
+@media (max-width: 700px) {
+  .quiz-management .management-back-bar {
+    margin: -22px -16px 24px;
+  }
 }
 
 @media (max-width: 600px) {

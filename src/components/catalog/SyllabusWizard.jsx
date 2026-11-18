@@ -223,7 +223,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
       });
       pending.current = null;
       notifyCatalogChanged();
-      onSaved("Syllabus submitted for super admin review.");
+      onSaved("Syllabus uploaded. The super admin can now activate it in the catalog.");
     } catch (e) {
       handleUploadError(e);
       if (e.matches) {
@@ -245,7 +245,7 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
         <>
           {upload && !reviewed && (
             <p className="catalog-review-hint">
-              Confirm review before submitting the syllabus for approval.
+              Confirm the extracted details before uploading the syllabus.
             </p>
           )}
           <div className="catalog-actions">

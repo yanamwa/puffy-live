@@ -186,22 +186,22 @@ export default function QuizManagement() {
       )}
       <header className="quiz-management-heading professor-section-heading professor-management-heading">
         <div>
-          <h1>Quiz Management</h1>
+          {courseId && (
+            <span className="quiz-management-eyebrow">Quiz Management</span>
+          )}
+          <h1>
+            {courseId
+              ? selectedCourse?.title ||
+                selectedCourse?.course_name ||
+                "Course quizzes"
+              : "Quiz Management"}
+          </h1>
           <p>
             Manage Main Quizzes by course and module. The system creates
             adaptive practice for each student.
           </p>
         </div>
       </header>
-      {courseId && (
-        <section className="quiz-course-heading" aria-label="Selected course">
-          <h2 className="quiz-selected-course">
-            {selectedCourse?.title ||
-              selectedCourse?.course_name ||
-              "Course quizzes"}
-          </h2>
-        </section>
-      )}
       <section
         className="quiz-management-content"
         data-tutorial="quiz-management-courses"
@@ -270,7 +270,9 @@ export default function QuizManagement() {
                     <strong>
                       {item.title || item.course_name || "Untitled Course"}
                     </strong>
-                    <span className={styles.description}>
+                    <span
+                      className={`${styles.description} quiz-course-description`}
+                    >
                       {description.length > 50
                         ? `${description.slice(0, 50).join("").trimEnd()}...`
                         : description.join("")}

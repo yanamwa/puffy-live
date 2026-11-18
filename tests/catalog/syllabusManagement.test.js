@@ -7,13 +7,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 const require = createRequire(import.meta.url);
 
-test("syllabus tabs keep approval controls with super admins and show upload history", async () => {
+test("syllabus tabs let only super admins toggle catalog visibility and show upload history", async () => {
   const harness = {
     slots: [],
     cursor: 0,
     effects: [],
     role: "professor",
     paths: [],
+    mutations: [],
+    prompts: [],
   };
   const previousWindow = globalThis.window;
   globalThis.__syllabusPageTest = harness;
@@ -60,24 +62,27 @@ test("syllabus tabs keep approval controls with super admins and show upload his
       programs: [],
     },
   ];
-  harness.request = async (path) => {
+  harness.request = async (path, options) => {
     harness.paths.push(path);
-    const view = new URL("http://localhost" + path).searchParams.get("view");
+    if (options?.method === "PATCH") {
+      harness.mutations.push({ path, body: JSON.parse(options.body) });
+      return { success: true, notification: "sent" };
+    }
     return {
-      records: view === "approval" ? records.slice(0, 1) : records,
-      total: view === "approval" ? 1 : records.length,
-      summary: { total: records.length, active: 1, pending: 1, inactive: 1 },
+      records,
+      total: records.length,
+      summary: { total: records.length, active: 1, inactive: 3 },
     };
   };
   const mocks = {
     react: `export function useState(initial) {const h=globalThis.__syllabusPageTest,i=h.cursor++;if(!(i in h.slots))h.slots[i]=initial;return [h.slots[i],v=>h.slots[i]=typeof v==='function'?v(h.slots[i]):v];} export const useEffect=fn=>globalThis.__syllabusPageTest.effects.push(fn);export const useCallback=fn=>fn;`,
     auth: `export const useAuth=()=>({user:{role:globalThis.__syllabusPageTest.role}});`,
-    api: `export const catalogRequest=(path)=>globalThis.__syllabusPageTest.request(path);export const notifyCatalogChanged=()=>{};`,
+    api: `export const catalogRequest=(path,options)=>globalThis.__syllabusPageTest.request(path,options);export const notifyCatalogChanged=()=>{};`,
     icons: `export const FiUpload=()=>null;`,
     modal: `export const CatalogModal=()=>null;export const PdfPreview=()=>null;`,
     wizard: `export default ()=>null;`,
     coverage: `export const readCoverage=()=>[];`,
-    swal: `export default {fire:()=>{throw new Error('Unexpected status change');}};`,
+    swal: `export default {fire:async(prompt)=>{globalThis.__syllabusPageTest.prompts.push(prompt);return {isConfirmed:true};}};`,
   };
   const cleanups = [];
   try {
@@ -179,25 +184,29 @@ test("syllabus tabs keep approval controls with super admins and show upload his
       let rendered = await load();
       const markup = renderToStaticMarkup(rendered);
       assert.match(markup, /Syllabus Management/);
-      assert.match(markup, /Syllabus Approval/);
+      assert.match(markup, /Syllabus Activation/);
+      assert.doesNotMatch(
+        markup,
+        /Pending Approval|>Rejected<|>Approve<|>Reject</,
+      );
       assert.match(markup, /Syllabus History/);
       assert.match(markup, /pending.pdf/);
       assert.equal(
         Boolean(find(rendered, "Upload Syllabus")),
         role !== "super_admin",
       );
-      assert.equal(Boolean(find(rendered, "Approve")), role === "super_admin");
-      assert.equal(Boolean(find(rendered, "Reject")), role === "super_admin");
+      assert.equal(find(rendered, "Approve"), undefined);
+      assert.equal(find(rendered, "Reject"), undefined);
       assert.equal(Boolean(find(rendered, "Activate")), role === "super_admin");
       for (const record of records) {
         const recordRow = row(rendered, record.filename);
         const expected =
           role === "super_admin"
             ? {
-                draft: ["Approve", "Reject"],
+                draft: ["Activate"],
                 active: ["Deactivate"],
                 inactive: ["Activate"],
-                rejected: [],
+                rejected: ["Activate"],
               }[record.status]
             : [];
         for (const label of ["Approve", "Reject", "Activate", "Deactivate"]) {
@@ -212,16 +221,39 @@ test("syllabus tabs keep approval controls with super admins and show upload his
         Boolean(find(rendered, "Deactivate")),
         role === "super_admin",
       );
-      find(rendered, "Syllabus Approval").props.onClick();
+      find(rendered, "Syllabus Activation").props.onClick();
       assert.match(renderToStaticMarkup(tree()), /Loading syllabi/);
       rendered = await load();
-      assert.match(harness.paths.at(-1), /view=approval/);
+      assert.match(harness.paths.at(-1), /view=activation/);
       assert.match(renderToStaticMarkup(rendered), /pending.pdf/);
-      assert.doesNotMatch(renderToStaticMarkup(rendered), /active.pdf/);
-      assert.equal(Boolean(find(rendered, "Approve")), role === "super_admin");
-      assert.equal(Boolean(find(rendered, "Reject")), role === "super_admin");
-      assert.equal(find(rendered, "Activate"), undefined);
-      assert.equal(find(rendered, "Deactivate"), undefined);
+      assert.match(renderToStaticMarkup(rendered), /active.pdf/);
+      assert.equal(find(rendered, "Approve"), undefined);
+      assert.equal(find(rendered, "Reject"), undefined);
+      assert.equal(Boolean(find(rendered, "Activate")), role === "super_admin");
+      assert.equal(
+        Boolean(find(rendered, "Deactivate")),
+        role === "super_admin",
+      );
+      if (role === "super_admin") {
+        await find(row(rendered, "pending.pdf"), "Activate").props.onClick();
+        assert.deepEqual(harness.mutations.at(-1), {
+          path: "/1",
+          body: { action: "activate", versionId: 3 },
+        });
+        assert.match(
+          harness.prompts.at(-2).text,
+          /appear in the course catalog/,
+        );
+        await find(row(tree(), "active.pdf"), "Deactivate").props.onClick();
+        assert.deepEqual(harness.mutations.at(-1), {
+          path: "/2",
+          body: { action: "deactivate", versionId: 2 },
+        });
+        assert.match(
+          harness.prompts.at(-2).text,
+          /hidden from catalog selection/,
+        );
+      }
       find(rendered, "Syllabus History").props.onClick();
       rendered = await load();
       assert.match(harness.paths.at(-1), /view=history/);

@@ -33,7 +33,7 @@ export const adminTutorialSteps = [
     path: "/admin/courses",
     title: "Course Management",
     description:
-      "View the course catalog, professor classes, enrolled students, and archived courses. Use Syllabus Management to upload syllabi and track their approval.",
+      "View the course catalog, professor classes, enrolled students, and archived courses. Use Syllabus Management to upload syllabi and track their catalog availability.",
   },
   {
     id: "reports",
