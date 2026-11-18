@@ -34,7 +34,20 @@ const statusLabel = (record) =>
       ? "Pending Approval"
       : record.status === "active"
         ? "Active"
-        : "Inactive";
+        : record.status === "rejected"
+          ? "Rejected"
+          : "Inactive";
+
+const statusActions = {
+  draft: [
+    ["approve", "Approve"],
+    ["reject", "Reject"],
+  ],
+  active: [["deactivate", "Deactivate"]],
+  inactive: [["activate", "Activate"]],
+};
+const actionsFor = (record) =>
+  record.archived_at ? [] : statusActions[record.status] || [];
 
 function StatusBadge({ record }) {
   return (
@@ -107,22 +120,18 @@ function SyllabusDetails({ id, onClose, canManage, onStatus, busy }) {
             </details>
           )}
           <PdfPreview path={`/versions/${record.version_id}/pdf`} />
-          {canManage && !record.archived_at && (
+          {canManage && actionsFor(record).length > 0 && (
             <div className="catalog-actions">
-              <button
-                className="catalog-button catalog-action-activate"
-                disabled={busy || record.status === "active"}
-                onClick={() => onStatus(record, "activate")}
-              >
-                Activate
-              </button>
-              <button
-                className="catalog-button catalog-action-deactivate"
-                disabled={busy || record.status === "inactive"}
-                onClick={() => onStatus(record, "deactivate")}
-              >
-                Deactivate
-              </button>
+              {actionsFor(record).map(([action, label]) => (
+                <button
+                  key={action}
+                  className={`catalog-button catalog-action-${action}`}
+                  disabled={busy}
+                  onClick={() => onStatus(record, action)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           )}
         </>
@@ -198,24 +207,48 @@ export default function SyllabusManagementPage() {
     setSelectedId(null);
   };
   const updateStatus = async (record, action) => {
-    const activating = action === "activate";
+    const approving = action === "approve";
+    const prompts = {
+      approve: {
+        title: "Approve this syllabus?",
+        text: `${record.code} - ${record.title} will be approved and made active for new classes.`,
+        confirm: "Approve",
+        success: "Syllabus approved and course active",
+      },
+      reject: {
+        title: "Reject this syllabus?",
+        text: `${record.code} will stay unavailable for new classes. The uploader can revise and submit a new syllabus.`,
+        confirm: "Reject",
+        success: "Syllabus rejected",
+      },
+      activate: {
+        title: "Activate this course?",
+        text: `${record.code} will become available for new classes using its approved syllabus.`,
+        confirm: "Activate",
+        success: "Course is active",
+      },
+      deactivate: {
+        title: "Make this course inactive?",
+        text: `${record.code} will become unavailable for new classes. Its syllabus approval will be retained.`,
+        confirm: "Deactivate",
+        success: "Course is inactive",
+      },
+    };
+    const prompt = prompts[action];
+    if (!prompt || busy) return;
     const result = await Swal.fire({
-      title: activating
-        ? "Activate this course?"
-        : "Make this course inactive?",
-      text: activating
-        ? `Confirm that you reviewed the syllabus for ${record.code} — ${record.title}.`
-        : `${record.code} will become unavailable for new classes. The syllabus uploader will be notified by email.`,
-      input: activating ? "checkbox" : undefined,
-      inputPlaceholder: activating
+      title: prompt.title,
+      text: prompt.text,
+      input: approving ? "checkbox" : undefined,
+      inputPlaceholder: approving
         ? "I have reviewed the syllabus and module outline."
         : undefined,
-      inputValidator: activating
+      inputValidator: approving
         ? (value) =>
-            value ? undefined : "Confirm your review before activating."
+            value ? undefined : "Confirm your review before approving."
         : undefined,
       showCancelButton: true,
-      confirmButtonText: activating ? "Activate" : "Deactivate",
+      confirmButtonText: prompt.confirm,
       confirmButtonColor: "#7fa8d6",
       customClass: {
         popup: "catalog-confirm-popup",
@@ -229,7 +262,7 @@ export default function SyllabusManagementPage() {
         method: "PATCH",
         body: JSON.stringify({
           action,
-          reviewed: activating,
+          reviewed: approving,
           versionId: record.version_id,
         }),
       });
@@ -238,17 +271,17 @@ export default function SyllabusManagementPage() {
       const messages = {
         sent: "The syllabus uploader was notified by email.",
         failed:
-          "The course status changed, but the notification email could not be sent.",
+          "The status changed, but the notification email could not be sent.",
         unavailable:
-          "The course status changed, but the uploader's email was unavailable.",
-        not_needed: "This course already has the selected status.",
+          "The status changed, but the uploader's email was unavailable.",
+        not_needed: "This syllabus already has the selected status.",
       };
       const needsAttention = ["failed", "unavailable"].includes(
         updated.notification,
       );
       Swal.fire({
         icon: needsAttention ? "warning" : "success",
-        title: activating ? "Course is active" : "Course is inactive",
+        title: prompt.success,
         text: messages[updated.notification],
         confirmButtonColor: "#7fa8d6",
       });
@@ -282,7 +315,7 @@ export default function SyllabusManagementPage() {
           <h1>Syllabus Management</h1>
           <p>
             {superAdmin
-              ? "Review syllabus submissions, activate or deactivate courses, and view syllabus history."
+              ? "Approve or reject syllabus submissions, manage course availability, and view syllabus history."
               : "Upload syllabi and track their approval status."}
           </p>
         </div>
@@ -372,6 +405,7 @@ export default function SyllabusManagementPage() {
               <option value="pending">Pending Approval</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
+              <option value="rejected">Rejected</option>
               {view === "history" && <option value="archived">Archived</option>}
             </select>
           )}
@@ -437,32 +471,17 @@ export default function SyllabusManagementPage() {
                           </button>
                           {superAdmin &&
                             view !== "history" &&
-                            !record.archived_at && (
-                              <>
-                                {record.status !== "active" && (
-                                  <button
-                                    className="catalog-button catalog-action-activate"
-                                    disabled={busy}
-                                    onClick={() =>
-                                      updateStatus(record, "activate")
-                                    }
-                                  >
-                                    Activate
-                                  </button>
-                                )}
-                                {record.status !== "inactive" && (
-                                  <button
-                                    className="catalog-button catalog-action-deactivate"
-                                    disabled={busy}
-                                    onClick={() =>
-                                      updateStatus(record, "deactivate")
-                                    }
-                                  >
-                                    Deactivate
-                                  </button>
-                                )}
-                              </>
-                            )}
+                            !record.archived_at &&
+                            actionsFor(record).map(([action, label]) => (
+                              <button
+                                key={action}
+                                className={`catalog-button catalog-action-${action}`}
+                                disabled={busy}
+                                onClick={() => updateStatus(record, action)}
+                              >
+                                {label}
+                              </button>
+                            ))}
                         </div>
                       </td>
                     </tr>

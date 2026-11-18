@@ -39,14 +39,34 @@ test("syllabus tabs keep approval controls with super admins and show upload his
       status: "active",
       programs: [],
     },
+    {
+      version_id: 4,
+      catalog_id: 3,
+      code: "DCIT 25",
+      title: "Databases",
+      filename: "inactive.pdf",
+      uploader: "Professor",
+      status: "inactive",
+      programs: [],
+    },
+    {
+      version_id: 5,
+      catalog_id: 4,
+      code: "DCIT 26",
+      title: "Networking",
+      filename: "rejected.pdf",
+      uploader: "Professor",
+      status: "rejected",
+      programs: [],
+    },
   ];
   harness.request = async (path) => {
     harness.paths.push(path);
     const view = new URL("http://localhost" + path).searchParams.get("view");
     return {
       records: view === "approval" ? records.slice(0, 1) : records,
-      total: view === "approval" ? 1 : 2,
-      summary: { total: 2, active: 1, pending: 1, inactive: 0 },
+      total: view === "approval" ? 1 : records.length,
+      summary: { total: records.length, active: 1, pending: 1, inactive: 1 },
     };
   };
   const mocks = {
@@ -145,6 +165,14 @@ test("syllabus tabs keep approval controls with super admins and show upload his
       await new Promise((resolve) => setTimeout(resolve, 250));
       return tree();
     };
+    const row = (node, filename) => {
+      if (Array.isArray(node))
+        return node.map((child) => row(child, filename)).find(Boolean);
+      if (!node?.props) return undefined;
+      return node.type === "tr" && text(node).includes(filename)
+        ? node
+        : row(node.props.children, filename);
+    };
     for (const role of ["professor", "admin", "super_admin"]) {
       harness.slots = [];
       harness.role = role;
@@ -158,7 +186,28 @@ test("syllabus tabs keep approval controls with super admins and show upload his
         Boolean(find(rendered, "Upload Syllabus")),
         role !== "super_admin",
       );
+      assert.equal(Boolean(find(rendered, "Approve")), role === "super_admin");
+      assert.equal(Boolean(find(rendered, "Reject")), role === "super_admin");
       assert.equal(Boolean(find(rendered, "Activate")), role === "super_admin");
+      for (const record of records) {
+        const recordRow = row(rendered, record.filename);
+        const expected =
+          role === "super_admin"
+            ? {
+                draft: ["Approve", "Reject"],
+                active: ["Deactivate"],
+                inactive: ["Activate"],
+                rejected: [],
+              }[record.status]
+            : [];
+        for (const label of ["Approve", "Reject", "Activate", "Deactivate"]) {
+          assert.equal(
+            Boolean(find(recordRow, label)),
+            expected.includes(label),
+            `${role}: ${record.status} ${label}`,
+          );
+        }
+      }
       assert.equal(
         Boolean(find(rendered, "Deactivate")),
         role === "super_admin",
@@ -169,12 +218,18 @@ test("syllabus tabs keep approval controls with super admins and show upload his
       assert.match(harness.paths.at(-1), /view=approval/);
       assert.match(renderToStaticMarkup(rendered), /pending.pdf/);
       assert.doesNotMatch(renderToStaticMarkup(rendered), /active.pdf/);
+      assert.equal(Boolean(find(rendered, "Approve")), role === "super_admin");
+      assert.equal(Boolean(find(rendered, "Reject")), role === "super_admin");
+      assert.equal(find(rendered, "Activate"), undefined);
+      assert.equal(find(rendered, "Deactivate"), undefined);
       find(rendered, "Syllabus History").props.onClick();
       rendered = await load();
       assert.match(harness.paths.at(-1), /view=history/);
       assert.match(renderToStaticMarkup(rendered), /Version #/);
       assert.equal(find(rendered, "Activate"), undefined);
       assert.equal(find(rendered, "Deactivate"), undefined);
+      assert.equal(find(rendered, "Approve"), undefined);
+      assert.equal(find(rendered, "Reject"), undefined);
     }
   } finally {
     while (cleanups.length) cleanups.pop()?.();

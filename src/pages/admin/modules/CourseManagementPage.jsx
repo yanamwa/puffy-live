@@ -14,6 +14,7 @@ import "../../superadmin/SuperAdminDashboard.css";
 import "../../../components/catalog/catalog.css";
 
 const date = (value) => (value ? new Date(value).toLocaleString() : "—");
+const catalogStatus = (course) => course.archived_at ? "Archived" : ({ draft: "Pending Approval", active: "Active", inactive: "Inactive", rejected: "Rejected" }[course.status] || "Pending Approval");
 const syllabusPeriod = (version) =>
   [version.academic_year, version.semester].filter(Boolean).join(" / ") ||
   "Not set";
@@ -216,7 +217,7 @@ function CatalogDetails({ id, onClose, onClass, onPdf }) {
               ],
               [
                 "Status",
-                data.course.archived_at ? "Archived" : data.course.status === "active" ? "Active" : "Inactive",
+                catalogStatus(data.course),
               ],
             ].map(([label, value]) => (
               <div key={label} className={label === "Description" ? "course-description-field" : ""}>
@@ -500,6 +501,8 @@ export default function CourseManagementPage() {
               : [
                   ["active", "Active"],
                   ["inactive", "Inactive"],
+                  ["draft", "Pending Approval"],
+                  ["rejected", "Rejected"],
                 ]
             ).map(([value, label]) => (
               <option key={value} value={value}>
@@ -558,7 +561,7 @@ export default function CourseManagementPage() {
                           <span
                             className={`admin-module-status ${course.status === "active" ? "publish" : "draft"}`}
                           >
-                            {course.status === "active" ? "Active" : "Inactive"}
+                            {catalogStatus(course)}
                           </span>
                         )}
                       </td>

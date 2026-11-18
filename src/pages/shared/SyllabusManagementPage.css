@@ -36,6 +36,11 @@
   background: #edf0f5;
 }
 
+.syllabus-status-rejected {
+  color: #b42336;
+  background: #fff1f2;
+}
+
 .syllabus-coverage {
   margin: 18px 0;
   color: #345b83;

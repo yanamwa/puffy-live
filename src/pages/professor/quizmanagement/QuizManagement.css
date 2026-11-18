@@ -1,398 +1,151 @@
+/* Use the same inset heading card as Syllabus Management. */
+.quiz-management {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 8px;
+  box-sizing: border-box;
+}
+
+.quiz-management .management-back-bar {
+  min-height: 24px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.quiz-management .quiz-management-heading {
+  box-sizing: border-box;
+}
+
 .quiz-management .quiz-course-heading {
-  margin: 20px 0 24px;
-  padding: 0 0 14px;
+  margin: 0 0 24px;
+  padding: 0 0 16px;
   border-bottom: 1px solid #c6cbd2;
 }
+
 .quiz-management .quiz-selected-course {
   margin: 0;
-  color: #4f6174;
+  color: #294765;
   font-size: 22px;
   font-weight: 600;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
-.quiz-module-list {
-  display: grid;
-  gap: 32px;
-}
-.quiz-module-section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 18px;
-  margin-bottom: 20px;
-}
-.quiz-module-section-heading h2 {
-  margin: 0 0 8px;
-  font-size: 22px;
-  font-weight: 500;
-  color: #606060;
-}
-.quiz-module-section-heading p {
-  margin: 0;
-  color: #686868;
-  font-size: 13px;
-  line-height: 1.5;
-}
 
-.quiz-module-section a {
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.quiz-module-section a:focus-visible {
-  outline: 2px solid #567fab;
-  outline-offset: 3px;
-}
-@media (max-width: 600px) {
-  .quiz-module-section-heading {
-    flex-direction: column;
-  }
-}
-
-/* Keep Quiz Management independent of the analysis page's edge-to-edge layout. */
-.quiz-management {
+.quiz-management .quiz-management-content {
   width: 100%;
   min-width: 0;
   margin: 0;
-  padding-bottom: 24px;
-  background: #f7f7f7;
-}
-.quiz-management .quiz-management-heading {
-  min-height: auto;
-  padding: 24px;
-  border: 1px solid #c4c8cf;
-  border-radius: 16px;
-  background: white;
-  box-shadow: 5px 5px 0 #d9dfe7;
-}
-.quiz-management .quiz-management-heading h1 {
-  color: #263c52;
-  line-height: 1.3;
-}
-.quiz-management .quiz-management-heading p {
-  font-size: 14px;
-  line-height: 1.5;
-}
-.quiz-management .quiz-course-heading {
-  padding: 18px 4px;
-  margin: 14px 0 24px;
-}
-.quiz-management .quiz-management-content {
-  min-width: 0;
-  margin: 0;
-}
-.quiz-management .quiz-module-section {
-  min-width: 0;
-  padding: 24px;
-  border: 1px solid #d4d9e1;
-  border-radius: 18px;
-  background: #fff;
-}
-.quiz-management .quiz-module-section-heading {
-  margin-bottom: 24px;
-}
-.quiz-management .quiz-module-section-heading h2 {
-  color: #263c52;
-  line-height: 1.4;
-}
-.quiz-management .quiz-module-section-heading p {
-  max-width: 90ch;
-  font-size: 14px;
-  line-height: 1.65;
-}
-.quiz-management .quiz-module-section .quiz-management-folder-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-.quiz-management .quiz-module-section .quiz-management-folder {
-  min-width: 0;
-  min-height: 280px;
-  padding: 84px 30px 26px 24px;
-  gap: 24px;
-}
-.quiz-management .quiz-module-section .quiz-management-folder h3 {
-  padding-right: 36px;
-  font-size: 26px;
-  color: #263c52;
-  line-height: 1.3;
-}
-.quiz-management .quiz-module-section .quiz-management-folder p {
-  font-size: 15px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.quiz-management .quiz-module-section .quiz-management-folder-accent {
-  top: 64px;
-  right: 28px;
-  box-shadow: 1px 3px 0 #5f86b1;
-}
-.quiz-management .quiz-module-section .quiz-management-folder-footer {
-  margin-top: auto;
-  padding-top: 16px;
-}
-.quiz-management .quiz-module-section .quiz-management-edit-button {
-  min-height: 40px;
-  padding: 8px 18px;
-  font-size: 14px;
-  line-height: 1.4;
-  text-align: center;
-  box-shadow: 0 3px 0 #5f86b1;
-}
-@media (max-width: 900px) {
-  .quiz-management .quiz-module-section .quiz-management-folder-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-@media (max-width: 600px) {
-  .quiz-management .quiz-management-heading,
-  .quiz-management .quiz-module-section {
-    padding: 18px;
-  }
-  .quiz-management .quiz-module-section .quiz-management-folder {
-    padding-left: 20px;
-    padding-right: 26px;
-  }
-  .quiz-management .quiz-module-section .quiz-management-folder h3 {
-    font-size: 23px;
-  }
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Compact folders are single, keyboard-accessible links. */
-.quiz-management .quiz-management-heading {
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid #c4c8cf;
-  border-radius: 0;
-  box-shadow: none;
-  padding: 12px 4px 18px;
+.quiz-management .quiz-management-course-grid {
+  min-width: 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 380px));
+  gap: 24px;
 }
-.quiz-management .quiz-module-section {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 0 4px 24px;
+
+.quiz-management .quiz-course-envelope {
+  min-width: 0;
+  min-height: 260px;
+  padding: 64px 30px 20px 20px;
 }
-.quiz-management .quiz-module-section + .quiz-module-section {
-  border-top: 1px solid #c4c8cf;
-  padding-top: 24px;
+.quiz-management .quiz-course-envelope::before {
+  inset: 6px 0 0 11px;
 }
-.quiz-management .quiz-module-section .quiz-management-folder {
-  min-height: 220px;
-  padding: 64px 28px 22px 22px;
-  gap: 12px;
+.quiz-management .quiz-course-envelope::after {
+  inset: 0 13px 4px 0;
+}
+.quiz-management .quiz-course-envelope strong {
+  overflow-wrap: anywhere;
+}
+
+.quiz-management .quiz-module-list {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 380px));
+  align-items: stretch;
+  gap: 24px;
+}
+
+.quiz-management .quiz-module-list .quiz-management-folder {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  min-height: 260px;
+  padding: 76px 30px 20px 20px;
   color: inherit;
   text-decoration: none;
   cursor: pointer;
   transition: transform 160ms ease;
 }
-.quiz-management .quiz-module-section .quiz-management-folder:hover {
+
+.quiz-management .quiz-module-list .quiz-management-folder:hover {
   transform: translateY(-2px);
 }
-.quiz-management .quiz-module-section .quiz-management-folder:focus-visible {
+
+.quiz-management .quiz-module-list .quiz-management-folder:focus-visible {
   outline: 3px solid #5f86b1;
   outline-offset: 4px;
   border-radius: 18px;
 }
-.quiz-management .quiz-module-section .quiz-management-folder-accent {
-  top: 46px;
+
+.quiz-management .quiz-module-list .quiz-management-folder h3 {
+  margin: 0 0 8px;
+  padding: 0;
+  color: #333333;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
-.quiz-management .quiz-module-section .quiz-management-folder h3 {
-  margin-bottom: 8px;
+
+.quiz-management .quiz-module-list .quiz-management-folder p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
-.quiz-management .quiz-module-section .quiz-management-folder-footer {
+
+.quiz-management .quiz-module-list .quiz-management-folder-footer {
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: auto;
   padding-top: 12px;
 }
-.quiz-management .quiz-module-section .quiz-management-edit-button {
+
+.quiz-management .quiz-management-question-count {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #edf4fc;
+  color: #4f6174;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.quiz-management .quiz-module-list .quiz-management-edit-button {
   min-height: 36px;
   padding: 7px 16px;
-}
-
-/* Compact spacing throughout the module list. */
-.quiz-management .quiz-management-heading {
-  padding: 8px 4px 12px;
-}
-.quiz-management .quiz-course-heading {
-  margin: 8px 0 16px;
-  padding: 12px 4px;
-}
-.quiz-management .quiz-module-list {
-  gap: 16px;
-}
-.quiz-management .quiz-module-section {
-  padding-bottom: 8px;
-}
-.quiz-management .quiz-module-section + .quiz-module-section {
-  padding-top: 16px;
-}
-.quiz-management .quiz-module-section-heading {
-  margin-bottom: 14px;
-}
-.quiz-management .quiz-module-section-heading p {
-  max-width: none;
-}
-.quiz-management .quiz-module-section .quiz-management-folder-grid {
-  gap: 18px;
-}
-.quiz-management .quiz-module-section .quiz-management-folder {
-  min-height: 0;
-  padding: 52px 24px 16px 20px;
-  gap: 8px;
-}
-.quiz-management .quiz-module-section .quiz-management-folder h3 {
-  margin-bottom: 4px;
-}
-.quiz-management .quiz-module-section .quiz-management-folder p {
-  margin-top: 4px;
-}
-.quiz-management .quiz-module-section .quiz-management-folder-accent {
-  top: 38px;
-  right: 24px;
-}
-.quiz-management .quiz-module-section .quiz-management-folder-footer {
-  padding-top: 8px;
-}
-
-/* Keep a balanced gutter around Quiz Management. */
-.professor-layout .professor-content:has(.quiz-management) {
-  padding: 20px 24px 28px;
-}
-
-@media (max-width: 900px) {
-  .professor-layout .professor-content:has(.quiz-management) {
-    padding: 22px 16px 32px;
-  }
-}
-
-/* Align the course picker with the page heading and prevent overflow. */
-.professor-content .quiz-management {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  margin: 0;
-  box-sizing: border-box;
-}
-.quiz-management .quiz-management-search-panel {
-  width: 100%;
-  min-width: 0;
-  min-height: 64px;
-  margin: 18px 0 24px;
-  padding: 12px;
-  box-sizing: border-box;
-  border: 1px solid #c4c8cf;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 3px 3px 0 #d9dfe7;
-}
-.quiz-management .quiz-management-search-box {
-  width: 100%;
-  min-width: 0;
-  height: 40px;
-  padding: 0 16px;
-  background: #fff;
-  border-color: #c4c8cf;
-}
-.quiz-management .quiz-management-search-box input {
   font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 3px 0 #5f86b1;
+  margin-left: auto;
 }
-.quiz-management .quiz-management-content {
-  width: 100%;
-  min-width: 0;
-  margin: 0;
-}
-.quiz-management .quiz-management-course-grid {
-  width: 100%;
-  min-width: 0;
-  gap: 24px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 380px));
-}
+
 @media (max-width: 600px) {
-  .quiz-management .quiz-management-course-grid {
+  .quiz-management .quiz-management-course-grid,
+  .quiz-management .quiz-module-list {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-
-/* Preserve the original folder proportions instead of stretching across the page. */
-.quiz-management .quiz-module-section .quiz-management-folder-grid {
-  grid-template-columns: repeat(2, minmax(0, 360px));
-  justify-content: start;
-  gap: 24px;
-}
-.quiz-management .quiz-module-section .quiz-management-folder {
-  min-height: 250px;
-  padding: 76px 24px 20px 20px;
-  gap: 16px;
-}
-.quiz-management .quiz-module-section .quiz-management-folder-accent {
-  top: 57px;
-  right: 24px;
-}
-@media (max-width: 900px) {
-  .quiz-management .quiz-module-section .quiz-management-folder-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: 744px;
-    gap: 18px;
-  }
-}
-@media (max-width: 600px) {
-  .quiz-management .quiz-module-section .quiz-management-folder-grid {
-    grid-template-columns: minmax(0, 360px);
-  }
-}
-
-/* Consistent inset and vertical rhythm for the selected course. */
-.quiz-management .quiz-management-heading { padding: 12px 0 16px; }
-.quiz-management .quiz-course-heading { margin: 0 0 18px; padding: 16px 0; }
-.quiz-management .quiz-module-section { padding-left: 0; padding-right: 0; padding-bottom: 12px; }
-.quiz-management .quiz-module-section + .quiz-module-section { padding-top: 20px; }
-.quiz-management .quiz-module-section-heading { margin-bottom: 18px; }
-
-/* Match Edit Course: full-width bars with inset content. */
-.professor-layout .professor-content:has(.quiz-management) {
-  padding: 0;
-}
-.professor-content .quiz-management {
-  margin: 0;
-  padding: 0 0 28px;
-}
-.quiz-management .quiz-management-heading {
-  padding: 24px 28px 20px;
-}
-.quiz-management .quiz-course-heading {
-  margin: 0;
-  padding: 20px 28px;
-}
-.quiz-management .quiz-management-content {
-  padding: 20px 28px;
-  box-sizing: border-box;
-}
-.quiz-management .quiz-management-search-panel {
-  width: calc(100% - 56px);
-  margin: 20px 28px 0;
-}
-@media (max-width: 600px) {
-  .quiz-management .quiz-management-heading,
-  .quiz-management .quiz-course-heading,
-  .quiz-management .quiz-management-content {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-  .quiz-management .quiz-management-search-panel {
-    width: calc(100% - 32px);
-    margin-left: 16px;
-    margin-right: 16px;
-  }
-}
-
-.quiz-management .quiz-course-envelope { min-height: 240px; padding: 58px 30px 18px 20px; }
-.quiz-management .quiz-course-envelope::before { inset: 6px 0 0 11px; }
-.quiz-management .quiz-course-envelope::after { inset: 0 13px 4px 0; }
-
-.quiz-management .quiz-course-envelope { min-height: 240px; padding: 58px 30px 18px 20px; }
-.quiz-management .quiz-course-envelope::before { inset: 6px 0 0 11px; }
-.quiz-management .quiz-course-envelope::after { inset: 0 13px 4px 0; }
