@@ -13,6 +13,12 @@ const changeFormat = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 1,
 });
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+const timeFormat = new Intl.DateTimeFormat(undefined, {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+const ATTEMPTS_PER_PAGE = 5;
 
 function formatScore({ score, total }) {
   return `${score}/${total} (${percentFormat.format(score / total)})`;
@@ -22,7 +28,12 @@ function PracticeAttemptsModal({ record, onClose }) {
   const dialogRef = useRef(null);
   const titleId = useId();
   const descriptionId = useId();
+  const tableId = useId();
+  const [page, setPage] = useState(1);
   const { attempts, moduleTitle, courseTitle } = record;
+  const pageCount = Math.ceil(attempts.length / ATTEMPTS_PER_PAGE);
+  const start = (page - 1) * ATTEMPTS_PER_PAGE;
+  const visibleAttempts = attempts.slice(start, start + ATTEMPTS_PER_PAGE);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -67,25 +78,32 @@ function PracticeAttemptsModal({ record, onClose }) {
         <h3>{moduleTitle}</h3>
         <p id={descriptionId}>{courseTitle}</p>
         <p className="home-practice-attempts-count">
+          Showing {start + 1}&ndash;
+          {Math.min(start + ATTEMPTS_PER_PAGE, attempts.length)} of{" "}
           {attempts.length} attempts &middot; Latest first
         </p>
-        <table className="home-practice-attempts-table">
+        <table id={tableId} className="home-practice-attempts-table">
           <thead>
             <tr>
               <th scope="col">Attempt</th>
               <th scope="col">Score</th>
-              <th scope="col">Date</th>
+              <th scope="col">Date &amp; time</th>
             </tr>
           </thead>
           <tbody>
-            {attempts.map((attempt, index) => (
+            {visibleAttempts.map((attempt, index) => (
               <tr key={attempt.id}>
-                <th scope="row">{attempts.length - index}</th>
+                <th scope="row">{attempts.length - start - index}</th>
                 <td>{formatScore(attempt)}</td>
                 <td>
                   {attempt.completedAt ? (
                     <time dateTime={attempt.completedAt}>
-                      {dateFormat.format(new Date(attempt.completedAt))}
+                      <span>
+                        {dateFormat.format(new Date(attempt.completedAt))}
+                      </span>
+                      <span className="home-practice-attempts-time">
+                        {timeFormat.format(new Date(attempt.completedAt))}
+                      </span>
                     </time>
                   ) : (
                     "-"
@@ -95,6 +113,32 @@ function PracticeAttemptsModal({ record, onClose }) {
             ))}
           </tbody>
         </table>
+        {pageCount > 1 && (
+          <nav
+            className="home-results-pagination home-practice-attempts-pagination"
+            aria-label="Practice attempts pagination"
+          >
+            <button
+              type="button"
+              aria-controls={tableId}
+              disabled={page === 1}
+              onClick={() => setPage((current) => current - 1)}
+            >
+              Previous
+            </button>
+            <span role="status" aria-live="polite">
+              Page {page} of {pageCount}
+            </span>
+            <button
+              type="button"
+              aria-controls={tableId}
+              disabled={page === pageCount}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Next
+            </button>
+          </nav>
+        )}
       </div>
     </dialog>
   );

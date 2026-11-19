@@ -124,6 +124,27 @@
   border-bottom: 0;
 }
 
+.home-practice-attempts-table time {
+  display: grid;
+  gap: 2px;
+}
+
+.home-practice-attempts-time {
+  color: #69717f;
+  font-size: 12px;
+}
+
+.home-practice-attempts-pagination {
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid #edf0f4;
+}
+
+.home-practice-attempts-pagination button {
+  font: inherit;
+}
+
 @media (max-width: 480px) {
   .home-practice-attempts-header {
     padding: 16px 48px;
