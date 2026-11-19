@@ -12,6 +12,7 @@ import {
   practiceModuleId,
   readModuleRecapAnswers,
   requestModulePractice,
+  prepareModulePractice,
 } from "../../../services/adaptivePractice.js";
 import {
   clearPracticeProgress,
@@ -47,6 +48,7 @@ import TimedTutorial, {
 import MixedModeTutorial from "../../quizzes/inQuiz/tutorials/randommodes.jsx";
 import { getStudentProgressStorageKey } from "./studentCourseData.js";
 import styles from "./ModulePractice.module.css";
+import { coursePracticeModule } from "../../quizzes/inQuiz/practiceSession.js";
 
 const modes = {
   flashcard: [FlashcardsTutorial, Flashcards, flashcardIntro],
@@ -65,7 +67,7 @@ const modes = {
   ],
 };
 
-function PracticeQuestionLoader({ intro }) {
+function PracticeQuestionLoader({ intro, status }) {
   const [frameIndex, setFrameIndex] = useState(0);
   const { frames, screen, artwork } = intro;
 
@@ -84,7 +86,11 @@ function PracticeQuestionLoader({ intro }) {
       aria-label="Loading practice questions"
     >
       <img src={frames[frameIndex]} className={artwork} alt="" />
-      <p className={styles.waitMessage}>Please wait...</p>
+      <p className={styles.waitMessage}>
+        {status === "queued"
+          ? "Your practice is queued..."
+          : "Preparing and checking your 10 questions..."}
+      </p>
     </div>
   );
 }
@@ -101,8 +107,10 @@ function PracticeSession({ courseId, moduleId, mode }) {
   const [courseError, setCourseError] = useState("");
   const [attempt, setAttempt] = useState(null);
   const [recapRequired, setRecapRequired] = useState(false);
+  const [preparationError, setPreparationError] = useState("");
+  const [preparationStatus, setPreparationStatus] = useState("queued");
+  const [preparationVersion, setPreparationVersion] = useState(0);
   const [saveError, setSaveError] = useState("");
-  const opened = useRef(false);
   const pending = useRef(null);
   const saving = useRef(false);
   const active = useRef(false);
@@ -111,11 +119,13 @@ function PracticeSession({ courseId, moduleId, mode }) {
   const module = modules?.[moduleIndex];
   const moduleTitle = module?.title || "Module practice";
   const coursePath = `/student/enrolled-courses/${courseId}`;
-  const recapPath = `/lesson/${courseId}?module=${moduleIndex}&recap=1`;
-  const { moduleNumber, nextModuleIndex } = studentModuleNavigation(
-    modules || [],
-    moduleIndex,
-  );
+  const isCoursePractice = moduleId === "all-modules";
+  const recapPath = isCoursePractice
+    ? coursePath
+    : `/lesson/${courseId}?module=${moduleIndex}&recap=1`;
+  const { moduleNumber, nextModuleIndex } = isCoursePractice
+    ? { moduleNumber: null, nextModuleIndex: null }
+    : studentModuleNavigation(modules || [], moduleIndex);
   const nextModuleTitle = modules?.[nextModuleIndex]?.title || "";
   const practiceReview = useMemo(
     () =>
@@ -164,7 +174,17 @@ function PracticeSession({ courseId, moduleId, mode }) {
     active.current = true;
     fetchCourseContent(courseId)
       .then((course) => {
-        if (current) setModules(getCourseContentModules(course));
+        if (current) {
+          const contentModules = getCourseContentModules(course);
+          setModules(
+            isCoursePractice
+              ? [
+                  ...contentModules,
+                  coursePracticeModule(course, contentModules),
+                ]
+              : contentModules,
+          );
+        }
       })
       .catch(() => {
         if (current) setCourseError("We couldn't load this course.");
@@ -173,33 +193,64 @@ function PracticeSession({ courseId, moduleId, mode }) {
       current = false;
       active.current = false;
     };
-  }, [courseId]);
+  }, [courseId, isCoursePractice]);
 
   useEffect(() => {
-    if (!mode || moduleIndex < 0 || result || opened.current) return;
-    opened.current = true;
+    if (!mode || !module || result) return;
+    const controller = new AbortController();
+    setPreparationError("");
+    setRecapRequired(false);
 
     async function loadAttempt() {
       try {
-        const data = await requestModulePractice("start", {
-          courseId: Number(courseId),
-          moduleId,
-          mode,
-          recapAnswers: readModuleRecapAnswers(courseId, moduleIndex, moduleId),
-        });
-        if (active.current) setAttempt(data.attempt);
+        const prepared = await prepareModulePractice(
+          {
+            courseId: Number(courseId),
+            moduleId,
+            mode,
+            recapAnswers: isCoursePractice
+              ? modules
+                  .slice(0, -1)
+                  .flatMap((item, index) =>
+                    readModuleRecapAnswers(courseId, index, item.id),
+                  )
+                  .filter((answer) =>
+                    module.quizItems
+                      .slice(0, 5)
+                      .some((item) => item.question === answer.question),
+                  )
+                  .slice(0, 5)
+              : readModuleRecapAnswers(courseId, moduleIndex, moduleId),
+          },
+          {
+            signal: controller.signal,
+            onProgress: (status) => {
+              if (!controller.signal.aborted) setPreparationStatus(status);
+            },
+          },
+        );
+        if (!controller.signal.aborted) setAttempt(prepared);
       } catch (error) {
-        if (!active.current) return;
+        if (controller.signal.aborted) return;
         if (error.code === "QUICK_RECAP_REQUIRED") {
           setRecapRequired(true);
           return;
         }
-        navigate(coursePath, { replace: true });
+        setPreparationError(error.message);
       }
     }
 
     void loadAttempt();
-  }, [courseId, coursePath, moduleId, moduleIndex, mode, navigate, result]);
+    return () => controller.abort();
+  }, [
+    courseId,
+    moduleId,
+    moduleIndex,
+    module,
+    mode,
+    result,
+    preparationVersion,
+  ]);
 
   async function finish(answers, finishReason) {
     if (!active.current || saving.current) return;
@@ -307,7 +358,26 @@ function PracticeSession({ courseId, moduleId, mode }) {
     );
   }
 
-  if (!session) return <PracticeQuestionLoader intro={intro} />;
+  if (preparationError)
+    return (
+      <main className={styles.page}>
+        <h1>Practice could not be prepared</h1>
+        <p role="alert">{preparationError}</p>
+        <button
+          className={styles.primary}
+          type="button"
+          onClick={() => setPreparationVersion((version) => version + 1)}
+        >
+          Try again
+        </button>
+        <p>
+          <Link to={coursePath}>Back to course</Link>
+        </p>
+      </main>
+    );
+
+  if (!session)
+    return <PracticeQuestionLoader intro={intro} status={preparationStatus} />;
 
   return (
     <Tutorial

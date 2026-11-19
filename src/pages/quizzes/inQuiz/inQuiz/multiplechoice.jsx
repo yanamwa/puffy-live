@@ -586,7 +586,7 @@ export default function Quiz({ adaptivePractice } = {}) {
     );
 
     try {
-      await fetch(`${API_BASE}/saveQuizAttempt.php`, {
+      await fetch(`${API_BASE}/quiz-attempts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

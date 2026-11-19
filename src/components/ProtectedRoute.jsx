@@ -11,6 +11,7 @@ import {
   professorTutorialSteps,
 } from "../pages/professor/tutorial/professorTutorialSteps.js";
 import StudentTutorial from "../pages/student/tutorial/StudentTutorial.jsx";
+import { legacyPracticeRedirect, readStorageJson } from "../pages/quizzes/inQuiz/practiceSession.js";
 import {
   getStudentSetupRedirect,
   getTutorialStep,
@@ -199,6 +200,10 @@ export default function ProtectedRoute() {
         <Navigate to={tutorialStep.fallbackPath ?? pathname} replace />
       );
     }
+    const practiceRedirect = legacyPracticeRedirect(
+      pathname, readStorageJson("practiceScope", {}), localStorage.getItem("practiceLessonId"),
+    );
+    if (practiceRedirect) return <Navigate to={practiceRedirect} replace />;
   }
 
   return <Outlet />;

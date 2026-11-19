@@ -1,6 +1,7 @@
 import { API_BASE } from "../config.js";
 import { readAccountQuizResult } from "../utils/quizStorage.js";
 import { lessonAuthHeaders } from "./lessonAuth.js";
+import { waitForPractice } from "./practicePreparation.js";
 
 function normalizePracticeAnswer(value) {
   return String(value ?? "")
@@ -107,12 +108,14 @@ export function readModuleRecapAnswers(courseId, moduleIndex, moduleId) {
   }
 }
 
-export async function requestModulePractice(action, body) {
+export async function requestModulePractice(action, body, { signal } = {}) {
   const response = await fetch(`${API_BASE}/lessons/practice/${action}`, {
-    method: "POST",
+    method: body === undefined ? "GET" : "POST",
+    signal,
+    cache: "no-store",
     credentials: "include",
     headers: { "Content-Type": "application/json", ...lessonAuthHeaders() },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await response.json().catch(() => null);
   if (!response.ok || !data?.success) {
@@ -120,7 +123,12 @@ export async function requestModulePractice(action, body) {
       data?.message || "Practice is temporarily unavailable. Please try again.",
     );
     error.code = data?.code;
+    error.status = response.status;
     throw error;
   }
   return data;
+}
+
+export function prepareModulePractice(body, options) {
+  return waitForPractice(requestModulePractice, body, options);
 }

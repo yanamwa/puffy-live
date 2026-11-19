@@ -6,6 +6,7 @@ import {
   buildCurrentPracticeFeedback,
   getReviewMetadata,
   getReviewTopic,
+  upgradePracticeFeedback,
 } from "../../src/pages/course/feedbackReview.js";
 
 const title = "The Self from Various Perspectives";
@@ -147,10 +148,18 @@ test("Q&A metadata keeps concept and cognitive classifications without copying a
   );
 });
 
-test("review guidance names the actual selected answer, correct answer and explanation", () => {
+test("review guidance explains likely confusion and gives a study strategy instead of an answer-key recap", () => {
   const reviews = buildMistakeReviewTopics(answers, title);
-  assert.match(reviews[0].explanation, /answered "Me".*correct answer is "I"/);
+  assert.match(
+    reviews[0].explanation,
+    /suggests possible confusion between Me and I/,
+  );
   assert.match(reviews[0].explanation, /spontaneous response/);
+  assert.match(reviews[0].studyTip, /two-column comparison of Me and I/);
+  assert.doesNotMatch(
+    reviews[0].explanation,
+    /You answered|saved correct answer/,
+  );
 });
 
 test("older saved results show latest accuracy and deduplicated evidence without inventing history", () => {
@@ -192,4 +201,94 @@ test("unanswered legacy questions and flashcard ratings cannot establish mastery
   assert.equal(feedback.latestAccuracy, null);
   assert.deepEqual(feedback.strengths, []);
   assert.match(feedback.nextGoal, /graded quiz/);
+});
+
+test("legacy feedback upgrades to educational review while preserving its measured history", () => {
+  const current = [
+    {
+      ...answers[0],
+      concept: "Mead's I and me",
+      topic: "The Self",
+      isCorrect: false,
+    },
+    {
+      ...answers[1],
+      concept: "Freud's id",
+      topic: "The Self",
+      isCorrect: true,
+    },
+  ];
+  const feedback = upgradePracticeFeedback(
+    {
+      topic: "The Self",
+      questionIndexes: [0, 1],
+      latestAccuracy: 50,
+      historicalAccuracy: 40,
+      gradedAttempts: 3,
+      recurring: true,
+      recommendation: 'You answered "Me"; the saved correct answer is "I".',
+      adaptiveRecommendation: "Try advanced questions.",
+      misconceptions: [{ ...current[0] }],
+    },
+    current,
+    title,
+    "qna",
+  );
+  assert.equal(feedback.feedbackVersion, 2);
+  assert.equal(feedback.latestAccuracy, 50);
+  assert.equal(feedback.historicalAccuracy, 40);
+  assert.equal(feedback.gradedAttempts, 3);
+  assert.match(feedback.recommendation, /Freud's id.*Mead's I and me/);
+  assert.match(
+    feedback.suggestedReviewTopics[0].explanation,
+    /spontaneous response/,
+  );
+  assert.match(
+    feedback.suggestedReviewTopics[0].studyTip,
+    /two-column comparison/,
+  );
+  assert.doesNotMatch(feedback.adaptiveRecommendation, /advanced/);
+  assert.doesNotMatch(
+    feedback.recommendation,
+    /You answered|saved correct answer/,
+  );
+  assert.match(feedback.nextGoal, /90% \(9\/10\)/);
+});
+
+test("historical-only feedback does not claim the topic was tested in the latest attempt", () => {
+  const feedback = upgradePracticeFeedback(
+    {
+      topic: "The Self",
+      questionIndexes: [],
+      latestTotal: 0,
+      latestAccuracy: null,
+      historicalAccuracy: 20,
+      misconceptions: [{ ...answers[0], concept: "Mead's I and me" }],
+    },
+    [{ topic: "Other topic", isCorrect: true }],
+    title,
+    "qna",
+  );
+  assert.deepEqual(feedback.strengths, []);
+  assert.equal(feedback.latestAccuracy, null);
+  assert.match(feedback.recommendation, /^Earlier mistakes/);
+  assert.doesNotMatch(
+    feedback.recommendation,
+    /latest responses show progress/,
+  );
+  assert.match(feedback.suggestedReviewTopics[0].studyTip, /Me and I/);
+});
+
+test("already updated feedback keeps its source-based explanation and study tip", () => {
+  const feedback = {
+    feedbackVersion: 2,
+    suggestedReviewTopics: [
+      {
+        topic: "Variables",
+        explanation: "Saved explanation.",
+        studyTip: "Trace a variable in the lesson's code example.",
+      },
+    ],
+  };
+  assert.equal(upgradePracticeFeedback(feedback, [], title, "qna"), feedback);
 });

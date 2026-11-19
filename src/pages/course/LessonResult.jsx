@@ -17,9 +17,15 @@ import {
 } from "./courseContent.js";
 import MainQuizResult from "./MainQuizResult.jsx";
 import { isMainQuizResult } from "../../utils/quizResultType.js";
-import { buildCurrentPracticeFeedback } from "./feedbackReview.js";
+import {
+  buildCurrentPracticeFeedback,
+  upgradePracticeFeedback,
+} from "./feedbackReview.js";
 import { modulePracticePath } from "../../services/adaptivePractice.js";
-import { getResultPracticeModule } from "../quizzes/inQuiz/practiceSession.js";
+import {
+  coursePracticeModule,
+  getResultPracticeModule,
+} from "../quizzes/inQuiz/practiceSession.js";
 
 function Sparkles(props) {
   return (
@@ -226,7 +232,11 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
         savedResults.moduleId ||
         savedResults.scopeId ||
         savedResults.scope?.scopeId;
-      if (!practiceResult && courseId && savedResults.source !== "deck") {
+      if (
+        !practiceResult &&
+        savedResults.quizMode === "adaptive_practice" &&
+        courseId
+      ) {
         const course = await fetchCourseContent(courseId);
         moduleId = getResultPracticeModule(
           savedResults,
@@ -234,7 +244,9 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
         )?.id;
       }
       const query = new URLSearchParams(
-        courseId && moduleId
+        courseId &&
+          moduleId &&
+          (practiceResult || savedResults.quizMode === "adaptive_practice")
           ? {
               source: "module",
               quizMode: "adaptive_practice",
@@ -251,13 +263,14 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
               deckId:
                 savedResults.deckId || savedResults.deck_id || deckId || "",
               quizMode: savedResults.quizMode || savedResults.mode || "",
+              ...(courseId ? { courseId } : {}),
             },
       );
 
-      const res = await fetch(
-        `${API_BASE}/getQuizAttempts.php?${query.toString()}`,
-        { credentials: "include", headers: lessonAuthHeaders() },
-      );
+      const res = await fetch(`${API_BASE}/quiz-attempts?${query.toString()}`, {
+        credentials: "include",
+        headers: lessonAuthHeaders(),
+      });
 
       const data = await res.json();
 
@@ -416,7 +429,8 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
       }
 
       const persistQuizAttempt = async () => {
-        if (savedResults.savedAttemptId || savedResults.attemptId) return;
+        if (savedResults.savedAttemptId || savedResults.attemptId)
+          return savedResults.savedAttemptId || savedResults.attemptId;
 
         try {
           const attemptTotal = Number(
@@ -425,7 +439,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
 
           if (attemptTotal <= 0) return;
 
-          const response = await fetch(`${API_BASE}/saveQuizAttempt.php`, {
+          const response = await fetch(`${API_BASE}/quiz-attempts`, {
             method: "POST",
             credentials: "include",
             headers: {
@@ -495,6 +509,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
               }),
             );
           }
+          return data.attemptId;
         } catch (error) {
           console.error("Save quiz attempt error:", error);
           throw error;
@@ -527,7 +542,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
         setIsFeedbackLoading(true);
         setAiFeedback(null);
 
-        const generateFeedback = async () => {
+        const generateFeedback = async (savedAttemptId) => {
           try {
             let resolvedTitle = String(
               savedResults.contentTitle ||
@@ -610,26 +625,25 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
               });
             }
 
-            const response = await fetch(
-              `${API_BASE}/generateAdaptiveFeedback.php`,
-              {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                  "Content-Type": "application/json",
-                  ...lessonAuthHeaders(),
-                },
-                body: JSON.stringify({
-                  user_id: getStoredUserId(),
-                  source: detectedSource,
-                  contentTitle: resolvedTitle,
-                  lessonId: detectedLessonId,
-                  deckId: detectedDeckId,
-                  quizMode: detectedQuizMode,
-                  answers: titledAnswers,
-                }),
+            const response = await fetch(`${API_BASE}/quiz-feedback`, {
+              method: "POST",
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+                ...lessonAuthHeaders(),
               },
-            );
+              body: JSON.stringify({
+                user_id: getStoredUserId(),
+                source: detectedSource,
+                contentTitle: resolvedTitle,
+                  attemptId: savedAttemptId,
+                lessonId: detectedLessonId,
+                courseId: detectedCourseId,
+                deckId: detectedDeckId,
+                quizMode: detectedQuizMode,
+                answers: titledAnswers,
+              }),
+            });
 
             const responseText = await response.text();
             let data;
@@ -705,7 +719,15 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
           }
         };
 
-        generateFeedback();
+        // Feedback must attach to the saved attempt, rather than racing its insert.
+        attemptSaves
+          .get(saveKey)
+          .then((attemptId) => {
+            if (!ignore) return generateFeedback(attemptId);
+          })
+          .catch(() => {
+            if (!ignore) setIsFeedbackLoading(false);
+          });
       }
     }
 
@@ -763,7 +785,14 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
   );
   const displayedFeedback =
     Array.isArray(aiFeedback) && aiFeedback.length > 0
-      ? aiFeedback
+      ? aiFeedback.map((feedback) =>
+          upgradePracticeFeedback(
+            feedback,
+            results.answers,
+            contentTitle,
+            quizMode,
+          ),
+        )
       : topicFeedback;
   const activeFeedbackIndex = Math.min(
     feedbackIndex,
@@ -872,10 +901,10 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
   const startCoursePractice = async (mode) => {
     try {
       const course = await fetchCourseContent(resultCourseId);
-      const module = getResultPracticeModule(
-        results,
-        getCourseContentModules(course),
-      );
+      const module =
+        results.moduleId === "all-modules" || results.source === "course"
+          ? coursePracticeModule(course, getCourseContentModules(course))
+          : getResultPracticeModule(results, getCourseContentModules(course));
       const path = modulePracticePath(resultCourseId, module, mode);
       setShowQuizModal(false);
       // Old course-wide results need a module selection before adaptive practice.
@@ -1109,25 +1138,20 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
                   )}
                 </div>
 
-                <div className={`${styles.insightCard} ${styles.nextGoal}`}>
-                  <h4>Next Goal</h4>
-                  <p>{activeFeedback.nextGoal}</p>
+                <div className={styles.insightCard}>
+                  <h4>Areas for Improvement</h4>
+                  {areasForImprovement.length > 0 ? (
+                    <ul className={styles.improvementList}>
+                      {areasForImprovement.map((area, index) => (
+                        <li key={`${area}-${index}`}>{area}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>
+                      No areas for improvement were detected for this topic.
+                    </p>
+                  )}
                 </div>
-              </div>
-
-              <div
-                className={`${styles.insightCard} ${styles.improvementSection}`}
-              >
-                <h4>Areas for Improvement</h4>
-                {areasForImprovement.length > 0 ? (
-                  <ul className={styles.improvementList}>
-                    {areasForImprovement.map((area, index) => (
-                      <li key={`${area}-${index}`}>{area}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No areas for improvement were detected for this topic.</p>
-                )}
               </div>
 
               <div className={styles.adaptivePlanCard}>
@@ -1136,12 +1160,12 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
                     Adaptive Recommendation
                   </span>
                   <strong>
-                    {activeFeedback.difficulty || "Steady practice"} Questions
+                    {activeFeedback.difficulty || "Focused Practice"}
                   </strong>
                 </div>
-                <p>{activeFeedback.adaptiveRecommendation}</p>
+                <p>{activeFeedback.recommendation}</p>
                 <p className={styles.adaptiveRecommendation}>
-                  {activeFeedback.recommendation}
+                  {activeFeedback.adaptiveRecommendation}
                 </p>
               </div>
 
@@ -1161,10 +1185,19 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
                         key={review.topic}
                       >
                         <h5>{review.topic}</h5>
+                        <h6 className={styles.reviewSectionLabel}>
+                          What to understand
+                        </h6>
                         <p>{review.explanation}</p>
+                        <h6 className={styles.reviewSectionLabel}>Study tip</h6>
+                        <p>{review.studyTip}</p>
                       </article>
                     ))}
                   </div>
+                </div>
+                <div className={`${styles.insightCard} ${styles.nextGoal}`}>
+                  <h4>Next Goal</h4>
+                  <p>{activeFeedback.nextGoal}</p>
                 </div>
               </div>
 

@@ -1,7 +1,24 @@
+import {
+  buildConceptReview,
+  buildLearningPlan,
+  LEARNING_FEEDBACK_VERSION,
+} from "../../utils/learningFeedback.js";
+
 const cleanText = (value) =>
   typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 
 const normalize = (value) => cleanText(value).normalize("NFC").toLowerCase();
+const unique = (values) => [
+  ...new Map(values.map((value) => [normalize(value), value])).values(),
+];
+const isCorrect = (answer) =>
+  typeof answer.isCorrect === "boolean"
+    ? answer.isCorrect
+    : Boolean(cleanText(answer.userAnswer || answer.selectedAnswer)) &&
+      normalize(answer.userAnswer || answer.selectedAnswer) ===
+        normalize(
+          answer.correctAnswer || answer.correct_answer || answer.answer,
+        );
 
 export function getReviewMetadata(item) {
   return Object.fromEntries(
@@ -102,34 +119,23 @@ export function buildMistakeReviewTopics(answers, fallbackTopic, limit = 3) {
   for (const answer of answers) {
     const review = getReviewTopic(answer, fallbackTopic);
     const key = normalize(review.topic);
-    if (topics.has(key)) continue;
-    const selected =
-      cleanText(answer.userAnswer || answer.selectedAnswer) || "No answer";
-    const correct = cleanText(
-      answer.correctAnswer || answer.correct_answer || answer.answer,
-    );
-    topics.set(key, {
-      topic: review.topic,
-      question: cleanText(answer.question),
-      explanation: answer.isSelfAssessed
-        ? `Review this difficult card, then check your understanding with a graded question.`
-        : `${correct ? `You answered "${selected}"; the saved correct answer is "${correct}". ` : ""}${review.explanation || `Revisit the lesson explanation of ${review.topic} before trying a new example.`}`,
-    });
+    const existing = topics.get(key);
+    if (!existing || (!existing.hasExplanation && review.explanation))
+      topics.set(key, {
+        review: buildConceptReview(
+          { ...answer, concept: review.topic, explanation: review.explanation },
+          fallbackTopic,
+        ),
+        hasExplanation: Boolean(review.explanation),
+      });
   }
-  return [...topics.values()].slice(0, limit);
+  return [...topics.values()].slice(0, limit).map(({ review }) => review);
 }
 
 // Used for older saved results that have no server feedback. No history is
 // inferred from the attempt counter or from browser storage.
 export function buildCurrentPracticeFeedback(answers, contentTitle, quizMode) {
-  const correct = (answer) =>
-    typeof answer.isCorrect === "boolean"
-      ? answer.isCorrect
-      : Boolean(cleanText(answer.userAnswer || answer.selectedAnswer)) &&
-        normalize(answer.userAnswer || answer.selectedAnswer) ===
-          normalize(
-            answer.correctAnswer || answer.correct_answer || answer.answer,
-          );
+  const correct = isCorrect;
   const groups = new Map();
   answers.forEach((answer, index) => {
     const topic = cleanText(answer.topic) || contentTitle || "Module concepts";
@@ -153,11 +159,17 @@ export function buildCurrentPracticeFeedback(answers, contentTitle, quizMode) {
     const confidence = Math.round((100 * hits) / items.length);
     const selfAssessed = quizMode === "flashcard";
     const missed = items.filter((answer) => !correct(answer));
-    const reviews = buildMistakeReviewTopics(missed, topic);
+    const reviews = buildMistakeReviewTopics(
+      missed.map((answer) => ({
+        ...answer,
+        isSelfAssessed: selfAssessed || answer.isSelfAssessed,
+      })),
+      topic,
+    );
     const failedConcepts = new Set(
       missed.map((answer) => normalize(getReviewTopic(answer, topic).topic)),
     );
-    const strengths = selfAssessed
+    const strengthConcepts = selfAssessed
       ? []
       : [
           ...new Map(
@@ -167,12 +179,23 @@ export function buildCurrentPracticeFeedback(answers, contentTitle, quizMode) {
               .filter((concept) => !failedConcepts.has(normalize(concept)))
               .map((concept) => [normalize(concept), concept]),
           ).values(),
-        ]
-          .slice(0, 2)
-          .map(
-            (concept) => `Answered correctly about ${concept} in this attempt.`,
-          );
+        ].slice(0, 2);
+    const strengths = strengthConcepts.map(
+      (concept) => `Demonstrated understanding of ${concept} in this attempt.`,
+    );
+    const weakConcepts = unique(
+      missed.map((answer) => getReviewTopic(answer, topic).topic),
+    );
+    const plan = buildLearningPlan({
+      topic,
+      strongConcepts: strengthConcepts,
+      weakConcepts,
+      currentWeakConcepts: weakConcepts,
+      selfAssessed,
+      foundation: score / total < 0.6,
+    });
     return {
+      feedbackVersion: LEARNING_FEEDBACK_VERSION,
       topic,
       questionIndexes,
       confidence,
@@ -192,17 +215,82 @@ export function buildCurrentPracticeFeedback(answers, contentTitle, quizMode) {
             ? "Developing Understanding"
             : "Needs More Practice",
       strengths,
+      strengthConcepts,
       suggestedReviewTopics: reviews,
-      areasForImprovement: reviews.map((review) => review.topic),
-      recommendation:
-        reviews[0]?.explanation || `Check ${topic} again using new examples.`,
-      adaptiveRecommendation: missed.length
-        ? `Review ${reviews.map((review) => review.topic).join(", ")}. Practice these missed concepts with clearer questions and different scenarios.`
-        : "Review other weak topics, if present, and use fresh examples at the same baseline difficulty.",
-      difficulty: score / total < 0.6 ? "Foundation" : "Steady practice",
+      areasForImprovement: weakConcepts,
+      ...plan,
       nextGoal: selfAssessed
         ? `Complete a graded quiz and aim for ${target}/${nextTotal} (90%). Flashcard ratings do not establish mastery.`
         : `${achievedTarget ? "Maintain" : "Aim for"} at least ${achievedTarget ? target : nextScore}/${nextTotal} correct next time. The mastery target is 90% (${target}/${nextTotal}).`,
     };
   });
+}
+// Refresh the wording of saved feedback while retaining its recorded history metrics.
+export function upgradePracticeFeedback(
+  feedback,
+  answers,
+  contentTitle,
+  quizMode,
+) {
+  if (feedback.feedbackVersion === LEARNING_FEEDBACK_VERSION) return feedback;
+  const topic = cleanText(feedback.topic) || contentTitle || "Module concepts";
+  const indexes = feedback.questionIndexes || feedback.question_indexes;
+  const current = (
+    Array.isArray(indexes)
+      ? indexes.map((index) => answers[Number(index)]).filter(Boolean)
+      : answers.filter(
+          (answer) =>
+            normalize(answer.topic || contentTitle) === normalize(topic),
+        )
+  )
+    .filter((answer) => answer.answerKeyValid !== false)
+    .map((answer) => ({ ...answer, topic }));
+  const baseline = buildCurrentPracticeFeedback(current, topic, quizMode)[0];
+  const overallGoal = buildCurrentPracticeFeedback(
+    answers,
+    contentTitle,
+    quizMode,
+  )[0]?.nextGoal;
+  const selfAssessed = Boolean(
+    feedback.selfAssessed || quizMode === "flashcard",
+  );
+  const currentMisses = current.filter((answer) => !isCorrect(answer));
+  const recordedMisses = Array.isArray(feedback.misconceptions)
+    ? feedback.misconceptions.filter(
+        (miss) =>
+          miss && typeof miss === "object" && miss.answerKeyValid !== false,
+      )
+    : [];
+  const misses = [...currentMisses, ...recordedMisses].map((miss) => ({
+    ...miss,
+    isSelfAssessed: selfAssessed || miss.isSelfAssessed,
+  }));
+  const weakConcepts = unique(
+    misses.map((miss) => getReviewTopic(miss, topic).topic),
+  );
+  const plan = buildLearningPlan({
+    topic,
+    strongConcepts: baseline?.strengthConcepts || [],
+    currentWeakConcepts: unique(
+      currentMisses.map((miss) => getReviewTopic(miss, topic).topic),
+    ),
+    weakConcepts,
+    selfAssessed,
+    hasCurrentAnswers: current.length > 0,
+    recurring: Boolean(feedback.recurring),
+    foundation: /^foundation/i.test(
+      feedback.difficulty || baseline?.difficulty || "",
+    ),
+  });
+  return {
+    ...feedback,
+    ...plan,
+    feedbackVersion: LEARNING_FEEDBACK_VERSION,
+    strengths: selfAssessed ? [] : baseline?.strengths || [],
+    areasForImprovement: weakConcepts,
+    suggestedReviewTopics: buildMistakeReviewTopics(misses, topic),
+    nextGoal:
+      overallGoal ||
+      `Aim for at least 9/10 (90%) on a graded practice quiz and explain a fresh example of ${topic}.`,
+  };
 }

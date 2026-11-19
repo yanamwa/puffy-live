@@ -25,6 +25,7 @@ import {
 } from "./studentCourseData";
 import { requestCourseEnrollmentByCode } from "./courseEnrollment.js";
 import { modulePracticePath } from "../../../services/adaptivePractice.js";
+import { coursePracticeModule } from "../../quizzes/inQuiz/practiceSession.js";
 import { confirmMainQuizAccess } from "../../../services/mainQuizAccess.js";
 import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
 import { tutorialEnrolledCourseDetail } from "../tutorial/studentTutorialExamples.js";
@@ -1085,6 +1086,11 @@ export default function StudentCourseDetail() {
         confirmButtonText: "OK",
       });
 
+      return;
+    }
+
+    if (!tutorial) {
+      setPracticeSession({ source: "course", adaptiveModule: coursePracticeModule(course, modules) });
       return;
     }
 

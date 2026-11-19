@@ -7,6 +7,36 @@ export function readStorageJson(key, fallback = null) {
   }
 }
 
+export function coursePracticeModule(course, modules) {
+  const hasPublication = modules.some((module) => module.studentPublished !== undefined);
+  const visible = modules.filter((module) => !hasPublication || module.studentPublished === true);
+  return {
+    id: "all-modules",
+    title: course.title || course.courseName || course.course_name || "Course practice",
+    lessonPages: visible.flatMap((module) => module.lessonPages || []),
+    quizItems: visible.flatMap((module) => module.quizItems || []),
+  };
+}
+
+export function legacyPracticeRedirect(pathname, scope, storedLessonId) {
+  const match = /^\/(flashcards-tutorial|QandA-tutorial|qna-tutorial|multipleChoice-tutorial|multiple-choice-tutorial|Matching-tutorial|matching-tutorial|timedquiz-tutorial|random-modes-tutorial|mixed-mode-tutorial|flashcard|qna|multiple-choice|matching-type|timedquiz|mixed-mode|random-modes|survival)\/lesson\/([^/]+)$/i.exec(pathname);
+  if (!match || scope?.scopeType === "main_quiz") return "";
+  let lessonId;
+  try { lessonId = decodeURIComponent(match[2]); } catch { return ""; }
+  if (storedLessonId !== lessonId) return "";
+  const courseId = Number(scope?.courseId);
+  if (!Number.isSafeInteger(courseId) || courseId < 1) return "";
+  const moduleId = scope.scopeType === "course" ? "all-modules" : scope.scopeId;
+  if (!moduleId) return `/student/enrolled-courses/${courseId}`;
+  const route = match[1].toLowerCase();
+  const mode = route.includes("flashcard") ? "flashcard"
+    : /qna|qanda/.test(route) ? "qna"
+    : route.includes("multiple") ? "multiple"
+    : route.includes("matching") ? "matching"
+    : route.includes("timed") ? "timed" : "mixed";
+  return `/student/enrolled-courses/${courseId}/practice/${encodeURIComponent(moduleId)}?mode=${mode}`;
+}
+
 export function getStoredPracticeSession({ lessonId, deckId } = {}) {
   const source = String(window.localStorage.getItem("practiceSource") || "");
   const isDeckSource = source === "deck";

@@ -240,7 +240,7 @@ export default function QandA({ adaptivePractice } = {}) {
     );
 
     try {
-      await fetch(`${API_BASE}/saveQuizAttempt.php`, {
+      await fetch(`${API_BASE}/quiz-attempts`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...lessonAuthHeaders() },
         credentials: "include",
