@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildReviewTopics,
+  buildMistakeReviewTopics,
+  buildCurrentPracticeFeedback,
   getReviewMetadata,
   getReviewTopic,
 } from "../../src/pages/course/feedbackReview.js";
@@ -143,4 +145,51 @@ test("Q&A metadata keeps concept and cognitive classifications without copying a
       thinking_skill: "LOTS",
     },
   );
+});
+
+test("review guidance names the actual selected answer, correct answer and explanation", () => {
+  const reviews = buildMistakeReviewTopics(answers, title);
+  assert.match(reviews[0].explanation, /answered "Me".*correct answer is "I"/);
+  assert.match(reviews[0].explanation, /spontaneous response/);
+});
+
+test("older saved results show latest accuracy and deduplicated evidence without inventing history", () => {
+  const feedback = buildCurrentPracticeFeedback(
+    [
+      { concept: "Atomicity", topic: "Transactions", isCorrect: true },
+      { concept: " atomicity ", topic: "Transactions", isCorrect: true },
+      {
+        concept: "Isolation",
+        topic: "Transactions",
+        isCorrect: false,
+        userAnswer: "Durability",
+        correctAnswer: "Isolation",
+      },
+      { concept: "Isolation", topic: "Transactions", isCorrect: true },
+    ],
+    "Databases",
+    "multiple",
+  )[0];
+  assert.equal(feedback.latestAccuracy, 75);
+  assert.equal(feedback.metricLabel, "Latest topic accuracy");
+  assert.equal(feedback.strengths.length, 1);
+  assert.equal(feedback.historicalAccuracy, undefined);
+  assert.match(feedback.nextGoal, /9\/10/);
+  assert.doesNotMatch(feedback.adaptiveRecommendation, /advanced/);
+  assert.deepEqual(feedback.areasForImprovement, ["Isolation"]);
+});
+
+test("unanswered legacy questions and flashcard ratings cannot establish mastery", () => {
+  assert.equal(
+    buildCurrentPracticeFeedback([{}], "Variables", "qna")[0].latestAccuracy,
+    0,
+  );
+  const feedback = buildCurrentPracticeFeedback(
+    [{ isCorrect: true }],
+    "Variables",
+    "flashcard",
+  )[0];
+  assert.equal(feedback.latestAccuracy, null);
+  assert.deepEqual(feedback.strengths, []);
+  assert.match(feedback.nextGoal, /graded quiz/);
 });

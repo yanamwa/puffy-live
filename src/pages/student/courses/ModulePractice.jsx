@@ -145,7 +145,8 @@ function PracticeSession({ courseId, moduleId, mode }) {
   );
   const backToCourse = () => navigate(coursePath);
   const progressKey =
-    attempt && `${accountKey}:${courseId}:${moduleId}:${attempt.id}:${mode}`;
+    attempt &&
+    `${accountKey}:${courseId}:${moduleId}:${attempt.id}:${mode}:${attempt.questions.length}`;
   const session = useMemo(
     () =>
       attempt && {
@@ -281,6 +282,9 @@ function PracticeSession({ courseId, moduleId, mode }) {
             >
               Try saving again
             </button>
+            <p>
+              <Link to={coursePath}>Back to course</Link>
+            </p>
           </div>
         )}
         <Quiz

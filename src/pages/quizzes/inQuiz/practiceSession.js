@@ -95,6 +95,32 @@ export function toNumericId(value) {
   return /^\d+$/.test(String(value || "")) ? Number(value) : null;
 }
 
+export function getResultPracticeModule(result, modules) {
+  const moduleId =
+    result.moduleId ??
+    result.module_id ??
+    result.scopeId ??
+    result.scope?.scopeId;
+  if (moduleId != null && String(moduleId).trim()) {
+    // An explicit module must still exist; never silently select another one.
+    return (
+      modules.find((module) =>
+        [module.id, module.module_id, module.lesson_id].some(
+          (id) => id != null && String(id) === String(moduleId),
+        ),
+      ) || null
+    );
+  }
+  const index =
+    result.moduleIndex ?? result.module_index ?? result.scope?.moduleIndex;
+  if (index != null && String(index).trim() !== "") {
+    return Number.isInteger(Number(index))
+      ? modules[Number(index)] || null
+      : null;
+  }
+  return modules.length === 1 ? modules[0] : null;
+}
+
 export function getPracticeReviewPath(session, { lessonId, deckId } = {}) {
   if (session?.source === "deck") {
     return `/review/deck/${session.deckId || deckId}`;

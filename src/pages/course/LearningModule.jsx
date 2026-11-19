@@ -7,7 +7,6 @@ import styles from "./Learning_Module.module.css";
 import "../../index.css";
 import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
-import QuizModesModal from "../../components/quizmodes/QuizModesModal";
 import UserHeader from "../../components/UserHeader";
 import UserSidebar from "../../components/UserSidebar";
 import LoadingState from "../../components/LoadingState.jsx";
@@ -40,7 +39,6 @@ function LearningModule() {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tab1");
-  const [openModes, setOpenModes] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -408,7 +406,7 @@ function LearningModule() {
 
   const handlePractice = () => {
     if (isCourseAdded) {
-      setOpenModes(true);
+      navigate(`/student/enrolled-courses/${lesson?.course_id || lessonId}`);
       return;
     }
 
@@ -438,7 +436,7 @@ function LearningModule() {
           showConfirmButton: false,
         });
 
-        setOpenModes(true);
+        navigate(`/student/enrolled-courses/${lesson?.course_id || lessonId}`);
       }
     });
   };
@@ -664,15 +662,6 @@ function LearningModule() {
                     </button>
                   </div>
                 </div>
-
-                {openModes && (
-                  <QuizModesModal
-                    source="lesson"
-                    lessonId={lessonId}
-                    quizzes={quizzes}
-                    onClose={() => setOpenModes(false)}
-                  />
-                )}
 
                 <div className={styles.innercardHead}>
                   <button

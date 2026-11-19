@@ -1,0 +1,145 @@
+.home-practice-attempts-dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 1px solid #c6c9cf;
+  border-radius: 18px;
+  background: #fff;
+  color: #4f6174;
+  font: inherit;
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+}
+
+.home-practice-attempts-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-practice-attempts-dialog::backdrop {
+  background: rgba(17, 24, 39, 0.46);
+  backdrop-filter: blur(2px);
+}
+
+.home-practice-attempts-header {
+  position: relative;
+  flex-shrink: 0;
+  padding: 20px 58px;
+  background: #7fa8d6;
+  color: #fff;
+  text-align: center;
+}
+
+.home-practice-attempts-header h2 {
+  margin: 0;
+  color: inherit;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.home-practice-attempts-close {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.home-practice-attempts-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.home-practice-attempts-close:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.home-practice-attempts-body {
+  min-height: 0;
+  padding: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.home-practice-attempts-body h3 {
+  margin: 0 0 6px;
+  color: #343843;
+  font-size: 18px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.home-practice-attempts-body p {
+  margin: 0 0 8px;
+  color: #69717f;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.home-practice-attempts-body .home-practice-attempts-count {
+  margin: 16px 0 12px;
+}
+
+.home-practice-attempts-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.home-practice-attempts-table th,
+.home-practice-attempts-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.home-practice-attempts-table thead th {
+  background: #f3f7fc;
+  color: #5f7895;
+  font-weight: 600;
+}
+
+.home-practice-attempts-table tbody th {
+  font-weight: 400;
+}
+
+.home-practice-attempts-table td:nth-child(2) {
+  font-weight: 700;
+}
+
+.home-practice-attempts-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+@media (max-width: 480px) {
+  .home-practice-attempts-header {
+    padding: 16px 48px;
+  }
+
+  .home-practice-attempts-header h2 {
+    font-size: 20px;
+  }
+
+  .home-practice-attempts-body {
+    padding: 18px 14px;
+  }
+
+  .home-practice-attempts-table th,
+  .home-practice-attempts-table td {
+    padding: 12px 6px;
+    font-size: 13px;
+  }
+}

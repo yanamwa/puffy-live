@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
 import "./RecentMainQuizResults.css";
+import "./PracticeProgress.css";
 
 const percentFormat = new Intl.NumberFormat(undefined, {
   style: "percent",
@@ -17,8 +18,89 @@ function formatScore({ score, total }) {
   return `${score}/${total} (${percentFormat.format(score / total)})`;
 }
 
-function PracticeProgressRow({ record }) {
-  const [expanded, setExpanded] = useState(false);
+function PracticeAttemptsModal({ record, onClose }) {
+  const dialogRef = useRef(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  const { attempts, moduleTitle, courseTitle } = record;
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = "hidden";
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, []);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="home-practice-attempts-dialog"
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <header className="home-practice-attempts-header">
+        <h2 id={titleId}>Practice Attempts</h2>
+        <button
+          type="button"
+          className="home-practice-attempts-close"
+          aria-label="Close practice attempts"
+          onClick={onClose}
+          autoFocus
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </header>
+      <div className="home-practice-attempts-body">
+        <h3>{moduleTitle}</h3>
+        <p id={descriptionId}>{courseTitle}</p>
+        <p className="home-practice-attempts-count">
+          {attempts.length} attempts &middot; Latest first
+        </p>
+        <table className="home-practice-attempts-table">
+          <thead>
+            <tr>
+              <th scope="col">Attempt</th>
+              <th scope="col">Score</th>
+              <th scope="col">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {attempts.map((attempt, index) => (
+              <tr key={attempt.id}>
+                <th scope="row">{attempts.length - index}</th>
+                <td>{formatScore(attempt)}</td>
+                <td>
+                  {attempt.completedAt ? (
+                    <time dateTime={attempt.completedAt}>
+                      {dateFormat.format(new Date(attempt.completedAt))}
+                    </time>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </dialog>
+  );
+}
+
+function PracticeProgressRow({ record, onViewAttempts }) {
   const { attempts, moduleTitle, courseTitle } = record;
   const latest = attempts[0];
   const first = attempts.at(-1);
@@ -34,50 +116,30 @@ function PracticeProgressRow({ record }) {
   const outcome = change > 0 ? "higher" : change < 0 ? "lower" : "neutral";
 
   return (
-    <>
-      <tr>
-        <td>
-          <strong>{moduleTitle}</strong>
-          <span>{courseTitle}</span>
-          {hasMultipleAttempts && (
-            <button
-              type="button"
-              className="home-results-view-all"
-              aria-expanded={expanded}
-              aria-label={`${expanded ? "Hide" : "View all"} attempts for ${moduleTitle}`}
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? "Hide attempts" : "View all attempts"}
-            </button>
-          )}
-        </td>
-        <td className="home-results-score">{formatScore(first)}</td>
-        <td className="home-results-score">
-          {hasMultipleAttempts ? formatScore(latest) : "—"}
-        </td>
-        <td>
-          <span className={`home-results-outcome ${outcome}`}>{status}</span>
-        </td>
-      </tr>
-      {expanded && (
-        <tr className="home-practice-history-row">
-          <td colSpan={4}>
-            <ol reversed aria-label={`Practice attempts for ${moduleTitle}`}>
-              {attempts.map((attempt) => (
-                <li key={attempt.id}>
-                  <b>{formatScore(attempt)}</b>
-                  {attempt.completedAt && (
-                    <time dateTime={attempt.completedAt}>
-                      {dateFormat.format(new Date(attempt.completedAt))}
-                    </time>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </td>
-        </tr>
-      )}
-    </>
+    <tr>
+      <td>
+        <strong>{moduleTitle}</strong>
+        <span>{courseTitle}</span>
+        {hasMultipleAttempts && (
+          <button
+            type="button"
+            className="home-results-view-all"
+            aria-haspopup="dialog"
+            aria-label={`View all attempts for ${moduleTitle}`}
+            onClick={() => onViewAttempts(record)}
+          >
+            View all attempts
+          </button>
+        )}
+      </td>
+      <td className="home-results-score">{formatScore(first)}</td>
+      <td className="home-results-score">
+        {hasMultipleAttempts ? formatScore(latest) : "—"}
+      </td>
+      <td>
+        <span className={`home-results-outcome ${outcome}`}>{status}</span>
+      </td>
+    </tr>
   );
 }
 
@@ -86,6 +148,8 @@ export default function PracticeProgress() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const closeAttempts = useCallback(() => setSelectedRecord(null), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -165,11 +229,18 @@ export default function PracticeProgress() {
                 <PracticeProgressRow
                   key={`${record.courseId}:${record.moduleId}`}
                   record={record}
+                  onViewAttempts={setSelectedRecord}
                 />
               ))}
             </tbody>
           </table>
         </div>
+      )}
+      {selectedRecord && (
+        <PracticeAttemptsModal
+          record={selectedRecord}
+          onClose={closeAttempts}
+        />
       )}
     </section>
   );

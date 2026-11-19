@@ -17,7 +17,9 @@ import {
 } from "./courseContent.js";
 import MainQuizResult from "./MainQuizResult.jsx";
 import { isMainQuizResult } from "../../utils/quizResultType.js";
-import { buildReviewTopics, getReviewTopic } from "./feedbackReview.js";
+import { buildCurrentPracticeFeedback } from "./feedbackReview.js";
+import { modulePracticePath } from "../../services/adaptivePractice.js";
+import { getResultPracticeModule } from "../quizzes/inQuiz/practiceSession.js";
 
 function Sparkles(props) {
   return (
@@ -40,11 +42,13 @@ const isAnswerCorrect = (item) => {
   if (typeof item.isCorrect === "boolean") return item.isCorrect;
 
   const userAnswer = item.userAnswer || item.selectedAnswer || "";
-  const correctAnswer = item.correctAnswer || item.answer || "";
+  const correctAnswer =
+    item.correctAnswer || item.correct_answer || item.answer || "";
 
   return (
+    Boolean(String(userAnswer).trim()) &&
     String(userAnswer).trim().toLowerCase() ===
-    String(correctAnswer).trim().toLowerCase()
+      String(correctAnswer).trim().toLowerCase()
   );
 };
 
@@ -104,82 +108,6 @@ const getQuizTypeIcon = (quizMode) => {
   return icons[quizMode] || "/images/qna.png";
 };
 
-const getAdaptiveRecommendation = (
-  topic,
-  confidence,
-  quizMode,
-  missedConcepts = [],
-) => {
-  const focusText =
-    missedConcepts.length > 0
-      ? ` Focus on: ${missedConcepts.slice(0, 3).join("; ")}.`
-      : "";
-
-  if (confidence < 60) {
-    const practiceActions = {
-      flashcard: "review the difficult cards",
-      multiple: "review the choices you missed",
-      qna: "practice recalling the answers without hints",
-      matching: "review the related terms and definitions",
-      timed: "review the concepts before another timed attempt",
-      mixed: "review the missed mixed-mode questions",
-      survival: "review the missed mixed-mode questions",
-      lesson: "review the lesson concepts",
-    };
-
-    const action = practiceActions[quizMode] || "review the concepts";
-    return `Review ${topic}, ${action}, and answer more practice questions.${focusText}`;
-  }
-
-  if (confidence < 80) {
-    return `Review your mistakes in ${topic} and practice again using ${getQuizTypeLabel(
-      quizMode,
-    )}.${focusText}`;
-  }
-
-  return `Continue practicing with ${getQuizTypeLabel(
-    quizMode,
-  )} to improve mastery.`;
-};
-
-const getFocusedConcept = (answer) => getReviewTopic(answer).topic;
-
-const getStrengthStatement = (answer) =>
-  `Answered correctly about ${getFocusedConcept(answer)}.`;
-
-const getAdaptivePlan = (topic, confidence, attempts) => {
-  const attemptContext =
-    attempts > 1 ? ` Based on your ${attempts} recorded attempts,` : "";
-
-  if (confidence < 50) {
-    return {
-      difficulty: "Foundation",
-      recommendation: `Based on your ${confidence}% confidence score, PuffyBrain will prioritize foundational questions on ${topic} before progressing to more advanced concepts.${attemptContext} repeated weak areas will receive extra practice.`,
-      nextGoal: "Reach 50% confidence to achieve the Developing Level.",
-    };
-  }
-
-  if (confidence < 80) {
-    return {
-      difficulty: "Intermediate",
-      recommendation: `Based on your ${confidence}% confidence score, PuffyBrain will provide intermediate questions on ${topic} while revisiting concepts you missed.${attemptContext} future practice will balance review and new challenges.`,
-      nextGoal: "Reach 80% confidence to achieve Good Understanding.",
-    };
-  }
-
-  return {
-    difficulty: "Advanced",
-    recommendation:
-      confidence === 100
-        ? `You achieved full confidence in ${topic}. PuffyBrain will preserve this mastery with occasional advanced review questions.`
-        : `Based on your ${confidence}% confidence score, PuffyBrain will introduce advanced questions on ${topic} to strengthen mastery and application.${attemptContext} future practice will focus on maintaining consistency.`,
-    nextGoal:
-      confidence === 100
-        ? "Mastery achieved. Maintain 100% confidence on your next attempt."
-        : "Reach 100% confidence to achieve full mastery.",
-  };
-};
-
 const getStoredUserId = () => {
   try {
     const user = JSON.parse(localStorage.getItem("puffy-user") || "null");
@@ -198,46 +126,6 @@ const toOptionalNumber = (value) => {
   return Number.isInteger(number) ? number : null;
 };
 
-function getPracticeTopicFeedback(answers, contentTitle, quizMode) {
-  const groups = new Map();
-  answers.forEach((answer, index) => {
-    const topic =
-      String(answer.topic || "").trim() || contentTitle || "Module concepts";
-    const key = topic.toLowerCase();
-    if (!groups.has(key)) {
-      groups.set(key, {
-        topic,
-        questionIndexes: [],
-        correct: 0,
-        missedConcepts: new Set(),
-      });
-    }
-    const group = groups.get(key);
-    group.questionIndexes.push(index);
-    if (isAnswerCorrect(answer)) {
-      group.correct++;
-    } else {
-      const concept = getFocusedConcept(answer);
-      if (concept) group.missedConcepts.add(concept);
-    }
-  });
-
-  return [...groups.values()].map(
-    ({ topic, questionIndexes, correct, missedConcepts }) => {
-      const confidence = Math.round((correct / questionIndexes.length) * 100);
-      return {
-        topic,
-        questionIndexes,
-        confidence,
-        understanding: getUnderstanding(confidence),
-        recommendation: getAdaptiveRecommendation(topic, confidence, quizMode, [
-          ...missedConcepts,
-        ]),
-      };
-    },
-  );
-}
-
 export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
   const navigate = useNavigate();
   const { lessonId, deckId } = useParams();
@@ -249,7 +137,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
     answers: [],
   });
 
-  const [attempts, setAttempts] = useState(0);
+  const [attempts, setAttempts] = useState(null);
   const [isMainQuiz, setIsMainQuiz] = useState(false);
   const [source, setSource] = useState(deckId ? "deck" : "lesson");
   const [resultDeckId, setResultDeckId] = useState(deckId || null);
@@ -263,7 +151,11 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
   });
 
   useEffect(() => {
-    if (practiceResult || !resultCourseId || moduleNavigation.moduleIndex === null)
+    if (
+      practiceResult ||
+      !resultCourseId ||
+      moduleNavigation.moduleIndex === null
+    )
       return;
     let active = true;
     fetchCourseContent(resultCourseId)
@@ -329,19 +221,35 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
 
   const fetchAttempts = async (savedResults) => {
     try {
+      const courseId = savedResults.courseId || savedResults.course_id;
+      let moduleId =
+        savedResults.moduleId ||
+        savedResults.scopeId ||
+        savedResults.scope?.scopeId;
+      if (!practiceResult && courseId && savedResults.source !== "deck") {
+        const course = await fetchCourseContent(courseId);
+        moduleId = getResultPracticeModule(
+          savedResults,
+          getCourseContentModules(course),
+        )?.id;
+      }
       const query = new URLSearchParams(
-        practiceResult
+        courseId && moduleId
           ? {
               source: "module",
               quizMode: "adaptive_practice",
-              courseId: savedResults.courseId,
-              moduleId: savedResults.moduleId,
+              courseId,
+              moduleId,
             }
           : {
               source: savedResults.source || (deckId ? "deck" : "lesson"),
               lessonId:
-                savedResults.lessonId || savedResults.lesson_id || lessonId || "",
-              deckId: savedResults.deckId || savedResults.deck_id || deckId || "",
+                savedResults.lessonId ||
+                savedResults.lesson_id ||
+                lessonId ||
+                "",
+              deckId:
+                savedResults.deckId || savedResults.deck_id || deckId || "",
               quizMode: savedResults.quizMode || savedResults.mode || "",
             },
       );
@@ -353,10 +261,17 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
 
       const data = await res.json();
 
-      setAttempts(data.success ? data.attempts || 0 : 0);
+      if (
+        !res.ok ||
+        !data.success ||
+        !Number.isSafeInteger(Number(data.attempts))
+      ) {
+        throw new Error(data.message || "Unable to load practice attempts.");
+      }
+      setAttempts(Number(data.attempts));
     } catch (error) {
       console.error("Fetch attempts error:", error);
-      setAttempts(0);
+      // Keep the submission's confirmed count if the follow-up request fails.
     }
   };
 
@@ -405,10 +320,17 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
         savedResults.deckId || savedResults.deck_id || deckId || null;
       let practiceCourseId = null;
       try {
-        if (String(localStorage.getItem("practiceLessonId")) === String(detectedLessonId)) {
-          practiceCourseId = JSON.parse(localStorage.getItem("practiceScope") || "{}").courseId;
+        if (
+          String(localStorage.getItem("practiceLessonId")) ===
+          String(detectedLessonId)
+        ) {
+          practiceCourseId = JSON.parse(
+            localStorage.getItem("practiceScope") || "{}",
+          ).courseId;
         }
-      } catch { /* Ignore invalid practice metadata. */ }
+      } catch {
+        /* Ignore invalid practice metadata. */
+      }
       const detectedCourseId =
         savedResults.courseId ||
         savedResults.course_id ||
@@ -439,6 +361,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
       const mainQuizResult = isMainQuizResult(savedResults);
       setIsMainQuiz(mainQuizResult);
       setResults({
+        ...savedResults,
         score: savedResults.score || 0,
         total: savedResults.total || 0,
         answers: savedAnswers,
@@ -477,9 +400,17 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
       });
       setQuizMode(detectedQuizMode);
       setIsTimedOut(Boolean(savedResults.isTimedOut || savedResults.timedOut));
+      setAttempts(
+        Number.isSafeInteger(savedResults.attempts)
+          ? savedResults.attempts
+          : null,
+      );
 
       if (practiceResult) {
         setContentTitle(savedResults.contentTitle);
+        setAiFeedback(
+          Array.isArray(savedResults.feedback) ? savedResults.feedback : null,
+        );
         void fetchAttempts(savedResults);
         return;
       }
@@ -575,7 +506,9 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
         attemptSaves.set(saveKey, persistQuizAttempt());
       attemptSaves
         .get(saveKey)
-        .then(() => fetchAttempts(savedResults))
+        .then(() =>
+          fetchAttempts({ ...savedResults, courseId: detectedCourseId }),
+        )
         .catch(() => {
           attemptSaves.delete(saveKey);
           Swal.fire({
@@ -722,6 +655,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
               setAiFeedback(
                 data.feedback
                   .map((feedback) => ({
+                    ...feedback,
                     topic: String(feedback.topic || "").trim(),
                     quizType: feedback.quizType || detectedQuizMode,
                     understanding:
@@ -822,39 +756,11 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
   const correctAnswers = results.answers.filter((item) => item.isCorrect);
   const wrongAnswers = results.answers.filter((item) => !item.isCorrect);
 
-  const correctCount = results.answers.filter(isAnswerCorrect).length;
-  const fallbackConfidence =
-    results.answers.length > 0
-      ? Math.round((correctCount / results.answers.length) * 100)
-      : 0;
-  const fallbackTopic =
-    results.answers.find((item) => {
-      const topic = String(item.topic || "").trim();
-      return topic && topic !== contentTitle;
-    })?.topic || "Concepts Requiring Review";
-  const missedConcepts = results.answers
-    .filter((item) => !isAnswerCorrect(item))
-    .map(getFocusedConcept)
-    .filter(Boolean);
-  const topicFeedback =
-    practiceResult
-      ? getPracticeTopicFeedback(results.answers, contentTitle, quizMode)
-      : results.answers.length > 0
-        ? [
-            {
-              topic: fallbackTopic,
-              confidence: fallbackConfidence,
-              understanding: getUnderstanding(fallbackConfidence),
-              recommendation: getAdaptiveRecommendation(
-                fallbackTopic,
-                fallbackConfidence,
-                quizMode,
-                missedConcepts,
-              ),
-            },
-          ]
-        : [];
-
+  const topicFeedback = buildCurrentPracticeFeedback(
+    results.answers,
+    contentTitle,
+    quizMode,
+  );
   const displayedFeedback =
     Array.isArray(aiFeedback) && aiFeedback.length > 0
       ? aiFeedback
@@ -867,39 +773,27 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
   const activeQuizMode = activeFeedback?.quizType || quizMode;
   const activeConfidence = Math.max(
     0,
-    Math.min(100, Number(activeFeedback?.confidence) || 0),
+    Math.min(
+      100,
+      Number(
+        activeFeedback?.selfAssessed
+          ? activeFeedback.recallPercentage
+          : activeFeedback?.confidence,
+      ) || 0,
+    ),
   );
-  const topicAnswers =
-    activeFeedback?.questionIndexes?.length > 0
-      ? activeFeedback.questionIndexes
-          .map((index) => results.answers[Number(index)])
-          .filter(Boolean)
-      : results.answers;
-  const fallbackStrengths = topicAnswers
-    .filter(isAnswerCorrect)
-    .map(getStrengthStatement)
-    .filter(Boolean)
-    .slice(0, 2);
-  const missedAnswers = topicAnswers.filter((answer) => !isAnswerCorrect(answer));
-  const reviewTopics = buildReviewTopics(
-    missedAnswers.length ? missedAnswers : topicAnswers,
-    activeFeedback?.topic || contentTitle,
+  const strengths = activeFeedback?.strengths || [];
+  const reviewTopics = (activeFeedback?.suggestedReviewTopics || []).filter(
+    (review) =>
+      review &&
+      typeof review === "object" &&
+      review.topic &&
+      review.explanation,
   );
-  const fallbackImprovements = missedAnswers.length
-    ? reviewTopics.map((review) => review.topic)
-    : [];
-  const aiStrengths = activeFeedback?.strengths?.filter(Boolean).slice(0, 2);
-  const strengths =
-    fallbackStrengths.length
-      ? fallbackStrengths
-      : aiStrengths || [];
-  const areasForImprovement =
-    activeConfidence === 100 ? [] : fallbackImprovements;
-  const adaptivePlan = getAdaptivePlan(
-    activeFeedback?.topic || "this topic",
-    activeConfidence,
-    attempts,
-  );
+  const areasForImprovement = activeFeedback?.areasForImprovement || [];
+  const metricLabel = activeFeedback?.metricLabel || "Latest topic accuracy";
+  const hasLatestMetric =
+    activeFeedback?.selfAssessed || activeFeedback?.latestAccuracy !== null;
 
   let feedbackTitle = "";
   let feedbackMessage = "";
@@ -913,7 +807,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
     masteryLevel = "Outstanding (A)";
     recommendation = practiceResult?.mastered
       ? "You can continue to the next activity."
-      : "You can continue to the next activity or try a more challenging quiz.";
+      : "Review any recurring mistakes and practice with fresh examples.";
   } else if (percentage >= 80) {
     feedbackTitle = "Very Good!";
     feedbackMessage =
@@ -945,6 +839,18 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
     recommendation = "Go back and focus on the key concepts.";
   }
 
+  if (
+    results.assessmentBasis === "self_assessment" ||
+    quizMode === "flashcard"
+  ) {
+    feedbackTitle = "Recall Review Completed";
+    feedbackMessage =
+      "This result reflects how you rated the cards. Check your understanding with a graded practice quiz.";
+    masteryLevel = "Self-assessed recall";
+    recommendation =
+      "Aim for at least 9/10 in graded practice to meet the 90% mastery target.";
+  }
+
   if (quizMode === "timed" && isTimedOut) {
     feedbackTitle = "Time Ran Out";
     feedbackMessage = practiceResult
@@ -961,6 +867,26 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
       return;
     }
     setShowQuizModal(true);
+  };
+
+  const startCoursePractice = async (mode) => {
+    try {
+      const course = await fetchCourseContent(resultCourseId);
+      const module = getResultPracticeModule(
+        results,
+        getCourseContentModules(course),
+      );
+      const path = modulePracticePath(resultCourseId, module, mode);
+      setShowQuizModal(false);
+      // Old course-wide results need a module selection before adaptive practice.
+      navigate(path || `/student/enrolled-courses/${resultCourseId}`);
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Practice unavailable",
+        text: error.message,
+      });
+    }
   };
 
   const goHome = () => {
@@ -1037,12 +963,16 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
 
           <div className={styles.summaryCard}>
             <h3>Attempts</h3>
-            <p>{attempts}</p>
+            <p>{attempts ?? "Unavailable"}</p>
           </div>
         </div>
 
         <div className={styles.resultButtons}>
-          {!practiceResult?.mastered && (
+          {(!practiceResult?.mastered ||
+            practiceResult?.assessmentBasis === "self_assessment" ||
+            practiceResult?.feedback?.some(
+              (feedback) => feedback.recurring,
+            )) && (
             <button className={styles.retry} onClick={retryQuiz}>
               Practice Again
             </button>
@@ -1107,10 +1037,14 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
                   style={{
                     "--mastery": `${activeConfidence * 3.6}deg`,
                   }}
-                  aria-label={`${activeConfidence}% topic mastery`}
+                  aria-label={
+                    hasLatestMetric
+                      ? `${activeConfidence}% ${metricLabel.toLowerCase()}`
+                      : "This topic was not assessed in the latest attempt"
+                  }
                 >
                   <div className={styles.masteryRingCenter}>
-                    {activeConfidence}%
+                    {hasLatestMetric ? `${activeConfidence}%` : "—"}
                   </div>
                 </div>
               </div>
@@ -1134,9 +1068,32 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
               </div>
 
               <div className={styles.confidenceHeader}>
-                <span>Confidence:</span>
-                <strong>{activeConfidence}%</strong>
+                <span>{metricLabel}:</span>
+                <strong>
+                  {hasLatestMetric ? `${activeConfidence}%` : "—"}
+                </strong>
               </div>
+              <p className={styles.explanationText}>
+                {activeFeedback.selfAssessed
+                  ? "This percentage reflects your card ratings, not verified accuracy."
+                  : activeFeedback.latestTotal === 0
+                    ? "This topic was not assessed in this attempt."
+                    : `${activeFeedback.latestCorrect ?? 0}/${activeFeedback.latestTotal ?? 0} graded answers correct for this topic in this attempt.`}
+              </p>
+              {activeFeedback.historicalTotal > 0 &&
+                (activeFeedback.gradedAttempts > 1 ||
+                  !hasLatestMetric ||
+                  activeFeedback.selfAssessed) && (
+                  <p className={styles.explanationText}>
+                    Recent graded accuracy: {activeFeedback.historicalAccuracy}%{" "}
+                    ({activeFeedback.historicalCorrect}/
+                    {activeFeedback.historicalTotal} answers across{" "}
+                    {activeFeedback.gradedAttempts} graded attempts, including
+                    this attempt when graded).
+                    {activeFeedback.recurring &&
+                      ` Missed in ${activeFeedback.missedAttempts} attempts; keep reviewing.`}
+                  </p>
+                )}
 
               <div className={styles.learningInsights}>
                 <div className={styles.insightCard}>
@@ -1154,11 +1111,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
 
                 <div className={`${styles.insightCard} ${styles.nextGoal}`}>
                   <h4>Next Goal</h4>
-                  <p>
-                    {activeConfidence === 100
-                      ? adaptivePlan.nextGoal
-                      : activeFeedback.nextGoal || adaptivePlan.nextGoal}
-                  </p>
+                  <p>{activeFeedback.nextGoal}</p>
                 </div>
               </div>
 
@@ -1182,18 +1135,13 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
                   <span className={styles.planLabel}>
                     Adaptive Recommendation
                   </span>
-                  <strong>{adaptivePlan.difficulty} Questions</strong>
+                  <strong>
+                    {activeFeedback.difficulty || "Steady practice"} Questions
+                  </strong>
                 </div>
-                <p>
-                  {activeConfidence === 100
-                    ? adaptivePlan.recommendation
-                    : activeFeedback.adaptiveRecommendation ||
-                      adaptivePlan.recommendation}
-                </p>
+                <p>{activeFeedback.adaptiveRecommendation}</p>
                 <p className={styles.adaptiveRecommendation}>
-                  {activeConfidence === 100
-                    ? `You demonstrated full understanding of ${activeFeedback.topic} in this attempt. Continue with advanced practice to maintain mastery.`
-                    : activeFeedback.recommendation}
+                  {activeFeedback.recommendation}
                 </p>
               </div>
 
@@ -1201,6 +1149,12 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
                 <div>
                   <h4>Suggested Review Topics</h4>
                   <div className={styles.reviewTopics}>
+                    {reviewTopics.length === 0 && (
+                      <p>
+                        No specific missed concepts were recorded for this
+                        topic.
+                      </p>
+                    )}
                     {reviewTopics.map((review) => (
                       <article
                         className={styles.reviewTopicCard}
@@ -1364,6 +1318,11 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
           deckId={source === "deck" ? resultDeckId || deckId : undefined}
           quizzes={results.answers}
           cards={results.answers}
+          onSelectMode={
+            resultCourseId && source !== "deck"
+              ? startCoursePractice
+              : undefined
+          }
           onClose={() => setShowQuizModal(false)}
         />
       )}

@@ -169,21 +169,3 @@
 .home-practice-progress td .home-results-view-all {
   margin-top: 4px;
 }
-
-.home-practice-progress .home-practice-history-row td {
-  background: #f3f7fc;
-}
-
-.home-practice-history-row ol {
-  margin: 0;
-  padding-inline-start: 26px;
-}
-
-.home-practice-history-row li + li {
-  margin-top: 8px;
-}
-
-.home-practice-history-row time {
-  margin-inline-start: 16px;
-  font-size: 14px;
-}
