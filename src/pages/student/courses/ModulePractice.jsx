@@ -113,6 +113,7 @@ function PracticeSession({ courseId, moduleId, mode }) {
   const pending = useRef(null);
   const saving = useRef(false);
   const active = useRef(false);
+  const failureReported = useRef(false);
   const moduleIndex =
     modules?.findIndex((module) => practiceModuleId(module) === moduleId) ?? -1;
   const module = modules?.[moduleIndex];
@@ -256,7 +257,8 @@ function PracticeSession({ courseId, moduleId, mode }) {
   ]);
 
   useEffect(() => {
-    if (!failureMessage) return;
+    if (!failureMessage || failureReported.current) return;
+    failureReported.current = true;
     navigate(coursePath, { replace: true });
     void Swal.fire({
       toast: true,

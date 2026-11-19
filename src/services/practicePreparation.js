@@ -1,4 +1,7 @@
 export const PRACTICE_QUESTION_COUNT = 10;
+const REQUEST_TIMEOUT_MS = 30_000;
+const QUEUE_WAIT_MS = 15 * 60_000;
+const GENERATION_WAIT_MS = 240_000;
 
 export function requireCompletePractice(attempt) {
   if (
@@ -35,10 +38,19 @@ export async function waitForPractice(
   const cancel = () => controller.abort(signal.reason);
   if (signal?.aborted) cancel();
   else signal?.addEventListener("abort", cancel, { once: true });
-  const timer = setTimeout(() => controller.abort(), 150_000);
-  const options = { signal: controller.signal };
+  const read = async (action, payload) => {
+    controller.signal.throwIfAborted();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const data = await request(action, payload, { signal: controller.signal });
+      controller.signal.throwIfAborted();
+      return data;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
   try {
-    let data = await request("start", body, options);
+    let data = await read("start", body);
     // Accept a complete response during a rolling backend deployment.
     if (data.attempt) return requireCompletePractice(data.attempt);
     const jobId = data.job?.id;
@@ -47,8 +59,12 @@ export async function waitForPractice(
         "Practice preparation could not start. Please try again.",
       );
     let pollDelay = 2000;
+    // Allow a final status request to deliver the server's terminal result.
+    const queueDeadline = Date.now() + QUEUE_WAIT_MS + REQUEST_TIMEOUT_MS;
+    let runningDeadline;
     while (true) {
       const job = data.job;
+      if (job?.id !== jobId) throw new Error("Practice preparation could not be loaded. Please try again.");
       if (job?.status === "ready") return requireCompletePractice(job.attempt);
       if (job?.status === "failed") {
         throw Object.assign(
@@ -64,9 +80,17 @@ export async function waitForPractice(
           "Practice preparation could not be loaded. Please try again.",
         );
       }
+      if (job.status === "running" && runningDeadline === undefined)
+        runningDeadline = Date.now() + GENERATION_WAIT_MS + REQUEST_TIMEOUT_MS;
+      // An expired lease can briefly look queued again. Keep the first run's
+      // deadline so repeated restarts or a stuck worker cannot extend it.
+      if (Date.now() >= (runningDeadline ?? queueDeadline))
+        throw new Error(runningDeadline === undefined
+          ? "Your practice waited too long in the queue. Please try again."
+          : "Practice preparation timed out. Please try again.");
       onProgress?.(job.status);
       await wait(pollDelay, controller.signal);
-      data = await request(`jobs/${encodeURIComponent(jobId)}`, undefined, options);
+      data = await read(`jobs/${encodeURIComponent(jobId)}`);
       pollDelay = Math.min(pollDelay + 1000, 6000);
     }
   } catch (error) {
@@ -74,7 +98,6 @@ export async function waitForPractice(
       throw new Error("Practice preparation timed out.");
     throw error;
   } finally {
-    clearTimeout(timer);
     signal?.removeEventListener("abort", cancel);
   }
 }

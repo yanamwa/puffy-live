@@ -130,10 +130,61 @@ test("a stalled status request times out without restarting preparation", async 
     { wait: async () => {} },
   );
   await reading;
-  context.mock.timers.tick(150_000);
+  context.mock.timers.tick(30_000);
   await assert.rejects(pending, /timed out/);
   assert.deepEqual(calls, ["start", "jobs/j"]);
 });
+
+test("queue time and a four-minute generation can both finish on the original job", async (context) => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const statuses = ["queued", "running", "ready"];
+  const calls = [];
+  const result = await waitForPractice(
+    async (action, body, { signal }) => {
+      signal.throwIfAborted();
+      calls.push(action);
+      return { job: { id: "j", status: statuses.shift(), attempt } };
+    },
+    {},
+    { wait: async () => context.mock.timers.tick(240_000) },
+  );
+  assert.equal(result, attempt);
+  assert.deepEqual(calls, ["start", "jobs/j", "jobs/j"]);
+});
+
+test("a queued job can wait eight minutes and still get its full generation window", async (t) => {
+  let elapsed = 0;
+  t.mock.method(Date, "now", () => elapsed);
+  const statuses = ["queued", "running", "running", "ready"];
+  const waits = [480_000, 239_000, 1_000];
+  const result = await waitForPractice(
+    async () => ({ job: { id: "original", status: statuses.shift(), attempt } }),
+    {},
+    { wait: async () => { elapsed += waits.shift(); } },
+  );
+  assert.equal(result, attempt);
+  assert.equal(elapsed, 720_000);
+});
+
+for (const scenario of ["queued", "running", "changing leases"]) {
+  test(`status polling is bounded when the job is stuck: ${scenario}`, async (t) => {
+    let elapsed = 0, starts = 0, polls = 0;
+    t.mock.method(Date, "now", () => elapsed);
+    const request = async (action) => {
+      if (action === "start") starts++;
+      else assert.equal(action, "jobs/original");
+      assert.ok(++polls < 165, "polling must stop on the original job");
+      const status = scenario === "changing leases" ? (polls % 2 ? "running" : "queued") : scenario;
+      return { job: { id: "original", status } };
+    };
+    await assert.rejects(waitForPractice(request, {}, {
+      wait: async (ms) => { assert.ok(ms <= 6000); elapsed += ms; },
+    }), scenario === "queued" ? /too long in the queue/ : /timed out/);
+    assert.equal(starts, 1);
+    const limit = scenario === "queued" ? 930_000 : 270_000;
+    assert.ok(elapsed >= limit && elapsed < limit + 6000);
+  });
+}
 
 test("a terminal 422 stops polling and keeps the server's explanation for the practice page", async () => {
   const actions = [];
