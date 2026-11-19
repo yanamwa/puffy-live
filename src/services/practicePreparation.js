@@ -31,35 +31,48 @@ export async function waitForPractice(
   body,
   { signal, onProgress, wait = pause } = {},
 ) {
-  let data = await request("start", body, { signal });
-  // Accept a complete response during a rolling backend deployment, never a recap.
-  if (data.attempt) return requireCompletePractice(data.attempt);
-  const jobId = data.job?.id;
-  if (!jobId)
-    throw new Error("Practice preparation could not start. Please try again.");
-  while (true) {
-    const job = data.job;
-    if (job?.status === "ready") return requireCompletePractice(job.attempt);
-    if (job?.status === "failed") {
-      throw Object.assign(
-        new Error(
-          job.error?.message ||
-            "Practice could not be prepared. Please try again.",
-        ),
-        {
-          code: job.error?.code,
-          status: job.error?.status,
-        },
-      );
-    }
-    if (!["queued", "running"].includes(job?.status))
+  const controller = new AbortController();
+  const cancel = () => controller.abort(signal.reason);
+  if (signal?.aborted) cancel();
+  else signal?.addEventListener("abort", cancel, { once: true });
+  const timer = setTimeout(() => controller.abort(), 150_000);
+  const options = { signal: controller.signal };
+  try {
+    let data = await request("start", body, options);
+    // Accept a complete response during a rolling backend deployment.
+    if (data.attempt) return requireCompletePractice(data.attempt);
+    const jobId = data.job?.id;
+    if (!jobId)
       throw new Error(
-        "Practice preparation could not be loaded. Please try again.",
+        "Practice preparation could not start. Please try again.",
       );
-    onProgress?.(job.status);
-    await wait(2000, signal);
-    data = await request(`jobs/${encodeURIComponent(jobId)}`, undefined, {
-      signal,
-    });
+    while (true) {
+      const job = data.job;
+      if (job?.status === "ready") return requireCompletePractice(job.attempt);
+      if (job?.status === "failed") {
+        throw Object.assign(
+          new Error(
+            job.error?.message ||
+              "Practice could not be prepared. Please try again.",
+          ),
+          { code: job.error?.code, status: job.error?.status },
+        );
+      }
+      if (!["queued", "running"].includes(job?.status)) {
+        throw new Error(
+          "Practice preparation could not be loaded. Please try again.",
+        );
+      }
+      onProgress?.(job.status);
+      await wait(2000, controller.signal);
+      data = await request(`jobs/${encodeURIComponent(jobId)}`, undefined, options);
+    }
+  } catch (error) {
+    if (controller.signal.aborted && !signal?.aborted)
+      throw new Error("Practice preparation timed out.");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", cancel);
   }
 }

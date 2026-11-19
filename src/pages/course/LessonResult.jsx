@@ -1102,13 +1102,13 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
                   {hasLatestMetric ? `${activeConfidence}%` : "—"}
                 </strong>
               </div>
-              <p className={styles.explanationText}>
-                {activeFeedback.selfAssessed
-                  ? "This percentage reflects your card ratings, not verified accuracy."
-                  : activeFeedback.latestTotal === 0
-                    ? "This topic was not assessed in this attempt."
-                    : `${activeFeedback.latestCorrect ?? 0}/${activeFeedback.latestTotal ?? 0} graded answers correct for this topic in this attempt.`}
-              </p>
+              {(activeFeedback.selfAssessed || activeFeedback.latestTotal === 0) && (
+                <p className={styles.explanationText}>
+                  {activeFeedback.selfAssessed
+                    ? "This percentage reflects your card ratings, not verified accuracy."
+                    : "This topic was not assessed in this attempt."}
+                </p>
+              )}
               {activeFeedback.historicalTotal > 0 &&
                 (activeFeedback.gradedAttempts > 1 ||
                   !hasLatestMetric ||

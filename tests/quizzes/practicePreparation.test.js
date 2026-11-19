@@ -88,6 +88,33 @@ test("leaving practice cancels progress checking without cancelling the server j
   assert.equal(calls, 1);
 });
 
+test("a stalled status request times out without restarting preparation", async (context) => {
+  context.mock.timers.enable({ apis: ["setTimeout"] });
+  const calls = [];
+  let entered;
+  const reading = new Promise((resolve) => {
+    entered = resolve;
+  });
+  const pending = waitForPractice(
+    async (action, body, { signal }) => {
+      calls.push(action);
+      if (action === "start") return { job: { id: "j", status: "queued" } };
+      entered();
+      return new Promise((_, reject) =>
+        signal.addEventListener("abort", () => reject(signal.reason), {
+          once: true,
+        }),
+      );
+    },
+    {},
+    { wait: async () => {} },
+  );
+  await reading;
+  context.mock.timers.tick(150_000);
+  await assert.rejects(pending, /timed out/);
+  assert.deepEqual(calls, ["start", "jobs/j"]);
+});
+
 test("old course and module player URLs redirect to adaptive practice; main quizzes and decks keep their routes", () => {
   const scope = { courseId: 20, scopeId: "database", scopeType: "module" };
   assert.equal(

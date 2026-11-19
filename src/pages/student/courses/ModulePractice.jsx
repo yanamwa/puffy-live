@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Link,
+  Navigate,
   useLocation,
   useNavigate,
   useParams,
@@ -20,10 +21,8 @@ import {
 } from "../../../utils/practiceResume.js";
 import { studentModuleNavigation } from "../../../utils/studentModuleVisibility.js";
 import LessonResult from "../../course/LessonResult.jsx";
-import {
-  fetchCourseContent,
-  getCourseContentModules,
-} from "../../course/courseContent.js";
+import { getCourseContentModules } from "../../course/courseContent.js";
+import { fetchCourse } from "../../../services/courseApi.js";
 import Flashcards from "../../quizzes/inQuiz/inQuiz/realFlashcard.jsx";
 import QandA from "../../quizzes/inQuiz/inQuiz/qanda.jsx";
 import MultipleChoice from "../../quizzes/inQuiz/inQuiz/multiplechoice.jsx";
@@ -67,7 +66,7 @@ const modes = {
   ],
 };
 
-function PracticeQuestionLoader({ intro }) {
+function PracticeQuestionLoader({ intro, status }) {
   const [frameIndex, setFrameIndex] = useState(0);
   const { frames, screen, artwork } = intro;
 
@@ -86,7 +85,13 @@ function PracticeQuestionLoader({ intro }) {
       aria-label="Loading practice questions"
     >
       <img src={frames[frameIndex]} className={artwork} alt="" />
-      <p className={styles.waitMessage}>Please wait...</p>
+      <p className={styles.waitMessage}>
+        {status === "queued"
+          ? "Your practice is in the queue…"
+          : status === "running"
+            ? "Preparing and checking your 10 questions…"
+            : "Loading your practice…"}
+      </p>
     </div>
   );
 }
@@ -100,9 +105,10 @@ function PracticeSession({ courseId, moduleId, mode }) {
   const result = savedState?.practiceResult;
   const playing = Boolean(savedState?.playing);
   const [modules, setModules] = useState(null);
-  const [courseError, setCourseError] = useState("");
+  const [practiceUnavailable, setPracticeUnavailable] = useState(false);
   const [attempt, setAttempt] = useState(null);
   const [recapRequired, setRecapRequired] = useState(false);
+  const [preparationStatus, setPreparationStatus] = useState("");
   const [saveError, setSaveError] = useState("");
   const pending = useRef(null);
   const saving = useRef(false);
@@ -165,7 +171,7 @@ function PracticeSession({ courseId, moduleId, mode }) {
   useEffect(() => {
     let current = true;
     active.current = true;
-    fetchCourseContent(courseId)
+    fetchCourse(courseId)
       .then((course) => {
         if (current) {
           const contentModules = getCourseContentModules(course);
@@ -180,7 +186,7 @@ function PracticeSession({ courseId, moduleId, mode }) {
         }
       })
       .catch(() => {
-        if (current) setCourseError("We couldn't load this course.");
+        if (current) setPracticeUnavailable(true);
       });
     return () => {
       current = false;
@@ -216,6 +222,7 @@ function PracticeSession({ courseId, moduleId, mode }) {
           },
           {
             signal: controller.signal,
+            onProgress: setPreparationStatus,
           },
         );
         if (!controller.signal.aborted) setAttempt(prepared);
@@ -225,7 +232,7 @@ function PracticeSession({ courseId, moduleId, mode }) {
           setRecapRequired(true);
           return;
         }
-        navigate(coursePath, { replace: true });
+        setPracticeUnavailable(true);
       }
     }
 
@@ -238,8 +245,8 @@ function PracticeSession({ courseId, moduleId, mode }) {
     module,
     mode,
     result,
-    coursePath,
-    navigate,
+    modules,
+    isCoursePractice,
   ]);
 
   async function finish(answers, finishReason) {
@@ -278,14 +285,8 @@ function PracticeSession({ courseId, moduleId, mode }) {
     }
   }
 
-  if (courseError || (modules && !module)) {
-    return (
-      <main className={styles.page}>
-        <p role="alert">{courseError || "This module is unavailable."}</p>
-        <Link to={coursePath}>Back to course</Link>
-      </main>
-    );
-  }
+  if (practiceUnavailable || (modules && !module))
+    return <Navigate to="/student/enrolled-courses" replace />;
   if (!mode) {
     return (
       <QuizModesModal
@@ -348,7 +349,8 @@ function PracticeSession({ courseId, moduleId, mode }) {
     );
   }
 
-  if (!session) return <PracticeQuestionLoader intro={intro} />;
+  if (!session)
+    return <PracticeQuestionLoader intro={intro} status={preparationStatus} />;
 
   return (
     <Tutorial
