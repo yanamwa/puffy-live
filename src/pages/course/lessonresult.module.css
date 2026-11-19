@@ -1026,16 +1026,6 @@
   line-height: 1.5;
 }
 
-.reviewTopicCard .reviewSectionLabel {
-  margin: 14px 0 5px;
-  color: var(--course-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
 .feedbackWrapper {
   max-width: 840px;
   border-width: 1px;
@@ -1082,7 +1072,7 @@
   overflow-wrap: anywhere;
 }
 
-.feedbackBody h3, .feedbackBody h4, .feedbackBody p, .feedbackBody dl, .feedbackBody dd {
+.feedbackBody h3, .feedbackBody h4, .feedbackBody p {
   margin: 0;
 }
 
@@ -1091,21 +1081,19 @@
 .feedbackBody p, .feedbackSummary ul { margin-top: 5px; }
 .feedbackTopic span, .feedbackBody small { color: #526a82; font-size: 0.79rem; }
 
-.accuracyTiles, .feedbackSummary {
+.feedbackSummary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.accuracyTiles > div, .feedbackPriority, .feedbackStatus, .feedbackSection, .feedbackSummary > section {
+.feedbackPriority, .feedbackStatus, .feedbackSection, .feedbackSummary > section {
   min-width: 0;
   border-radius: 10px;
   padding: 12px 14px;
 }
 
-.accuracyTiles > div, .feedbackPriority { background: #edf4fb; }
-.accuracyTiles dt { color: #365b80; font-size: 0.83rem; }
-.accuracyTiles dd { font-size: 1.15rem; font-weight: 650; }
+.feedbackPriority { background: #edf4fb; }
 .feedbackStatus { background: #f5f8fb; border-left: 3px solid #7fa8d6; }
 .feedbackSummary > section, .feedbackSection { border: 1px solid #d8e2ed; }
 .feedbackSummary ul { padding-inline-start: 18px; margin-bottom: 0; list-style: disc; }
@@ -1113,7 +1101,6 @@
 .feedbackSummary li small { margin-inline-start: 7px; }
 .sectionHeading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 3px 12px; }
 .feedbackSection .reviewTopicCard { margin-top: 8px; padding: 12px 14px; background: #f3f7fc; border-color: #d9e5f0; }
-.reviewDetails dt { margin-top: 8px; font-size: 0.76rem; font-weight: 650; color: #456687; }
 .feedbackWrapper .reviewNumbers { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .reviewNumbers button, .feedbackWrapper .feedbackNavigation button {
   border: 1px solid #b8cce0;
@@ -1136,16 +1123,12 @@
 @media (max-width: 540px) {
   .feedbackSummary { grid-template-columns: 1fr; }
   .feedbackBody { gap: 10px; }
-  .accuracyTiles > div { padding: 9px; }
   .reviewNumbers button { min-height: 40px; min-width: 40px; }
 }
 
 /* Compact adaptive feedback, with review pagination below the active card. */
 .feedbackWrapper .reviewHeader { text-align: center; background: #edf4fb; }
 .feedbackWrapper .feedbackPriority { border: 1px solid #b8d5f4; }
-.feedbackBody .studyTipLabel { margin-top: 12px; padding: 9px 10px 0; background: #fff; border-radius: 7px 7px 0 0; }
-.feedbackBody .studyTipText { padding: 4px 10px 10px; background: #fff; border-radius: 0 0 7px 7px; }
 .feedbackWrapper .reviewNumbers { justify-content: flex-start; }
 .feedbackWrapper .reviewNumbers button { border-radius: 50%; }
 .feedbackWrapper .feedbackNavigation button:last-child { background: #315c86; color: #fff; }
-@media (max-width: 380px) { .accuracyTiles { grid-template-columns: 1fr; } }

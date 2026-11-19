@@ -16,12 +16,7 @@ function ReviewTopics({ reviews }) {
         <>
           <article id={cardId} className={styles.reviewTopicCard} aria-live="polite" aria-atomic="true">
             <h5>{review.topic}</h5>
-            {review.historicalOnly && <small>Earlier difficulty · {review.improved ? "Correct this time; verify with another example" : "Review and verify understanding"}</small>}
-            <dl className={styles.reviewDetails}>
-              <dt>What to Understand</dt><dd>{review.explanation}</dd>
-              <dt className={styles.studyTipLabel}>Study Tip</dt><dd className={styles.studyTipText}>{review.studyTip}</dd>
-              <dt>Quick Self-Check</dt><dd>{review.selfCheck}</dd>
-            </dl>
+            {review.explanation && <p>{review.explanation}</p>}
           </article>
           {reviews.length > 1 && (
             <nav className={styles.reviewNumbers} aria-label="Suggested review topics">
@@ -41,8 +36,6 @@ function ReviewTopics({ reviews }) {
 export default function PracticeFeedbackCard({ feedback, modeLabel, index, count, onPage }) {
   const reviews = feedback.suggestedReviewTopics || [];
   const strengths = feedback.strengths || [];
-  const assessed = feedback.latestTotal > 0 && feedback.latestAccuracy != null && !feedback.selfAssessed;
-  const history = feedback.historicalAccuracy != null && feedback.historicalTotal !== 0;
   return (
     <div className={styles.adaptiveFeedbackCard}>
       <div className={styles.feedbackBody}>
@@ -50,19 +43,6 @@ export default function PracticeFeedbackCard({ feedback, modeLabel, index, count
           <span>{modeLabel}</span>
           <h3>{feedback.topic}</h3>
         </header>
-        <dl className={styles.accuracyTiles}>
-          <div>
-            <dt>Latest Topic Accuracy</dt>
-            <dd>{assessed ? `${feedback.latestAccuracy}%` : "Not Assessed"}</dd>
-            <small>{feedback.selfAssessed && feedback.recallPercentage != null
-              ? `Self-rated recall: ${feedback.recallPercentage}%` : "Most recent attempt"}</small>
-          </div>
-          <div>
-            <dt>Recent Graded Accuracy</dt>
-            <dd>{history ? `${feedback.historicalAccuracy}%` : "Unavailable"}</dd>
-            <small>{history && feedback.gradedAttempts > 0 ? `Across ${feedback.gradedAttempts} graded ${feedback.gradedAttempts === 1 ? "attempt" : "attempts"}` : history ? "Recorded graded responses" : "No graded history available"}</small>
-          </div>
-        </dl>
         <section className={styles.feedbackStatus}>
           <h4>{feedback.understanding}</h4>
           <p>{feedback.recommendation}</p>
