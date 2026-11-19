@@ -7,11 +7,16 @@ import StudentHeader from "../../../components/students/StudentHeader";
 import { Avatar, SortToggle } from "../enrolled/EnrolledCourses.jsx";
 import JoinCourseModal from "../courses/JoinCourseModal";
 
-import { PROFESSOR_COURSES_EVENT } from "../../professor/professorData";
+import {
+  PROFESSOR_COURSES_EVENT,
+  PROFESSOR_COURSES_KEY,
+} from "../../professor/professorData";
 import {
   enrollStudentInCourse,
   loadPublicStudentCourses,
+  STUDENT_ENROLLED_COURSES_KEY,
 } from "../courses/studentCourseData";
+import { onPageResume } from "../../../utils/onPageResume.js";
 import { useSystemStatus } from "../../../context/SystemStatusContext.jsx";
 import { requestCourseEnrollmentByCode } from "../courses/courseEnrollment.js";
 import { useStudentTutorial } from "../tutorial/StudentTutorialContext.js";
@@ -329,24 +334,27 @@ export default function PublicCourses() {
     const handleRefresh = () => {
       if (document.visibilityState !== "hidden") refreshCourses();
     };
+    const handleCourseStorage = ({ key }) => {
+      if (
+        key === null ||
+        key === PROFESSOR_COURSES_KEY ||
+        key === STUDENT_ENROLLED_COURSES_KEY ||
+        key?.startsWith(`${STUDENT_ENROLLED_COURSES_KEY}:`)
+      ) {
+        handleRefresh();
+      }
+    };
 
     refreshCourses(true);
-    const intervalId = window.setInterval(handleRefresh, 5000);
-
+    const unsubscribe = onPageResume(handleRefresh);
     window.addEventListener(PROFESSOR_COURSES_EVENT, handleRefresh);
-    window.addEventListener("storage", handleRefresh);
-    window.addEventListener("focus", handleRefresh);
-    window.addEventListener("online", handleRefresh);
-    document.addEventListener("visibilitychange", handleRefresh);
+    window.addEventListener("storage", handleCourseStorage);
 
     return () => {
       active = false;
-      window.clearInterval(intervalId);
+      unsubscribe();
       window.removeEventListener(PROFESSOR_COURSES_EVENT, handleRefresh);
-      window.removeEventListener("storage", handleRefresh);
-      window.removeEventListener("focus", handleRefresh);
-      window.removeEventListener("online", handleRefresh);
-      document.removeEventListener("visibilitychange", handleRefresh);
+      window.removeEventListener("storage", handleCourseStorage);
     };
   }, [tutorial]);
 
@@ -511,9 +519,10 @@ export default function PublicCourses() {
 
   const joinByCourseCode = () =>
     requestCourseEnrollmentByCode(courseCode, {
-      onSubmitted: ({ pending, course }) => {
+      onSubmitted: ({ enrolled, pending, course }) => {
         closeJoinModal();
         if (pending) markCourseRequested(course);
+        if (enrolled) void loadEnrolledCourses();
       },
     });
 

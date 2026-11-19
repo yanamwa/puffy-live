@@ -198,12 +198,12 @@ function normalizeImagePath(value, title = "") {
 ===================================================== */
 
 function inferModeKind(mode, title) {
-  const text =
-    `${mode?.kind || ""} ` +
-    `${mode?.quizMode || ""} ` +
-    `${title || ""} ` +
-    `${mode?.mode_name || ""} ` +
-    `${mode?.route || ""}`.toLowerCase();
+  const kind = String(mode?.kind || mode?.quizMode || "").trim().toLowerCase();
+  if (quizModeSeeds.some((seed) => seed.kind === kind)) return kind;
+  const route = String(mode?.route || "").trim().toLowerCase().replace(/\/+$/, "");
+  const routedMode = quizModeSeeds.find((seed) => seed.route.toLowerCase() === route);
+  if (routedMode) return routedMode.kind;
+  const text = [kind, title, mode?.mode_name, mode?.route].join(" ").toLowerCase();
 
   if (
     text.includes("mixed") ||
@@ -224,6 +224,8 @@ function inferModeKind(mode, title) {
   if (text.includes("matching")) {
     return "matching";
   }
+
+  if (text.includes("flashcard")) return "flashcard";
 
   if (text.includes("q")) {
     return "qna";
@@ -373,7 +375,7 @@ export function readLocalQuizModes() {
    Kept for pages that listen for mode updates.
 ===================================================== */
 
-export function saveLocalQuizModes(modes) {
+export function saveLocalQuizModes(modes, { notify = true } = {}) {
   const normalized = modes.map(normalizeQuizMode);
 
   try {
@@ -384,7 +386,7 @@ export function saveLocalQuizModes(modes) {
     localStorage.removeItem(ADMIN_MODES_KEY);
   }
 
-  dispatchModesUpdate(normalized);
+  if (notify) dispatchModesUpdate(normalized);
 
   return normalized;
 }
@@ -439,16 +441,8 @@ export async function fetchQuizModes() {
     ? data.modes.map(normalizeQuizMode)
     : [];
 
-  /*
-    Keep the successful server result
-    locally for other pages that may
-    listen to ADMIN_MODES_EVENT.
-
-    This local copy is NOT used to
-    pretend a failed API call worked.
-  */
-
-  saveLocalQuizModes(modes);
+  // Mode pickers listen for edits. A read must not trigger another fetch.
+  saveLocalQuizModes(modes, { notify: false });
 
   return modes;
 }

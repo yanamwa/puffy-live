@@ -194,7 +194,11 @@ export default function PracticeProgress() {
         const data = await response.json().catch(() => null);
         if (!response.ok || !data?.success || !Array.isArray(data.records))
           throw new Error(data?.message || fallback);
-        if (!controller.signal.aborted) setRecords(data.records);
+        if (!controller.signal.aborted) {
+          setRecords(
+            data.records.filter((record) => record.moduleId !== "all-modules"),
+          );
+        }
       } catch (error) {
         if (!controller.signal.aborted) setError(error.message || fallback);
       } finally {
@@ -237,7 +241,7 @@ export default function PracticeProgress() {
         </p>
       ) : !records.length ? (
         <p className="home-results-empty">
-          Your completed practice attempts will appear here.
+          Your completed module practice attempts will appear here.
         </p>
       ) : (
         <div className="home-results-table-wrap">

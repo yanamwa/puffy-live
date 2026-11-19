@@ -46,6 +46,7 @@ export async function waitForPractice(
       throw new Error(
         "Practice preparation could not start. Please try again.",
       );
+    let pollDelay = 2000;
     while (true) {
       const job = data.job;
       if (job?.status === "ready") return requireCompletePractice(job.attempt);
@@ -64,8 +65,9 @@ export async function waitForPractice(
         );
       }
       onProgress?.(job.status);
-      await wait(2000, controller.signal);
+      await wait(pollDelay, controller.signal);
       data = await request(`jobs/${encodeURIComponent(jobId)}`, undefined, options);
+      pollDelay = Math.min(pollDelay + 1000, 6000);
     }
   } catch (error) {
     if (controller.signal.aborted && !signal?.aborted)

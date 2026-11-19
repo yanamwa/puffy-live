@@ -193,6 +193,16 @@
   font-size: 22px;
 }
 
+.retryButton {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 18px;
+  background: #41688f;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
 /* Keep the popup cards aligned with the student blue palette. */
 .modeOptions > div {
   border-color: #a8c6e7;

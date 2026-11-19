@@ -18,7 +18,11 @@ export function coursePracticeModule(course, modules) {
   };
 }
 
-export function legacyPracticeRedirect(pathname, scope, storedLessonId) {
+export function legacyPracticeRedirect(pathname, scope, storedLessonId, search = "") {
+  const quizLink = /^\/student\/enrolled-courses\/(\d+)\/quiz\/practice\/([^/]+)\/?$/i.exec(pathname);
+  if (quizLink)
+    return `/student/enrolled-courses/${quizLink[1]}/practice/${quizLink[2]}${search}`;
+
   const match = /^\/(flashcards-tutorial|QandA-tutorial|qna-tutorial|multipleChoice-tutorial|multiple-choice-tutorial|Matching-tutorial|matching-tutorial|timedquiz-tutorial|random-modes-tutorial|mixed-mode-tutorial|flashcard|qna|multiple-choice|matching-type|timedquiz|mixed-mode|random-modes|survival)\/lesson\/([^/]+)$/i.exec(pathname);
   if (!match || scope?.scopeType === "main_quiz") return "";
   let lessonId;

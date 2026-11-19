@@ -201,7 +201,10 @@ export default function ProtectedRoute() {
       );
     }
     const practiceRedirect = legacyPracticeRedirect(
-      pathname, readStorageJson("practiceScope", {}), localStorage.getItem("practiceLessonId"),
+      pathname,
+      readStorageJson("practiceScope", {}),
+      localStorage.getItem("practiceLessonId"),
+      location.search,
     );
     if (practiceRedirect) return <Navigate to={practiceRedirect} replace />;
   }

@@ -1,5 +1,6 @@
 import { studentVisibleModuleIndices } from "../../../utils/studentModuleVisibility.js";
 import { mainQuizScheduleState } from "../../../utils/mainQuizSchedule.js";
+import { onPageResume } from "../../../utils/onPageResume.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -87,16 +88,6 @@ function resolveProfileImage(imagePath) {
 
   const serverOrigin = API_BASE_URL.replace(/\/api\/?$/, "");
   return `${serverOrigin}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`;
-}
-
-function getStoredToken() {
-  return (
-    localStorage.getItem("token") ||
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("puffy-token") ||
-    sessionStorage.getItem("token") ||
-    sessionStorage.getItem("authToken")
-  );
 }
 
 function getProfessorDepartment(course) {
@@ -605,55 +596,7 @@ export default function StudentCourseDetail() {
     return localStorage.getItem("sidebarCollapsed") === "true";
   });
 
-  const [courses, setCourses] = useState([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
-
   const [, setProgressVersion] = useState(0);
-
-  const loadEnrolledCourses = async () => {
-    try {
-      setCoursesLoading(true);
-
-      const token = getStoredToken();
-
-      if (!token) {
-        setCourses([]);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/courses/enrolled`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.message || "Could not load enrolled courses.");
-      }
-
-      const loadedCourses = Array.isArray(data.courses)
-        ? data.courses
-        : Array.isArray(data.data)
-          ? data.data
-          : [];
-
-      setCourses(loadedCourses);
-    } catch (error) {
-      console.error("Sidebar enrolled courses loading error:", error);
-
-      setCourses([]);
-    } finally {
-      setCoursesLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!tutorial) loadEnrolledCourses();
-  }, [tutorial]);
 
   useEffect(() => {
     if (tutorial) return;
@@ -682,15 +625,10 @@ export default function StudentCourseDetail() {
     }
 
     loadCourse();
-    const refresh = () => { if (document.visibilityState === "visible") loadCourse(true); };
-    const timer = window.setInterval(refresh, 5000);
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
+    const unsubscribe = onPageResume(() => loadCourse(true));
     return () => {
       active = false;
-      window.clearInterval(timer);
-      window.removeEventListener("focus", refresh);
-      document.removeEventListener("visibilitychange", refresh);
+      unsubscribe();
     };
   }, [courseId, tutorial]);
 

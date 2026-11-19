@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   FiBell,
@@ -11,14 +11,9 @@ import Swal from "sweetalert2";
 
 import StudentSidebar from "../../../components/students/StudentSidebar";
 import StudentHeader from "../../../components/students/StudentHeader";
+import { useStudentNotifications } from "../../../components/students/useStudentNotifications.js";
 
 import "./StudentNotifications.css";
-
-/* =====================================================
-   API
-===================================================== */
-
-import { API_BASE as API_BASE_URL } from "../../../config.js";
 
 /* =====================================================
    TABS
@@ -38,22 +33,6 @@ const tabs = [
     value: "announcement",
   },
 ];
-
-/* =====================================================
-   GET TOKEN
-===================================================== */
-
-function getStoredToken() {
-  return (
-    localStorage.getItem("token") ||
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("puffy-token") ||
-    sessionStorage.getItem("token") ||
-    sessionStorage.getItem("authToken") ||
-    sessionStorage.getItem("puffy-token") ||
-    ""
-  );
-}
 
 /* =====================================================
    FORMAT TIME
@@ -236,69 +215,11 @@ function normalizeNotification(notification) {
 export default function StudentNotifications() {
   const [activeTab, setActiveTab] = useState("all");
 
-  const [notifications, setNotifications] = useState([]);
-
-  const [isLoading, setIsLoading] = useState(true);
-
-  /* ===================================================
-     LOAD NOTIFICATIONS
-  =================================================== */
-
-  const loadNotifications = useCallback(async () => {
-    const token = getStoredToken();
-
-    if (!token) {
-      setNotifications([]);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/notifications`, {
-        method: "GET",
-
-        headers: {
-          Accept: "application/json",
-
-          Authorization: `Bearer ${token}`,
-        },
-
-        credentials: "include",
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to fetch notifications.");
-      }
-
-      const incoming = Array.isArray(data?.notifications)
-        ? data.notifications
-        : [];
-
-      setNotifications(incoming.map(normalizeNotification));
-    } catch (error) {
-      console.error("Unable to load student notifications:", error);
-
-      setNotifications([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  /* ===================================================
-     AUTO REFRESH
-  =================================================== */
-
-  useEffect(() => {
-    loadNotifications();
-
-    const intervalId = window.setInterval(loadNotifications, 30000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [loadNotifications]);
+  const inbox = useStudentNotifications();
+  const notifications = useMemo(
+    () => inbox.notifications.map(normalizeNotification),
+    [inbox.notifications],
+  );
 
   /* ===================================================
      FILTER
@@ -331,107 +252,14 @@ export default function StudentNotifications() {
   ).length;
 
   /* ===================================================
-     MARK ALL READ
-  =================================================== */
-
-  const markAllRead = async () => {
-    if (unreadCount === 0) {
-      return;
-    }
-
-    const token = getStoredToken();
-
-    if (!token) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
-        method: "PATCH",
-
-        headers: {
-          Accept: "application/json",
-
-          Authorization: `Bearer ${token}`,
-        },
-
-        credentials: "include",
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message || "Failed to mark notifications as read.",
-        );
-      }
-
-      setNotifications((current) =>
-        current.map((notification) => ({
-          ...notification,
-          unread: false,
-          isRead: true,
-          is_read: true,
-        })),
-      );
-    } catch (error) {
-      console.error("Unable to mark all notifications as read:", error);
-    }
-  };
-
-  /* ===================================================
      OPEN NOTIFICATION
   =================================================== */
 
   const openNotification = async (notification) => {
     if (!notification) return;
 
-    /* MARK ONE AS READ */
-
-    if (notification.unread) {
-      const token = getStoredToken();
-
-      if (token) {
-        try {
-          const notificationId = notification.notificationId || notification.id;
-
-          const response = await fetch(
-            `${API_BASE_URL}/notifications/${notificationId}/read`,
-            {
-              method: "PATCH",
-
-              headers: {
-                Accept: "application/json",
-
-                Authorization: `Bearer ${token}`,
-              },
-
-              credentials: "include",
-            },
-          );
-
-          const data = await response.json().catch(() => ({}));
-
-          if (!response.ok) {
-            throw new Error(
-              data?.message || "Failed to mark notification as read.",
-            );
-          }
-
-          setNotifications((current) =>
-            current.map((item) =>
-              item.id === notification.id
-                ? {
-                    ...item,
-                    unread: false,
-                    isRead: true,
-                    is_read: true,
-                  }
-                : item,
-            ),
-          );
-        } catch (error) {
-          console.error("Unable to mark notification as read:", error);
-        }
-      }
+    if (notification.unread && notification.notificationId != null) {
+      await inbox.markAsRead(notification.notificationId);
     }
 
     /* ===============================================
@@ -569,7 +397,7 @@ export default function StudentNotifications() {
       {/* MAIN AREA */}
       <div className="student-notifications-main-area">
         {/* HEADER */}
-        <StudentHeader searchPlaceholder="Search notifications" />
+        <StudentHeader searchPlaceholder="Search notifications" notificationFeed={inbox} />
 
         {/* PAGE BODY */}
         <main className="student-notifications-body">
@@ -624,7 +452,7 @@ export default function StudentNotifications() {
               <button
                 type="button"
                 className="student-mark-read"
-                onClick={markAllRead}
+                onClick={() => inbox.markAsRead()}
                 disabled={unreadCount === 0}
               >
                 Mark all as read ({unreadCount})
@@ -633,7 +461,7 @@ export default function StudentNotifications() {
 
             {/* NOTIFICATIONS */}
             <div className="student-notification-list">
-              {isLoading && notifications.length === 0 ? (
+              {inbox.loading && notifications.length === 0 ? (
                 <div className="student-notification-empty">
                   <span className="student-empty-icon">
                     <FiBell />

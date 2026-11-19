@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { API_BASE } from "../config.js";
+import { onPageResume } from "../utils/onPageResume.js";
 
 const defaults = {
   academicYear: "",
@@ -15,6 +17,7 @@ export function useSystemStatus() {
 
 export function SystemStatusProvider({ children }) {
   const [status, setStatus] = useState(defaults);
+  const { pathname } = useLocation();
 
   useEffect(() => {
     let request;
@@ -41,22 +44,23 @@ export function SystemStatusProvider({ children }) {
         // Keep the last known status if the connection is interrupted.
       } finally {
         if (!signal.aborted) {
+          request = null;
           setStatus((current) => current.loaded ? current : { ...current, loaded: true });
         }
       }
     }
 
     refresh();
-    const timer = window.setInterval(refresh, 15000);
-    window.addEventListener("focus", refresh);
+    const unsubscribe = onPageResume(() => {
+      if (!request) void refresh();
+    });
     window.addEventListener("puffy-system-settings-updated", refresh);
     return () => {
       request?.abort();
-      window.clearInterval(timer);
-      window.removeEventListener("focus", refresh);
+      unsubscribe();
       window.removeEventListener("puffy-system-settings-updated", refresh);
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <SystemStatusContext.Provider value={status}>

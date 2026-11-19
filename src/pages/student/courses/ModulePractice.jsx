@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Link,
-  Navigate,
   useLocation,
   useNavigate,
   useParams,
@@ -96,7 +95,7 @@ function PracticeQuestionLoader({ intro, status }) {
   );
 }
 
-function PracticeSession({ courseId, moduleId, mode }) {
+function PracticeSession({ courseId, moduleId, mode, onRetry }) {
   const location = useLocation();
   const navigate = useNavigate();
   const accountKey = getStudentProgressStorageKey("modulePractice");
@@ -105,7 +104,7 @@ function PracticeSession({ courseId, moduleId, mode }) {
   const result = savedState?.practiceResult;
   const playing = Boolean(savedState?.playing);
   const [modules, setModules] = useState(null);
-  const [practiceUnavailable, setPracticeUnavailable] = useState(false);
+  const [practiceUnavailable, setPracticeUnavailable] = useState("");
   const [attempt, setAttempt] = useState(null);
   const [recapRequired, setRecapRequired] = useState(false);
   const [preparationStatus, setPreparationStatus] = useState("");
@@ -185,8 +184,11 @@ function PracticeSession({ courseId, moduleId, mode }) {
           );
         }
       })
-      .catch(() => {
-        if (current) setPracticeUnavailable(true);
+      .catch((error) => {
+        if (current) {
+          console.error("Practice course loading failed", error);
+          setPracticeUnavailable(error.message || "The course could not be loaded.");
+        }
       });
     return () => {
       current = false;
@@ -232,7 +234,8 @@ function PracticeSession({ courseId, moduleId, mode }) {
           setRecapRequired(true);
           return;
         }
-        setPracticeUnavailable(true);
+        console.error("Practice preparation failed", error);
+        setPracticeUnavailable(error.message || "Practice could not be prepared. Please try again.");
       }
     }
 
@@ -285,8 +288,23 @@ function PracticeSession({ courseId, moduleId, mode }) {
     }
   }
 
-  if (practiceUnavailable || (modules && !module))
-    return <Navigate to={coursePath} replace />;
+  if (practiceUnavailable || (modules && !module)) {
+    return (
+      <main className={styles.page}>
+        <h1>Practice unavailable</h1>
+        <p role="alert">
+          {practiceUnavailable ||
+            "This practice module is no longer available."}
+        </p>
+        <button type="button" className={styles.primary} onClick={onRetry}>
+          Try again
+        </button>
+        <p>
+          <Link to={coursePath}>Back to course</Link>
+        </p>
+      </main>
+    );
+  }
   if (!mode) {
     return (
       <QuizModesModal
@@ -369,14 +387,16 @@ function PracticeSession({ courseId, moduleId, mode }) {
 export default function ModulePractice() {
   const { courseId, moduleId } = useParams();
   const [searchParams] = useSearchParams();
+  const [retry, setRetry] = useState(0);
   const selectedMode = searchParams.get("mode");
   const mode = Object.hasOwn(modes, selectedMode) ? selectedMode : null;
   return (
     <PracticeSession
-      key={`${courseId}/${moduleId}/${mode}`}
+      key={`${courseId}/${moduleId}/${mode}/${retry}`}
       courseId={courseId}
       moduleId={moduleId}
       mode={mode}
+      onRetry={() => setRetry((count) => count + 1)}
     />
   );
 }

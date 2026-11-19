@@ -1,6 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchQuizModes } from "../../services/quizModeApi.js";
+import {
+  ADMIN_MODES_EVENT,
+  ADMIN_MODES_KEY,
+  fetchQuizModes,
+} from "../../services/quizModeApi.js";
 import ModeCard from "./ModeCard.jsx";
 import styles from "./QuizModesModal.module.css";
 
@@ -8,31 +12,12 @@ function resolveModeImage(mode) {
   const image = String(mode.image || "").trim();
 
   if (image.startsWith("data:image/")) return image;
-  if (!image && getModeKind(mode) === "mixed") return "/images/mixed_match.png";
+  if (!image && mode.kind === "mixed") return "/images/mixed_match.png";
   if (!image) return "/images/flashcard.png";
   if (/^https?:\/\//i.test(image)) return image;
   if (image.startsWith("/")) return image;
 
   return `/images/${image}`;
-}
-
-function getModeKind(mode) {
-  const text = `${mode.kind || ""} ${mode.quizMode || ""} ${
-    mode.title || ""
-  } ${mode.mode_name || ""} ${mode.route || ""}`.toLowerCase();
-
-  if (
-    text.includes("mixed") ||
-    text.includes("random") ||
-    text.includes("survival")
-  ) {
-    return "mixed";
-  }
-  if (text.includes("timed")) return "timed";
-  if (text.includes("multiple")) return "multiple";
-  if (text.includes("matching")) return "matching";
-  if (text.includes("q")) return "qna";
-  return "flashcard";
 }
 
 const modeRouteFallbacks = {
@@ -81,6 +66,8 @@ export default function QuizModesModal({
   const navigate = useNavigate();
   const [modes, setModes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadVersion, reloadModes] = useReducer((version) => version + 1, 0);
 
   const isDeck = source === "deck";
   const isLesson = ["lesson", "module", "course"].includes(source);
@@ -89,35 +76,36 @@ export default function QuizModesModal({
     let active = true;
 
     async function loadModes() {
+      setLoading(true);
+      setLoadError("");
       try {
-        setLoading(true);
         const loadedModes = await fetchQuizModes();
-
-        if (active) {
-          setModes(loadedModes);
-        }
+        if (active) setModes(loadedModes);
+      } catch (error) {
+        if (active)
+          setLoadError(error.message || "Quiz modes could not be loaded.");
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
-    loadModes();
-
-    const refreshModes = () => {
-      fetchQuizModes().then((loadedModes) => {
-        if (active) setModes(loadedModes);
-      });
-    };
-
-    window.addEventListener("admin-modes-updated", refreshModes);
-    window.addEventListener("storage", refreshModes);
-
+    void loadModes();
     return () => {
       active = false;
-      window.removeEventListener("admin-modes-updated", refreshModes);
-      window.removeEventListener("storage", refreshModes);
+    };
+  }, [loadVersion]);
+
+  useEffect(() => {
+    const onStorage = (event) => {
+      if (event.key === ADMIN_MODES_KEY || event.key === null) reloadModes();
+    };
+
+    window.addEventListener(ADMIN_MODES_EVENT, reloadModes);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener(ADMIN_MODES_EVENT, reloadModes);
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 
@@ -133,7 +121,7 @@ export default function QuizModesModal({
   };
 
   const handleStartPractice = (mode) => {
-    const modeKind = getModeKind(mode);
+    const modeKind = mode.kind;
     if (onSelectMode) {
       onSelectMode(modeKind);
       return;
@@ -218,6 +206,13 @@ export default function QuizModesModal({
           <div className={styles.modeOptions}>
             {loading ? (
               <p className={styles.emptyModes}>Loading quiz modes...</p>
+            ) : loadError ? (
+              <section className={styles.emptyModes}>
+                <p role="alert">{loadError}</p>
+                <button type="button" className={styles.retryButton} onClick={reloadModes}>
+                  Try again
+                </button>
+              </section>
             ) : modes.length === 0 ? (
               <p className={styles.emptyModes}>No quiz modes available.</p>
             ) : (
