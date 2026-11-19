@@ -286,7 +286,7 @@ function PracticeSession({ courseId, moduleId, mode }) {
   }
 
   if (practiceUnavailable || (modules && !module))
-    return <Navigate to="/student/enrolled-courses" replace />;
+    return <Navigate to={coursePath} replace />;
   if (!mode) {
     return (
       <QuizModesModal
