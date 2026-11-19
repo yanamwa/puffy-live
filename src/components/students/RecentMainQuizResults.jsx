@@ -1,31 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
 import { useStudentTutorial } from "../../pages/student/tutorial/StudentTutorialContext.js";
 import { tutorialQuizResults } from "../../pages/student/tutorial/studentTutorialExamples.js";
+import ResultsPagination, { RESULTS_PER_PAGE } from "./ResultsPagination.jsx";
 import "./RecentMainQuizResults.css";
 export default function RecentMainQuizResults() {
   const tutorial = useStudentTutorial();
   const [revision, setRevision] = useState(0);
-  const [data, setData] = useState(() => ({ records: tutorial ? tutorialQuizResults : [] }));
+  const [data, setData] = useState({ records: [], total: 0 });
   const [loading, setLoading] = useState(!tutorial);
   const [error, setError] = useState("");
-  const page = 1;
-  const pageSize = 5;
+  const [page, setPage] = useState(1);
+  const tableId = useId();
+  const total = tutorial ? tutorialQuizResults.length : data.total;
+  const pageCount = Math.ceil(total / RESULTS_PER_PAGE);
+  const records = tutorial
+    ? tutorialQuizResults.slice((page - 1) * RESULTS_PER_PAGE, page * RESULTS_PER_PAGE)
+    : data.records;
   useEffect(() => {
     if (tutorial) return;
     const controller = new AbortController();
     setLoading(true);
     setError("");
     fetch(
-      `${API_BASE}/lessons/main-quiz/history?${new URLSearchParams({ page, pageSize })}`,
+      `${API_BASE}/lessons/main-quiz/history?${new URLSearchParams({ page, pageSize: RESULTS_PER_PAGE })}`,
       { headers: lessonAuthHeaders(), signal: controller.signal },
     )
       .then(async (response) => {
         const result = await response.json();
         if (!response.ok || result.success === false)
           throw new Error(result.message || "Could not load quiz results.");
-        if (!controller.signal.aborted) setData(result);
+        if (controller.signal.aborted) return;
+        setData(result);
+        const lastPage = Math.max(1, Math.ceil(result.total / RESULTS_PER_PAGE));
+        if (page > lastPage) setPage(lastPage);
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message);
@@ -34,7 +43,7 @@ export default function RecentMainQuizResults() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [page, pageSize, revision, tutorial]);
+  }, [page, revision, tutorial]);
   return (
     <section
       className="home-section home-recent-quiz-results"
@@ -52,14 +61,14 @@ export default function RecentMainQuizResults() {
             Retry
           </button>
         </p>
-      ) : !data.records.length ? (
+      ) : !records.length ? (
         <p className="home-results-empty">
           No Main Quiz results yet. Your completed quizzes will appear here.
         </p>
       ) : (
         <>
           <div className="home-results-table-wrap">
-            <table className="home-results-table">
+            <table id={tableId} className="home-results-table">
               <thead>
                 <tr>
                   <th scope="col">Module / Main Quiz</th>
@@ -68,7 +77,7 @@ export default function RecentMainQuizResults() {
                 </tr>
               </thead>
               <tbody>
-                {data.records.slice(0, 5).map((record) => (
+                {records.map((record) => (
                   <tr key={record.result_id}>
                     <td>
                       <strong>{record.module_title || record.quiz_title?.replace(/\s*—\s*Main Quiz$/, "") || "Module Main Quiz"}</strong>
@@ -94,6 +103,13 @@ export default function RecentMainQuizResults() {
           </div>
         </>
       )}
+      <ResultsPagination
+        label="Main quiz results pagination"
+        tableId={tableId}
+        page={page}
+        pageCount={pageCount}
+        onPageChange={setPage}
+      />
     </section>
   );
 }

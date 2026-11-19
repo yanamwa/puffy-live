@@ -134,14 +134,14 @@
   font-size: 12px;
 }
 
-.home-practice-attempts-pagination {
+.home-practice-attempts-body .home-results-pagination {
   justify-content: center;
   flex-wrap: wrap;
   padding-top: 16px;
   border-top: 1px solid #edf0f4;
 }
 
-.home-practice-attempts-pagination button {
+.home-practice-attempts-body .home-results-pagination button {
   font: inherit;
 }
 

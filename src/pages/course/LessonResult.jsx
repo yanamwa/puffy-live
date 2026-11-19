@@ -15,6 +15,7 @@ import {
   fetchCourseContent,
   getCourseContentModules,
 } from "./courseContent.js";
+import PracticeFeedbackCard from "./PracticeFeedbackCard.jsx";
 import MainQuizResult from "./MainQuizResult.jsx";
 import { isMainQuizResult } from "../../utils/quizResultType.js";
 import {
@@ -26,23 +27,6 @@ import {
   coursePracticeModule,
   getResultPracticeModule,
 } from "../quizzes/inQuiz/practiceSession.js";
-
-function Sparkles(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />
-      <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" />
-    </svg>
-  );
-}
-
-function Zap(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-      <path d="M13 2 4 14h7l-1 8 10-13h-7l0-7Z" />
-    </svg>
-  );
-}
 
 const isAnswerCorrect = (item) => {
   if (typeof item.isCorrect === "boolean") return item.isCorrect;
@@ -99,20 +83,6 @@ const getContinueModuleLabel = (moduleNavigation) => {
   return `Continue to Module ${moduleNumber}${title ? `: ${title}` : ""}`;
 };
 
-const getQuizTypeIcon = (quizMode) => {
-  const icons = {
-    flashcard: "/images/flashcard.png",
-    multiple: "/images/multiplechoice.png",
-    qna: "/images/qna.png",
-    matching: "/images/matching.png",
-    timed: "/images/timedquiz.png",
-    mixed: "/images/needpractice.png",
-    survival: "/images/needpractice.png",
-    lesson: "/images/qna.png",
-  };
-
-  return icons[quizMode] || "/images/qna.png";
-};
 
 const getStoredUserId = () => {
   try {
@@ -619,6 +589,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
             if (!ignore) {
               setContentTitle(resolvedTitle);
               setResults({
+                ...savedResults,
                 score: savedResults.score || 0,
                 total: savedResults.total || 0,
                 answers: titledAnswers,
@@ -775,14 +746,6 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
   const percentage =
     results.total > 0 ? Math.round((results.score / results.total) * 100) : 0;
 
-  const correctAnswers = results.answers.filter((item) => item.isCorrect);
-  const wrongAnswers = results.answers.filter((item) => !item.isCorrect);
-
-  const topicFeedback = buildCurrentPracticeFeedback(
-    results.answers,
-    contentTitle,
-    quizMode,
-  );
   const displayedFeedback =
     Array.isArray(aiFeedback) && aiFeedback.length > 0
       ? aiFeedback.map((feedback) =>
@@ -791,39 +754,16 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
             results.answers,
             contentTitle,
             quizMode,
+            results,
           ),
         )
-      : topicFeedback;
+      : buildCurrentPracticeFeedback(results.answers, contentTitle, quizMode, results);
   const activeFeedbackIndex = Math.min(
     feedbackIndex,
     Math.max(displayedFeedback.length - 1, 0),
   );
   const activeFeedback = displayedFeedback[activeFeedbackIndex];
   const activeQuizMode = activeFeedback?.quizType || quizMode;
-  const activeConfidence = Math.max(
-    0,
-    Math.min(
-      100,
-      Number(
-        activeFeedback?.selfAssessed
-          ? activeFeedback.recallPercentage
-          : activeFeedback?.confidence,
-      ) || 0,
-    ),
-  );
-  const strengths = activeFeedback?.strengths || [];
-  const reviewTopics = (activeFeedback?.suggestedReviewTopics || []).filter(
-    (review) =>
-      review &&
-      typeof review === "object" &&
-      review.topic &&
-      review.explanation,
-  );
-  const areasForImprovement = activeFeedback?.areasForImprovement || [];
-  const metricLabel = activeFeedback?.metricLabel || "Latest topic accuracy";
-  const hasLatestMetric =
-    activeFeedback?.selfAssessed || activeFeedback?.latestAccuracy !== null;
-
   let feedbackTitle = "";
   let feedbackMessage = "";
   let masteryLevel = "";
@@ -877,7 +817,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
       "This result reflects how you rated the cards. Check your understanding with a graded practice quiz.";
     masteryLevel = "Self-assessed recall";
     recommendation =
-      "Aim for at least 9/10 in graded practice to meet the 90% mastery target.";
+      "Try a graded practice question to verify what you can recall.";
   }
 
   if (quizMode === "timed" && isTimedOut) {
@@ -1030,7 +970,7 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
       </div>
 
       <div className={`${styles.reviewWrapper} ${styles.feedbackWrapper}`}>
-        <div className={styles.reviewHeader}>Adaptive Feedback</div>
+        <h2 className={styles.reviewHeader}>Practice Quiz Feedback</h2>
 
         <div className={styles.adaptiveFeedbackPanel}>
           {isFeedbackLoading ? (
@@ -1042,256 +982,15 @@ export default function LessonResult({ practiceResult, onPracticeAgain } = {}) {
               Complete some questions to generate adaptive feedback.
             </p>
           ) : (
-            <div className={styles.adaptiveFeedbackCard}>
-              <div className={styles.adaptiveTopRow}>
-                <div className={styles.understandingBadge}>
-                  {String(activeFeedback.understanding)
-                    .toLowerCase()
-                    .includes("good") ? (
-                    <Sparkles
-                      className={styles.understandingIcon}
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <Zap
-                      className={styles.understandingIcon}
-                      aria-hidden="true"
-                    />
-                  )}
-                  {activeFeedback.understanding}
-                </div>
-
-                <div
-                  className={styles.masteryRing}
-                  style={{
-                    "--mastery": `${activeConfidence * 3.6}deg`,
-                  }}
-                  aria-label={
-                    hasLatestMetric
-                      ? `${activeConfidence}% ${metricLabel.toLowerCase()}`
-                      : "This topic was not assessed in the latest attempt"
-                  }
-                >
-                  <div className={styles.masteryRingCenter}>
-                    {hasLatestMetric ? `${activeConfidence}%` : "—"}
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.adaptiveDivider} />
-
-              <div className={styles.topicHeading}>
-                <div className={styles.quizTypeIcon}>
-                  <img
-                    src={getQuizTypeIcon(activeQuizMode)}
-                    alt={getQuizTypeLabel(activeQuizMode)}
-                  />
-                </div>
-
-                <div>
-                  <span className={styles.quizTypeName}>
-                    {getQuizTypeLabel(activeQuizMode)}
-                  </span>
-                  <h3>{activeFeedback.topic}</h3>
-                </div>
-              </div>
-
-              <div className={styles.confidenceHeader}>
-                <span>{metricLabel}:</span>
-                <strong>
-                  {hasLatestMetric ? `${activeConfidence}%` : "—"}
-                </strong>
-              </div>
-              {(activeFeedback.selfAssessed || activeFeedback.latestTotal === 0) && (
-                <p className={styles.explanationText}>
-                  {activeFeedback.selfAssessed
-                    ? "This percentage reflects your card ratings, not verified accuracy."
-                    : "This topic was not assessed in this attempt."}
-                </p>
-              )}
-              {activeFeedback.historicalTotal > 0 &&
-                (activeFeedback.gradedAttempts > 1 ||
-                  !hasLatestMetric ||
-                  activeFeedback.selfAssessed) && (
-                  <p className={styles.explanationText}>
-                    Recent graded accuracy: {activeFeedback.historicalAccuracy}%{" "}
-                    ({activeFeedback.historicalCorrect}/
-                    {activeFeedback.historicalTotal} answers across{" "}
-                    {activeFeedback.gradedAttempts} graded attempts, including
-                    this attempt when graded).
-                    {activeFeedback.recurring &&
-                      ` Missed in ${activeFeedback.missedAttempts} attempts; keep reviewing.`}
-                  </p>
-                )}
-
-              <div className={styles.learningInsights}>
-                <div className={styles.insightCard}>
-                  <h4>Strengths</h4>
-                  {strengths.length > 0 ? (
-                    <ul className={styles.strengthList}>
-                      {strengths.map((strength, index) => (
-                        <li key={`${strength}-${index}`}>{strength}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>Keep practicing to build a confirmed strength.</p>
-                  )}
-                </div>
-
-                <div className={styles.insightCard}>
-                  <h4>Areas for Improvement</h4>
-                  {areasForImprovement.length > 0 ? (
-                    <ul className={styles.improvementList}>
-                      {areasForImprovement.map((area, index) => (
-                        <li key={`${area}-${index}`}>{area}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>
-                      No areas for improvement were detected for this topic.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className={styles.adaptivePlanCard}>
-                <div>
-                  <span className={styles.planLabel}>
-                    Adaptive Recommendation
-                  </span>
-                  <strong>
-                    {activeFeedback.difficulty || "Focused Practice"}
-                  </strong>
-                </div>
-                <p>{activeFeedback.recommendation}</p>
-                <p className={styles.adaptiveRecommendation}>
-                  {activeFeedback.adaptiveRecommendation}
-                </p>
-              </div>
-
-              <div className={styles.reviewAndGoal}>
-                <div>
-                  <h4>Suggested Review Topics</h4>
-                  <div className={styles.reviewTopics}>
-                    {reviewTopics.length === 0 && (
-                      <p>
-                        No specific missed concepts were recorded for this
-                        topic.
-                      </p>
-                    )}
-                    {reviewTopics.map((review) => (
-                      <article
-                        className={styles.reviewTopicCard}
-                        key={review.topic}
-                      >
-                        <h5>{review.topic}</h5>
-                        <h6 className={styles.reviewSectionLabel}>
-                          What to understand
-                        </h6>
-                        <p>{review.explanation}</p>
-                        <h6 className={styles.reviewSectionLabel}>Study tip</h6>
-                        <p>{review.studyTip}</p>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-                <div className={`${styles.insightCard} ${styles.nextGoal}`}>
-                  <h4>Next Goal</h4>
-                  <p>{activeFeedback.nextGoal}</p>
-                </div>
-              </div>
-
-              <div className={styles.adaptiveFooter}>
-                <span className={styles.feedbackCounter}>
-                  {activeFeedbackIndex + 1} of {displayedFeedback.length}
-                </span>
-
-                <div className={styles.feedbackNavigation}>
-                  {activeFeedbackIndex > 0 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFeedbackIndex((current) => Math.max(0, current - 1))
-                      }
-                    >
-                      Back
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    disabled={
-                      activeFeedbackIndex >= displayedFeedback.length - 1
-                    }
-                    onClick={() =>
-                      setFeedbackIndex((current) =>
-                        Math.min(displayedFeedback.length - 1, current + 1),
-                      )
-                    }
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
+            <PracticeFeedbackCard
+              key={JSON.stringify([results.attemptId ?? results.completedAt, activeFeedbackIndex, activeFeedback.topic])}
+              feedback={activeFeedback}
+              modeLabel={getQuizTypeLabel(activeQuizMode)}
+              index={activeFeedbackIndex}
+              count={displayedFeedback.length}
+              onPage={setFeedbackIndex}
+            />
           )}
-        </div>
-
-        <div className={styles.legacyFeedback}>
-          <div className={styles.reviewItem}>
-            <div className={styles.reviewQuestion}>Strengths</div>
-            <hr className={styles.reviewDivider} />
-
-            <div className={styles.reviewAnswer}>
-              {correctAnswers.length === 0 ? (
-                <p>No strong areas detected yet.</p>
-              ) : (
-                correctAnswers.map((item, index) => (
-                  <p key={index}>
-                    ✅ {item.question || "Question not available"}
-                  </p>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className={styles.reviewItem}>
-            <div className={styles.reviewQuestion}>Weaknesses</div>
-            <hr className={styles.reviewDivider} />
-
-            <div className={styles.reviewAnswer}>
-              {wrongAnswers.length === 0 ? (
-                <p>No weak areas detected. Great job!</p>
-              ) : (
-                wrongAnswers.map((item, index) => {
-                  const correctAnswer =
-                    item.correctAnswer ||
-                    item.answer ||
-                    "Correct answer not available";
-
-                  const explanation =
-                    item.explanation || "No explanation available.";
-
-                  return (
-                    <div key={index} className={styles.weaknessItem}>
-                      <p>❌ {item.question || "Question not available"}</p>
-
-                      <p>
-                        Correct Answer:{" "}
-                        <span className={styles.correctText}>
-                          {correctAnswer}
-                        </span>
-                      </p>
-
-                      <p className={styles.explanationText}>
-                        Explanation: {explanation}
-                      </p>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
         </div>
       </div>
 

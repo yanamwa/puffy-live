@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
+import ResultsPagination, { RESULTS_PER_PAGE } from "./ResultsPagination.jsx";
 import "./RecentMainQuizResults.css";
 import "./PracticeProgress.css";
 
@@ -18,7 +19,6 @@ const timeFormat = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
   hour12: true,
 });
-const ATTEMPTS_PER_PAGE = 5;
 
 function formatScore({ score, total }) {
   return `${score}/${total} (${percentFormat.format(score / total)})`;
@@ -31,9 +31,9 @@ function PracticeAttemptsModal({ record, onClose }) {
   const tableId = useId();
   const [page, setPage] = useState(1);
   const { attempts, moduleTitle, courseTitle } = record;
-  const pageCount = Math.ceil(attempts.length / ATTEMPTS_PER_PAGE);
-  const start = (page - 1) * ATTEMPTS_PER_PAGE;
-  const visibleAttempts = attempts.slice(start, start + ATTEMPTS_PER_PAGE);
+  const pageCount = Math.ceil(attempts.length / RESULTS_PER_PAGE);
+  const start = (page - 1) * RESULTS_PER_PAGE;
+  const visibleAttempts = attempts.slice(start, start + RESULTS_PER_PAGE);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -79,7 +79,7 @@ function PracticeAttemptsModal({ record, onClose }) {
         <p id={descriptionId}>{courseTitle}</p>
         <p className="home-practice-attempts-count">
           Showing {start + 1}&ndash;
-          {Math.min(start + ATTEMPTS_PER_PAGE, attempts.length)} of{" "}
+          {start + visibleAttempts.length} of{" "}
           {attempts.length} attempts &middot; Latest first
         </p>
         <table id={tableId} className="home-practice-attempts-table">
@@ -113,32 +113,13 @@ function PracticeAttemptsModal({ record, onClose }) {
             ))}
           </tbody>
         </table>
-        {pageCount > 1 && (
-          <nav
-            className="home-results-pagination home-practice-attempts-pagination"
-            aria-label="Practice attempts pagination"
-          >
-            <button
-              type="button"
-              aria-controls={tableId}
-              disabled={page === 1}
-              onClick={() => setPage((current) => current - 1)}
-            >
-              Previous
-            </button>
-            <span role="status" aria-live="polite">
-              Page {page} of {pageCount}
-            </span>
-            <button
-              type="button"
-              aria-controls={tableId}
-              disabled={page === pageCount}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Next
-            </button>
-          </nav>
-        )}
+        <ResultsPagination
+          label="Practice attempts pagination"
+          tableId={tableId}
+          page={page}
+          pageCount={pageCount}
+          onPageChange={setPage}
+        />
       </div>
     </dialog>
   );
@@ -193,6 +174,10 @@ export default function PracticeProgress() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [page, setPage] = useState(1);
+  const tableId = useId();
+  const pageCount = Math.ceil(records.length / RESULTS_PER_PAGE);
+  const start = (page - 1) * RESULTS_PER_PAGE;
   const closeAttempts = useCallback(() => setSelectedRecord(null), []);
 
   useEffect(() => {
@@ -257,6 +242,7 @@ export default function PracticeProgress() {
       ) : (
         <div className="home-results-table-wrap">
           <table
+            id={tableId}
             className="home-results-table"
             aria-labelledby="practice-progress-title"
           >
@@ -269,7 +255,7 @@ export default function PracticeProgress() {
               </tr>
             </thead>
             <tbody>
-              {records.map((record) => (
+              {records.slice(start, start + RESULTS_PER_PAGE).map((record) => (
                 <PracticeProgressRow
                   key={`${record.courseId}:${record.moduleId}`}
                   record={record}
@@ -280,6 +266,13 @@ export default function PracticeProgress() {
           </table>
         </div>
       )}
+      <ResultsPagination
+        label="Practice progress pagination"
+        tableId={tableId}
+        page={page}
+        pageCount={pageCount}
+        onPageChange={setPage}
+      />
       {selectedRecord && (
         <PracticeAttemptsModal
           record={selectedRecord}

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { LEARNING_FEEDBACK_VERSION, buildNextGoal, buildConceptReview } from "../../src/utils/learningFeedback.js";
 import {
   buildReviewTopics,
   buildMistakeReviewTopics,
@@ -150,12 +151,9 @@ test("Q&A metadata keeps concept and cognitive classifications without copying a
 
 test("review guidance explains likely confusion and gives a study strategy instead of an answer-key recap", () => {
   const reviews = buildMistakeReviewTopics(answers, title);
-  assert.match(
-    reviews[0].explanation,
-    /suggests possible confusion between Me and I/,
-  );
+  assert.doesNotMatch(reviews[0].explanation, /confusion between/);
   assert.match(reviews[0].explanation, /spontaneous response/);
-  assert.match(reviews[0].studyTip, /two-column comparison of Me and I/);
+  assert.match(reviews[0].studyTip, /own words/);
   assert.doesNotMatch(
     reviews[0].explanation,
     /You answered|saved correct answer/,
@@ -183,7 +181,7 @@ test("older saved results show latest accuracy and deduplicated evidence without
   assert.equal(feedback.metricLabel, "Latest topic accuracy");
   assert.equal(feedback.strengths.length, 1);
   assert.equal(feedback.historicalAccuracy, undefined);
-  assert.match(feedback.nextGoal, /9\/10/);
+  assert.match(feedback.nextGoal, /new question about Isolation/);
   assert.doesNotMatch(feedback.adaptiveRecommendation, /advanced/);
   assert.deepEqual(feedback.areasForImprovement, ["Isolation"]);
 });
@@ -200,7 +198,7 @@ test("unanswered legacy questions and flashcard ratings cannot establish mastery
   )[0];
   assert.equal(feedback.latestAccuracy, null);
   assert.deepEqual(feedback.strengths, []);
-  assert.match(feedback.nextGoal, /graded quiz/);
+  assert.match(feedback.nextGoal, /graded practice quiz/);
 });
 
 test("legacy feedback upgrades to educational review while preserving its measured history", () => {
@@ -234,25 +232,25 @@ test("legacy feedback upgrades to educational review while preserving its measur
     title,
     "qna",
   );
-  assert.equal(feedback.feedbackVersion, 2);
+  assert.equal(feedback.feedbackVersion, LEARNING_FEEDBACK_VERSION);
   assert.equal(feedback.latestAccuracy, 50);
   assert.equal(feedback.historicalAccuracy, 40);
   assert.equal(feedback.gradedAttempts, 3);
-  assert.match(feedback.recommendation, /Freud's id.*Mead's I and me/);
+  assert.match(feedback.recommendation, /missed 1 of the 2/);
   assert.match(
     feedback.suggestedReviewTopics[0].explanation,
     /spontaneous response/,
   );
   assert.match(
     feedback.suggestedReviewTopics[0].studyTip,
-    /two-column comparison/,
+    /own words/,
   );
   assert.doesNotMatch(feedback.adaptiveRecommendation, /advanced/);
   assert.doesNotMatch(
     feedback.recommendation,
     /You answered|saved correct answer/,
   );
-  assert.match(feedback.nextGoal, /90% \(9\/10\)/);
+  assert.match(feedback.nextGoal, /new question/);
 });
 
 test("historical-only feedback does not claim the topic was tested in the latest attempt", () => {
@@ -271,17 +269,17 @@ test("historical-only feedback does not claim the topic was tested in the latest
   );
   assert.deepEqual(feedback.strengths, []);
   assert.equal(feedback.latestAccuracy, null);
-  assert.match(feedback.recommendation, /^Earlier mistakes/);
+  assert.match(feedback.recommendation, /did not cover/);
   assert.doesNotMatch(
     feedback.recommendation,
     /latest responses show progress/,
   );
-  assert.match(feedback.suggestedReviewTopics[0].studyTip, /Me and I/);
+  assert.match(feedback.suggestedReviewTopics[0].studyTip, /own words/);
 });
 
 test("already updated feedback keeps its source-based explanation and study tip", () => {
   const feedback = {
-    feedbackVersion: 2,
+    feedbackVersion: LEARNING_FEEDBACK_VERSION,
     suggestedReviewTopics: [
       {
         topic: "Variables",
@@ -292,3 +290,23 @@ test("already updated feedback keeps its source-based explanation and study tip"
   };
   assert.equal(upgradePracticeFeedback(feedback, [], title, "qna"), feedback);
 });
+
+ test("numeric goals use actual quiz size and configured criteria", () => {
+  assert.match(buildNextGoal({score:2,total:7,masteryTarget:80}, "Concept"), /3\/7.*80%.*6\/7/);
+  assert.match(buildNextGoal({score:6,total:7,masteryTarget:80}, "Concept"), /Maintain at least 6\/7/);
+  assert.doesNotMatch(buildNextGoal({score:2,total:7}, "Concept"), /\d+\//);
+ });
+ test("study strategies follow question evidence", () => {
+  const base = {concept:"Concept", userAnswer:"Other", correctAnswer:"Concept", explanation:"A lesson definition."};
+  assert.match(buildConceptReview({...base, question:"What is the first step?"}).studyTip, /steps.*in order/);
+  assert.match(buildConceptReview({...base, cognitive_level:"Apply"}).studyTip, /practical example/);
+  assert.match(buildConceptReview({...base, cognitive_level:"Analyze"}).studyTip, /support the answer/);
+  assert.match(buildConceptReview(base, undefined, true).studyTip, /different example/);
+  assert.match(buildConceptReview({...base, explanation:"Other differs from Concept in the lesson."}).studyTip, /Compare Other with Concept/);
+ });
+ test("a correct latest response keeps earlier weakness while acknowledging improvement", () => {
+  const feedback = upgradePracticeFeedback({topic:"Lesson", misconceptions:[{concept:"Concept", question:"Earlier?", userAnswer:"Other", correctAnswer:"Concept", isCorrect:false}]}, [{topic:"Lesson",concept:"Concept",question:"Latest?",isCorrect:true}], "Lesson", "multiple");
+  assert.equal(feedback.understanding,"Improving");
+  assert.equal(feedback.suggestedReviewTopics[0].historicalOnly,true);
+  assert.equal(feedback.suggestedReviewTopics[0].improved,true);
+ });
