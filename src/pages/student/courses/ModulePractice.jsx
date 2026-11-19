@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import Swal from "sweetalert2";
 import {
   Link,
   useLocation,
@@ -95,7 +96,7 @@ function PracticeQuestionLoader({ intro, status }) {
   );
 }
 
-function PracticeSession({ courseId, moduleId, mode, onRetry }) {
+function PracticeSession({ courseId, moduleId, mode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const accountKey = getStudentProgressStorageKey("modulePractice");
@@ -104,7 +105,7 @@ function PracticeSession({ courseId, moduleId, mode, onRetry }) {
   const result = savedState?.practiceResult;
   const playing = Boolean(savedState?.playing);
   const [modules, setModules] = useState(null);
-  const [practiceUnavailable, setPracticeUnavailable] = useState("");
+  const [preparationError, setPreparationError] = useState("");
   const [attempt, setAttempt] = useState(null);
   const [recapRequired, setRecapRequired] = useState(false);
   const [preparationStatus, setPreparationStatus] = useState("");
@@ -115,6 +116,8 @@ function PracticeSession({ courseId, moduleId, mode, onRetry }) {
   const moduleIndex =
     modules?.findIndex((module) => practiceModuleId(module) === moduleId) ?? -1;
   const module = modules?.[moduleIndex];
+  const failureMessage = preparationError ||
+    (modules && !module ? "This practice module is no longer available." : "");
   const moduleTitle = module?.title || "Module practice";
   const coursePath = `/student/enrolled-courses/${courseId}`;
   const isCoursePractice = moduleId === "all-modules";
@@ -187,7 +190,7 @@ function PracticeSession({ courseId, moduleId, mode, onRetry }) {
       .catch((error) => {
         if (current) {
           console.error("Practice course loading failed", error);
-          setPracticeUnavailable(error.message || "The course could not be loaded.");
+          setPreparationError(error.message || "The course could not be loaded.");
         }
       });
     return () => {
@@ -235,7 +238,7 @@ function PracticeSession({ courseId, moduleId, mode, onRetry }) {
           return;
         }
         console.error("Practice preparation failed", error);
-        setPracticeUnavailable(error.message || "Practice could not be prepared. Please try again.");
+        setPreparationError(error.message || "Practice could not be prepared. Please try again.");
       }
     }
 
@@ -251,6 +254,21 @@ function PracticeSession({ courseId, moduleId, mode, onRetry }) {
     modules,
     isCoursePractice,
   ]);
+
+  useEffect(() => {
+    if (!failureMessage) return;
+    navigate(coursePath, { replace: true });
+    void Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "error",
+      title: "Practice could not start",
+      text: failureMessage,
+      showConfirmButton: false,
+      showCloseButton: true,
+      timer: 6500,
+    });
+  }, [coursePath, failureMessage, navigate]);
 
   async function finish(answers, finishReason) {
     if (!active.current || saving.current) return;
@@ -288,23 +306,7 @@ function PracticeSession({ courseId, moduleId, mode, onRetry }) {
     }
   }
 
-  if (practiceUnavailable || (modules && !module)) {
-    return (
-      <main className={styles.page}>
-        <h1>Practice unavailable</h1>
-        <p role="alert">
-          {practiceUnavailable ||
-            "This practice module is no longer available."}
-        </p>
-        <button type="button" className={styles.primary} onClick={onRetry}>
-          Try again
-        </button>
-        <p>
-          <Link to={coursePath}>Back to course</Link>
-        </p>
-      </main>
-    );
-  }
+  if (failureMessage) return null;
   if (!mode) {
     return (
       <QuizModesModal
@@ -387,16 +389,14 @@ function PracticeSession({ courseId, moduleId, mode, onRetry }) {
 export default function ModulePractice() {
   const { courseId, moduleId } = useParams();
   const [searchParams] = useSearchParams();
-  const [retry, setRetry] = useState(0);
   const selectedMode = searchParams.get("mode");
   const mode = Object.hasOwn(modes, selectedMode) ? selectedMode : null;
   return (
     <PracticeSession
-      key={`${courseId}/${moduleId}/${mode}/${retry}`}
+      key={`${courseId}/${moduleId}/${mode}`}
       courseId={courseId}
       moduleId={moduleId}
       mode={mode}
-      onRetry={() => setRetry((count) => count + 1)}
     />
   );
 }
