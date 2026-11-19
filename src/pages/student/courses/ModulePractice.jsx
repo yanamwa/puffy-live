@@ -67,7 +67,7 @@ const modes = {
   ],
 };
 
-function PracticeQuestionLoader({ intro, status }) {
+function PracticeQuestionLoader({ intro }) {
   const [frameIndex, setFrameIndex] = useState(0);
   const { frames, screen, artwork } = intro;
 
@@ -86,11 +86,7 @@ function PracticeQuestionLoader({ intro, status }) {
       aria-label="Loading practice questions"
     >
       <img src={frames[frameIndex]} className={artwork} alt="" />
-      <p className={styles.waitMessage}>
-        {status === "queued"
-          ? "Your practice is queued..."
-          : "Preparing and checking your 10 questions..."}
-      </p>
+      <p className={styles.waitMessage}>Please wait...</p>
     </div>
   );
 }
@@ -107,9 +103,6 @@ function PracticeSession({ courseId, moduleId, mode }) {
   const [courseError, setCourseError] = useState("");
   const [attempt, setAttempt] = useState(null);
   const [recapRequired, setRecapRequired] = useState(false);
-  const [preparationError, setPreparationError] = useState("");
-  const [preparationStatus, setPreparationStatus] = useState("queued");
-  const [preparationVersion, setPreparationVersion] = useState(0);
   const [saveError, setSaveError] = useState("");
   const pending = useRef(null);
   const saving = useRef(false);
@@ -198,7 +191,6 @@ function PracticeSession({ courseId, moduleId, mode }) {
   useEffect(() => {
     if (!mode || !module || result) return;
     const controller = new AbortController();
-    setPreparationError("");
     setRecapRequired(false);
 
     async function loadAttempt() {
@@ -224,9 +216,6 @@ function PracticeSession({ courseId, moduleId, mode }) {
           },
           {
             signal: controller.signal,
-            onProgress: (status) => {
-              if (!controller.signal.aborted) setPreparationStatus(status);
-            },
           },
         );
         if (!controller.signal.aborted) setAttempt(prepared);
@@ -236,7 +225,7 @@ function PracticeSession({ courseId, moduleId, mode }) {
           setRecapRequired(true);
           return;
         }
-        setPreparationError(error.message);
+        navigate(coursePath, { replace: true });
       }
     }
 
@@ -249,7 +238,8 @@ function PracticeSession({ courseId, moduleId, mode }) {
     module,
     mode,
     result,
-    preparationVersion,
+    coursePath,
+    navigate,
   ]);
 
   async function finish(answers, finishReason) {
@@ -358,26 +348,7 @@ function PracticeSession({ courseId, moduleId, mode }) {
     );
   }
 
-  if (preparationError)
-    return (
-      <main className={styles.page}>
-        <h1>Practice could not be prepared</h1>
-        <p role="alert">{preparationError}</p>
-        <button
-          className={styles.primary}
-          type="button"
-          onClick={() => setPreparationVersion((version) => version + 1)}
-        >
-          Try again
-        </button>
-        <p>
-          <Link to={coursePath}>Back to course</Link>
-        </p>
-      </main>
-    );
-
-  if (!session)
-    return <PracticeQuestionLoader intro={intro} status={preparationStatus} />;
+  if (!session) return <PracticeQuestionLoader intro={intro} />;
 
   return (
     <Tutorial
