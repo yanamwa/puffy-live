@@ -1,4 +1,5 @@
 import {
+  assessmentModuleTitle,
   assessmentModules,
   filterModuleAttempts,
 } from "../../../utils/assessmentModuleScope.js";
@@ -11,9 +12,10 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { API_BASE } from "../../../config.js";
 import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
 import "./QuizAssessmentDashboard.css";
-import { summarizeAssessment, summarizePracticeReport } from "../../../utils/assessmentAnalytics.js";
+import { practiceModuleRows, summarizeAssessment, summarizePracticeReport } from "../../../utils/assessmentAnalytics.js";
 import { AssessmentReportTable } from "./ProfessorStudentPerformance.jsx";
 import ProfessorPracticeHistory from "./ProfessorPracticeHistory.jsx";
+import PracticeLearningPerformance from "./PracticeLearningPerformance.jsx";
 import {
   tutorialAssessmentAttempts,
   tutorialAssessmentStudents,
@@ -137,28 +139,43 @@ function PracticeStudentReport({
   sections,
   empty,
   attention = false,
-  historyModules,
-  moduleTitle,
-  showScoreSource = false,
-  attemptLabel = "Scored Attempts (Practice Quiz)",
+  modules = [],
+  moduleScope = "all",
 }) {
   const headingId = useId();
   const [year, setYear] = useState("all");
   const [section, setSection] = useState("all");
+  const [moduleFilter, setModuleFilter] = useState("all");
+  const [sort, setSort] = useState("attempts");
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedKey, setSelectedKey] = useState(null);
   const query = search.trim().toLowerCase();
+  const selectedModule = moduleScope === "all" ? moduleFilter : moduleScope;
   const rows = students.filter((student) =>
     (year === "all" || student.year === year) &&
     (section === "all" || student.section === section) &&
-    `${student.name} ${courseTitle}`.toLowerCase().includes(query),
+    (attention || selectedModule === "all" || String(student.moduleIndex) === selectedModule) &&
+    `${student.name} ${attention ? courseTitle : student.moduleTitle}`.toLowerCase().includes(query),
   );
-  const attempts = attemptLabel;
-  const measures = attention ? ["Average Score", attempts] : [attempts, "Average Score"];
-  const selectedStudent = rows.find((student) => String(student.id) === selectedId);
+  if (!attention) {
+    rows.sort((a, b) => {
+      if (sort === "attempts" && a.attempts !== b.attempts) return b.attempts - a.attempts;
+      if (sort !== "attempts") {
+        if (a.moduleIndex < 0 && b.moduleIndex >= 0) return 1;
+        if (b.moduleIndex < 0 && a.moduleIndex >= 0) return -1;
+        const byModule = sort === "title"
+          ? a.moduleTitle.localeCompare(b.moduleTitle, undefined, { numeric: true })
+          : a.moduleIndex - b.moduleIndex;
+        if (byModule) return byModule;
+      }
+      return a.name.localeCompare(b.name) || a.moduleIndex - b.moduleIndex || a.key.localeCompare(b.key);
+    });
+  }
+  const measures = attention ? ["Average Score", "Practice Attempts"] : ["Practice Attempts", "Average Score"];
+  const selectedStudent = rows.find((student) => student.key === selectedKey);
 
   return (
-    <section className={`${reportStyles.panel} ${reportStyles.studentReport}`} aria-labelledby={headingId}>
+    <section className={`${reportStyles.panel} ${reportStyles.studentReport} ${reportStyles.practiceReport}`} aria-labelledby={headingId}>
       <div className={reportStyles.tableHeading}>
         <div>
           <h2 id={headingId}>{title}</h2>
@@ -179,37 +196,60 @@ function PracticeStudentReport({
               {sections.map((value) => <option key={value}>{value}</option>)}
             </select>
           </label>
+          {!attention && (
+            <>
+              <label className={reportStyles.yearSectionFilter}>
+                <span>Module</span>
+                <select value={selectedModule} disabled={moduleScope !== "all"} onChange={(event) => setModuleFilter(event.target.value)}>
+                  {moduleScope === "all" && <option value="all">All Modules</option>}
+                  {modules.map((module, index) => (moduleScope === "all" || String(index) === moduleScope) && (
+                    <option key={module.id ?? index} value={String(index)}>{assessmentModuleTitle(modules, index)}</option>
+                  ))}
+                  {moduleScope === "all" && students.some((student) => student.moduleIndex === -1) && (
+                    <option value="-1">Module unavailable</option>
+                  )}
+                </select>
+              </label>
+              <label className={reportStyles.yearSectionFilter}>
+                <span>Sort by</span>
+                <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                  <option value="attempts">Most attempts</option>
+                  <option value="module">Module order</option>
+                  <option value="title">Module A–Z</option>
+                </select>
+              </label>
+            </>
+          )}
           <label className={reportStyles.searchBox}>
             <FiSearch aria-hidden="true" />
-            <input type="search" aria-label={`Search ${title.toLowerCase()}`} placeholder="Search students or courses..." value={search} onChange={(event) => setSearch(event.target.value)} />
+            <input type="search" aria-label={`Search ${title.toLowerCase()}`} placeholder={attention ? "Search students or courses" : "Search students or modules"} value={search} onChange={(event) => setSearch(event.target.value)} />
           </label>
         </div>
       </div>
       <AssessmentReportTable
-        columns={["Student", "Course", ...measures, ...(historyModules ? ["Action"] : [])]}
+        columns={["Student", attention ? "Course" : "Modules", ...measures, ...(attention ? [] : ["Action"])]}
         rows={rows.map((student) => {
           const score = student.average == null ? "N/A" : pct(student.average);
-          const count = showScoreSource ? (
-            <>
+          const recorded = Array.isArray(student.recordedHistory);
+          const count = recorded ? (
+            <span>
               {student.attempts}
-              <small className={reportStyles.courseCode}>
-                {Array.isArray(student.recordedHistory) ? "Recorded scores" : "Submitted attempts"}
-              </small>
-            </>
+              <small className={reportStyles.courseCode}>Recorded scores</small>
+            </span>
           ) : student.attempts;
           return {
-            key: student.id,
+            key: student.key ?? student.id,
             cells: [
               <strong>{student.name}</strong>,
-              courseTitle,
+              attention ? courseTitle : student.moduleTitle,
               ...(attention ? [score, count] : [count, score]),
-              ...(historyModules ? [
+              ...(!attention ? [
                 <button
                   type="button"
                   className={reportStyles.viewButton}
                   aria-haspopup="dialog"
-                  aria-label={`View practice history for ${student.name}`}
-                  onClick={() => setSelectedId(String(student.id))}
+                  aria-label={`View ${recorded ? "recorded scores" : "practice attempts"} for ${student.name}, ${student.moduleTitle}`}
+                  onClick={() => setSelectedKey(student.key)}
                 >
                   View
                 </button>,
@@ -217,18 +257,15 @@ function PracticeStudentReport({
             ],
           };
         })}
-        pageKey={JSON.stringify([year, section, query])}
+        pageKey={JSON.stringify([year, section, selectedModule, sort, query])}
         fixedPageSize={10}
         empty={students.length ? "No students match these filters." : empty}
       />
       {selectedStudent && (
         <ProfessorPracticeHistory
-          key={selectedId}
+          key={selectedKey}
           student={selectedStudent}
-          courseTitle={courseTitle}
-          moduleTitle={moduleTitle}
-          modules={historyModules}
-          onClose={() => setSelectedId(null)}
+          onClose={() => setSelectedKey(null)}
         />
       )}
     </section>
@@ -247,8 +284,10 @@ export default function QuizAssessmentDashboard({
 }) {
   const modules = useMemo(() => assessmentModules(course), [course]);
   const [moduleIndex, setModuleIndex] = useState("all");
+  const [practiceAttemptScope, setPracticeAttemptScope] = useState("all");
   useEffect(() => {
     setModuleIndex("all");
+    setPracticeAttemptScope("all");
   }, [courseId]);
   const moduleTitle =
     moduleIndex === "all"
@@ -410,21 +449,21 @@ export default function QuizAssessmentDashboard({
   const sectionOf = (s) => String(s.section_name ?? s.sectionName ?? s.student_section ?? s.section ?? s.student?.section ?? "").trim();
   const years = ["1", "2", "3", "4"];
   const roster = [...new Map([...data.students, ...enrolledStudents].map(s => [String(s.user_id ?? s.userId ?? s.id), s])).values()];
-  const sections = [...new Set([...roster, ...data.attempts].map(sectionOf).filter(value => value && value !== "N/A"))].sort();
+  const sections = [...new Set([...roster, ...data.attempts, ...professorScoreRows].map(sectionOf).filter(value => value && value !== "N/A"))].sort();
   const studentMatches = s => (yearFilter === "all" || yearOf(s) === yearFilter) && (sectionFilter === "all" || sectionOf(s) === sectionFilter);
   const filteredStudents = roster.filter(studentMatches);
   const filteredAttempts = data.attempts.filter(a => {
     const student = roster.find(s => String(s.user_id ?? s.userId ?? s.id) === String(a.user_id ?? a.userId));
     return studentMatches({ ...a, ...student });
   });
-  const summary = useMemo(
+  const { summary, scopedAttempts } = useMemo(
     () => {
       const attempts = filterModuleAttempts(
         filteredAttempts,
         moduleIndex,
         modules,
       ).filter((attempt) => attempt.assessment_type === type);
-      return summarizeAssessment(attempts, filteredStudents, scopedItems);
+      return { summary: summarizeAssessment(attempts, filteredStudents, scopedItems), scopedAttempts: attempts };
     },
     [data, type, scopedItems, moduleIndex, modules, yearFilter, sectionFilter, enrolledStudents],
   );
@@ -497,8 +536,12 @@ export default function QuizAssessmentDashboard({
     setType(next);
     setResponseView(false);
   };
-  const { coverage, studentPerformance, studentsNeedingAttention } =
+  const { coverage, studentsNeedingAttention } =
     summarizePracticeReport(summary, passing);
+  const modulePerformance = useMemo(
+    () => practiceModuleRows(data.attempts, modules, courseTitle, professorScoreRows),
+    [data.attempts, modules, courseTitle, professorScoreRows],
+  );
   const practiceRoster = new Map([...data.attempts, ...roster].map((student) =>
     [String(student.user_id ?? student.userId ?? student.id), student],
   ));
@@ -506,56 +549,15 @@ export default function QuizAssessmentDashboard({
     const record = practiceRoster.get(String(student.id)) ?? {};
     return {
       ...student,
-      year: yearOf(record) || student.year || "",
+      name: record.student_name || record.name || student.name || "Student",
+      year: yearOf(record) || yearOf(student),
       section: sectionOf(record) || student.section || "",
     };
   };
 
-  // Only the score-summary table uses independently recorded entries.
-  // Question-level metrics, completed Practice attempts, and learning feedback
-  // continue to use submitted quiz answers through summarizeAssessment().
-  const performanceById = new Map(
-    studentPerformance.map((student) => [String(student.id), student]),
-  );
-
-  if (!tutorialMode && moduleIndex === "all") {
-    for (const row of professorScoreRows) {
-      const count = Number(row.recordedScoreEntries);
-      const average = row.recordedAverageScore == null
-        ? NaN
-        : Number(row.recordedAverageScore);
-      if (!Number.isSafeInteger(count) || count < 1 || !Number.isFinite(average)) {
-        continue;
-      }
-
-      const id = String(row.userId);
-      const existing = performanceById.get(id);
-      const rosterRecord = practiceRoster.get(id) ?? {};
-      const year = yearOf(row) || yearOf(rosterRecord) || existing?.year || "";
-      const section = sectionOf(row) || sectionOf(rosterRecord) || existing?.section || "";
-
-      // Match the dashboard's existing global year/section filters.
-      if (!studentMatches({ year_level: year, section_name: section })) continue;
-
-      performanceById.set(id, {
-        ...existing,
-        id: row.userId,
-        name: row.name || existing?.name || "Student",
-        year,
-        section,
-        attempts: count,
-        average,
-        recordedHistory: Array.isArray(row.recordedHistory) ? row.recordedHistory : [],
-        submittedPractice: existing,
-      });
-    }
-  }
-
-  const displayedStudentPerformance = [...performanceById.values()].sort(
-    (a, b) => Number(b.attempts || 0) - Number(a.attempts || 0) ||
-      String(a.name).localeCompare(String(b.name)),
-  );
-  const hasRecordedScores = displayedStudentPerformance.some((student) => Array.isArray(student.recordedHistory));
+  const displayedStudentPerformance = modulePerformance
+    .map(withStudentSection)
+    .filter(studentMatches);
   const metrics = [
     ["Students", summary.assessedStudents],
     ["Attempts", summary.attempts],
@@ -591,7 +593,7 @@ export default function QuizAssessmentDashboard({
     <section className="qa-dashboard">
       {refreshError && <p role="status">{refreshError}</p>}
       <div className="qa-module-filter qa-shared-filters">
-        <div className="qa-filter-caption">Filter Responses <button type="button" onClick={() => { setYearFilter("all"); setSectionFilter("all"); setModuleIndex("all"); setView("graph"); }}>Clear all</button></div>
+        <div className="qa-filter-caption">Filter Responses <button type="button" onClick={() => { setYearFilter("all"); setSectionFilter("all"); setModuleIndex("all"); setPracticeAttemptScope("all"); setView("graph"); }}>Clear all</button></div>
         <label>Year Level<select value={yearFilter} onChange={e => setYearFilter(e.target.value)}><option value="all">All Year Levels</option>{years.map(y => <option key={y}>{y}</option>)}</select></label>
         <label>Section<select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}><option value="all">All Sections</option>{sections.map(s => <option key={s}>{s}</option>)}</select></label>
         <div className="qa-filter-field">
@@ -703,8 +705,20 @@ export default function QuizAssessmentDashboard({
                     </article>
                   ))}
                 </div>
+                {type === "practice" ? (
+                  <PracticeLearningPerformance
+                    key={JSON.stringify([courseId, moduleIndex, yearFilter, sectionFilter])}
+                    attempts={scopedAttempts}
+                    modules={modules}
+                    items={scopedItems}
+                    showModule={moduleIndex === "all"}
+                    attemptScope={practiceAttemptScope}
+                    onAttemptScopeChange={setPracticeAttemptScope}
+                    view={view}
+                  />
+                ) : <>
                 <div className={styles.analysisSectionTitle}>
-                  {type === "practice" ? "Practice Quiz" : "Main Quiz"} Table of Specifications
+                  Main Quiz Table of Specifications
                 </div>
                 {!coverage.length ? (
                   <p>
@@ -837,6 +851,7 @@ export default function QuizAssessmentDashboard({
                     </p>
                   </>
                 )}
+                </>}
               </>
 
               {type === "practice" ? (
@@ -845,21 +860,14 @@ export default function QuizAssessmentDashboard({
                     key={`performance:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
                     title="Student Practice Performance"
                     description={moduleIndex === "all" && recordedScoresUnavailable
-                      ? "Showing submitted practice attempts. Separately recorded scores are currently unavailable."
-                      : hasRecordedScores
-                        ? "View a student's submitted attempts or separately recorded scores for this course."
-                        : `Scored practice quiz attempts and average scores for this ${moduleIndex === "all" ? "course" : "module"}.`}
-                    students={displayedStudentPerformance.map(withStudentSection)}
-                    courseTitle={courseTitle}
-                    historyModules={modules}
-                    showScoreSource={hasRecordedScores}
-                    moduleTitle={moduleIndex === "all" ? null : moduleTitle}
+                      ? "Showing submitted practice attempts by module. Separately recorded scores are currently unavailable."
+                      : "View each student’s practice attempts and average score by module."}
+                    students={displayedStudentPerformance}
+                    modules={modules}
+                    moduleScope={moduleIndex}
                     years={years}
                     sections={sections}
-                    attemptLabel={hasRecordedScores
-                      ? "Scored Practice Records"
-                      : "Scored Attempts (Practice Quiz)"}
-                    empty="No scored practice records match these filters."
+                    empty="No practice attempts match these filters."
                   />
                   <PracticeStudentReport
                     key={`attention:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}

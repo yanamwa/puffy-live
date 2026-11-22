@@ -34,7 +34,14 @@ function matchesModule(attempt, module, moduleIndex) {
   return lesson != null && moduleLesson != null && String(lesson) === String(moduleLesson);
 }
 
+export function attemptModuleIndex(attempt, modules) {
+  return modules.findIndex((module, index) => matchesModule(attempt, module, index));
+}
+
+export function assessmentModuleTitle(modules, index) {
+  return modules[index]?.title?.trim() || (modules[index] ? `Module ${index + 1}` : "Module unavailable");
+}
+
 export function attemptModuleTitle(attempt, modules) {
-  const index = modules.findIndex((module, i) => matchesModule(attempt, module, i));
-  return index < 0 ? "Module unavailable" : modules[index].title || `Module ${index + 1}`;
+  return assessmentModuleTitle(modules, attemptModuleIndex(attempt, modules));
 }

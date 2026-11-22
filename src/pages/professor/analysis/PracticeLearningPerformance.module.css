@@ -1,0 +1,469 @@
+.report {
+  --ink: #294765;
+  --muted: #52697d;
+  --line: #d8e3ed;
+  --track: #e9eff5;
+  --lots: #4578ac;
+  --hots: #93b7d9;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 28px 0;
+  min-width: 0;
+}
+.report :is(p, button, dt, dd, th, td) {
+  font-size: 1rem !important;
+}
+.report button,
+.report summary {
+  font-family: inherit;
+  cursor: pointer;
+}
+.report button:focus-visible,
+.tableScroll:focus-visible {
+  outline: 3px solid #356b9f;
+  outline-offset: 2px;
+}
+.section + .section {
+  margin-top: 30px;
+}
+.report .section h3 {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: 1.35rem;
+  line-height: 1.3;
+  text-align: left;
+}
+.heading,
+.topicMeta,
+.levelHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.heading {
+  align-items: flex-start;
+}
+.heading > div:first-child {
+  flex: 1 1 18rem;
+}
+.report .note,
+.report .scopeNote,
+.report .empty {
+  color: var(--muted);
+  font-size: 0.93rem !important;
+  line-height: 1.5;
+  margin: 5px 0 0;
+}
+.report .scopeNote {
+  margin-top: 12px;
+}
+.switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f2f6fa;
+}
+.report .switch button {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9rem !important;
+  font-weight: 600;
+}
+.switch button[aria-pressed="true"] {
+  background: #fff;
+  color: #255581;
+  box-shadow: 0 1px 4px #2947652b;
+}
+.reviewFirst {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px 18px;
+  margin: 18px 0;
+  border-left: 4px solid #7fa8d6;
+  border-radius: 0 10px 10px 0;
+  background: #f0f6fc;
+}
+.reviewFirst > svg {
+  flex: none;
+  margin-top: 3px;
+  color: #4779aa;
+}
+.reviewFirst strong,
+.priority {
+  font-size: 1rem;
+}
+.priority {
+  display: grid;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.reviewFirst .note {
+  margin-top: 4px;
+}
+.topics {
+  display: grid;
+  gap: 10px;
+}
+.topicCard,
+.chartCard {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.topicCard[data-expanded="true"] {
+  border-color: #98b7d6;
+}
+.report .topicToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  line-height: 1.35;
+}
+.topicToggle:hover strong,
+.evidenceButton:hover {
+  color: #205d96;
+}
+.topicToggle > svg {
+  flex: none;
+  color: var(--muted);
+}
+.topicToggle[aria-expanded="true"] > svg {
+  transform: rotate(90deg);
+}
+.topicToggle > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.topicToggle small,
+.levels li > small,
+.topicMeta small {
+  display: block;
+  font-size: 0.83rem;
+  font-weight: normal;
+  color: var(--muted);
+}
+.topicScore {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.topicSummary {
+  padding: 0 18px 14px;
+}
+.track {
+  display: block;
+  height: 7px;
+  background: var(--track);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #79a5d1;
+}
+.topicMeta {
+  margin-top: 8px;
+  gap: 6px 12px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  width: fit-content;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.badge svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+.review {
+  background: #fae9e5;
+  color: #923f2e;
+}
+.insufficient {
+  background: #edf1f5;
+  color: #4c6074;
+}
+.onTrack {
+  background: #e4f4ed;
+  color: #226746;
+}
+.breakdown {
+  padding: 16px 18px;
+  border-top: 1px solid var(--line);
+}
+.breakdown h5 {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+.levels,
+.guide,
+.mixLegend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.levels {
+  display: grid;
+  gap: 13px;
+}
+.levelHeading {
+  gap: 4px 10px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.levelHeading strong {
+  font-variant-numeric: tabular-nums;
+}
+.levels .track {
+  margin: 5px 0;
+  height: 5px;
+}
+.skillTag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #edf3f9;
+  color: #4b657e;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.report .evidenceButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 6px 12px;
+  border: 1px solid #b5c9dd;
+  border-radius: 7px;
+  background: white;
+  color: #355d84;
+  font-size: 0.88rem !important;
+  font-weight: 600;
+}
+.evidence {
+  margin-top: 12px;
+  min-width: 0;
+}
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.tableScroll > table {
+  width: 100%;
+  min-width: 42rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+.tableScroll th,
+.tableScroll td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.tableScroll thead {
+  background: #f2f6fa;
+}
+.tableScroll .topicToggle {
+  padding: 4px 0;
+}
+.tableScroll .breakdown {
+  padding: 6px 2px;
+  border: 0;
+}
+.report .evidence table {
+  table-layout: auto;
+}
+.evidence th:first-child,
+.evidence td:first-child {
+  width: 45%;
+  min-width: 12em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 12px 18px;
+  margin: 18px 0 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.guide li {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.report .empty {
+  padding: 18px;
+  margin-top: 16px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+.charts[data-table="true"] {
+  grid-template-columns: 1fr;
+}
+.chartCard {
+  padding: 18px;
+}
+.chartCard h4 {
+  margin: 0 0 16px;
+  font-size: 1.06rem;
+  color: var(--ink);
+}
+.mix {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px 24px;
+  margin: 20px 0;
+}
+.donut {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: min(9rem, 100%);
+  aspect-ratio: 1;
+  border-radius: 100%;
+  background: var(--track);
+}
+.donut[data-classified="true"] {
+  background: conic-gradient(
+    var(--lots) 0 var(--lots-share),
+    var(--hots) var(--lots-share) 100%
+  );
+}
+.donut > span {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  width: 72%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: white;
+  line-height: 1.2;
+}
+.donut b {
+  font-size: 1.65rem;
+}
+.donut small {
+  margin-top: 3px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.mixLegend {
+  display: grid;
+  gap: 13px;
+  min-width: 7rem;
+}
+.mixLegend > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 14px;
+  align-items: center;
+}
+.mixLegend dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.mixLegend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--lots);
+}
+.mixLegend i[data-skill="HOTS"] {
+  background: var(--hots);
+}
+.mixLegend dd {
+  margin: 0;
+  font-weight: 650;
+}
+.report .mixAccuracy {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.83rem !important;
+  font-weight: normal;
+}
+@media (max-width: 600px) {
+  .topicToggle,
+  .topicSummary,
+  .breakdown,
+  .chartCard {
+    padding-inline: 12px;
+  }
+  .guide {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+@media print {
+  .report {
+    margin: 10pt 0;
+  }
+  .report .topicToggle,
+  .report .switch button[aria-pressed="true"] {
+    display: flex !important;
+  }
+  .report .switch {
+    border: 0;
+    padding: 0;
+  }
+  .topicToggle > svg,
+  .report nav,
+  .evidenceButton {
+    display: none !important;
+  }
+  .chartCard,
+  .topicCard {
+    break-inside: avoid;
+  }
+  .tableScroll {
+    overflow: visible;
+  }
+  .tableScroll > table {
+    min-width: 0;
+  }
+}

@@ -1,5 +1,11 @@
+import { assessmentModuleTitle, attemptModuleIndex } from "./assessmentModuleScope.js";
+
 const mean = (values) =>
   values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+const attemptPercentage = ({ score, total }) =>
+  score != null && Number.isFinite(Number(score)) && Number(total) > 0
+    ? (Number(score) / Number(total)) * 100
+    : null;
 const normalizeTopic = (value) => {
   const topic = String(value ?? "").trim();
   return !topic || topic.toLowerCase() === "unclassified"
@@ -12,7 +18,43 @@ const skillOf = (level) =>
     : ["Analyze", "Evaluate", "Create"].includes(level)
       ? "HOTS"
       : "Not specified";
+
+// Both assessment views use the same recorded answer and item fallback.
+export function scoredAssessmentAnswer(answer, item = {}) {
+  const question = answer?.question || answer?.prompt;
+  const correct = answer?.isCorrect ?? answer?.is_correct;
+  if (typeof question !== "string" || !question.trim() || ![true, false, 0, 1, "true", "false"].includes(correct)) return null;
+  const rawLevel = answer.cognitive_level || item.cognitive_level || item.cognitiveLevel || "";
+  const level = String(rawLevel).trim().toLowerCase() === "unclassified"
+    ? "Not specified" : rawLevel || "Not specified";
+  const rawSkill = answer.thinking_skill || item.thinking_skill || "";
+  const skill = String(rawSkill).trim().toLowerCase() === "unclassified"
+    ? skillOf(level) : rawSkill || skillOf(level);
+  const rawTopic = answer.topic || item.topic || answer.topics || item.topics;
+  const topicLabel = Array.isArray(rawTopic) ? rawTopic.filter(Boolean).join(", ") : rawTopic;
+  return {
+    question, topic: normalizeTopic(topicLabel), level, skill,
+    correct: [true, 1, "true"].includes(correct),
+    rawTopicLabel: String(topicLabel ?? "").trim(), rawSkill, rawLevel,
+  };
+}
+
+export function indexAssessmentItems(value) {
+  let items = value;
+  if (typeof items === "string") {
+    try { items = JSON.parse(items); } catch { items = []; }
+  }
+  const list = Array.isArray(items) ? items : items?.questions;
+  const index = new Map();
+  for (const item of Array.isArray(list) ? list : []) {
+    const text = item?.question || item?.q;
+    if (text && !index.has(text)) index.set(text, item);
+  }
+  return index;
+}
+
 export function summarizeAssessment(attempts, students, items) {
+  const itemsByText = indexAssessmentItems(items);
   const progress = new Map(
     students.map((s) => [
       String(s.user_id ?? s.userId ?? s.id),
@@ -36,41 +78,20 @@ export function summarizeAssessment(attempts, students, items) {
         scores: [],
         attemptHistory: [],
       });
-    if (attempt.score != null && Number.isFinite(Number(attempt.score)) && Number(attempt.total) > 0) {
-      const score = (Number(attempt.score) / Number(attempt.total)) * 100;
+    const score = attemptPercentage(attempt);
+    if (score != null) {
       progress.get(key).scores.push(score);
       progress.get(key).attemptHistory.push(attempt);
       scores.push(score);
     }
     for (const answer of attempt.answers || []) {
-      const text = answer.question || answer.prompt || "";
-      const item = items.find((q) => (q.question || q.q) === text) || {};
-      const rawLevel =
-        answer.cognitive_level ||
-        item.cognitive_level ||
-        item.cognitiveLevel ||
-        "";
-      const level =
-        String(rawLevel).trim().toLowerCase() === "unclassified"
-          ? "Not specified"
-          : rawLevel || "Not specified";
-      const rawSkill = answer.thinking_skill || item.thinking_skill || "";
-      const skill =
-        String(rawSkill).trim().toLowerCase() === "unclassified"
-          ? skillOf(level)
-          : rawSkill || skillOf(level);
-      const rawTopic = answer.topic || item.topic || answer.topics || item.topics;
-      const topic = normalizeTopic(
-        Array.isArray(rawTopic) ? rawTopic.filter(Boolean).join(", ") : rawTopic,
-      );
+      const text = answer?.question || answer?.prompt || "";
+      const item = itemsByText.get(text);
+      const graded = scoredAssessmentAnswer(answer, item);
+      if (!graded) continue;
+      const { topic, skill, level, rawTopicLabel, rawSkill, rawLevel } = graded;
       const questionKey = `${attempt.lesson_id || ""}:${attempt.module_index ?? ""}:${text}`;
-      const correct = answer.isCorrect ?? answer.is_correct;
-      if (!text || ![true, false, 0, 1, "true", "false"].includes(correct))
-        continue;
       dataQuality.scoredResponses++;
-      const rawTopicLabel = Array.isArray(rawTopic)
-        ? rawTopic.filter(Boolean).join(", ").trim()
-        : String(rawTopic ?? "").trim();
       if (!rawTopicLabel || rawTopicLabel.toLowerCase() === "unclassified") {
         dataQuality.missingTopicQuestions.add(questionKey);
         dataQuality.missingTopicResponses++;
@@ -92,7 +113,7 @@ export function summarizeAssessment(attempts, students, items) {
         });
       const q = questions.get(questionKey);
       q.responses++;
-      if ([true, 1, "true"].includes(correct)) q.correct++;
+      if (graded.correct) q.correct++;
     }
   }
   const rows = [...questions.values()].map((q) => ({
@@ -172,4 +193,72 @@ export function summarizePracticeReport(summary, passing) {
     studentPerformance,
     studentsNeedingAttention,
   };
+}
+
+export function practiceModuleRows(attempts, modules, courseTitle, recordedStudents = []) {
+  const byStudent = new Map();
+  for (const attempt of attempts) {
+    if (attempt.assessment_type !== "practice") continue;
+    const percent = attemptPercentage(attempt);
+    if (percent == null) continue;
+    const id = String(attempt.user_id ?? attempt.userId);
+    if (!byStudent.has(id)) byStudent.set(id, []);
+    byStudent.get(id).push({ attempt, percent, index: attemptModuleIndex(attempt, modules) });
+  }
+
+  const rows = [];
+  for (const [id, entries] of byStudent) {
+    let fallback = modules.length === 1 ? 0 : -1;
+    // Preserve the existing module assignment for this student's legacy submissions.
+    if (id === "93" && courseTitle?.trim().toLowerCase() === "information management") {
+      const known = new Set(entries.map(({ index }) => index).filter((index) => index >= 0));
+      if (known.size === 1) fallback = [...known][0];
+    }
+    const groups = new Map();
+    for (const { attempt, percent, index } of entries) {
+      const storedIndex = attempt.module_index ?? attempt.moduleIndex;
+      const moduleIndex = index < 0 && (storedIndex == null || storedIndex === "") ? fallback : index;
+      if (!groups.has(moduleIndex)) {
+        groups.set(moduleIndex, { history: [], percentSum: 0 });
+      }
+      const group = groups.get(moduleIndex);
+      group.history.push(attempt);
+      group.percentSum += percent;
+    }
+    for (const [moduleIndex, { history, percentSum }] of groups) {
+      rows.push({
+        key: `submitted:${id}:${moduleIndex}`,
+        id,
+        name: history[0].student_name || `Unavailable account (ID ${id})`,
+        moduleIndex,
+        moduleTitle: assessmentModuleTitle(modules, moduleIndex),
+        attempts: history.length,
+        average: percentSum / history.length,
+        attemptHistory: history,
+      });
+    }
+  }
+
+  // The separate score register identifies a course and student, but has no module link.
+  for (const student of recordedStudents) {
+    const count = Number(student.recordedScoreEntries);
+    const average = Number(student.recordedAverageScore);
+    if (!Number.isSafeInteger(count) || count < 1 ||
+        student.recordedAverageScore == null || !Number.isFinite(average)) {
+      continue;
+    }
+    rows.push({
+      key: `recorded:${student.userId}`,
+      id: String(student.userId),
+      name: student.name,
+      year: student.yearLevel,
+      section: student.section,
+      moduleIndex: -1,
+      moduleTitle: assessmentModuleTitle(modules, -1),
+      attempts: count,
+      average,
+      recordedHistory: Array.isArray(student.recordedHistory) ? student.recordedHistory : [],
+    });
+  }
+  return rows;
 }

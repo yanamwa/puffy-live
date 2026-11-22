@@ -1,4 +1,5 @@
 .home-practice-attempts-dialog {
+  box-sizing: border-box;
   margin: auto;
   width: min(640px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
@@ -94,24 +95,6 @@
   margin: 16px 0 12px;
 }
 
-.practice-history-source {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-top: 16px;
-  font-size: 14px;
-}
-
-.practice-history-source select {
-  padding: 6px 10px;
-  border: 1px solid #bacbdc;
-  border-radius: 7px;
-  background: #fff;
-  color: #355a80;
-  font: inherit;
-}
-
 .practice-history-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -142,6 +125,7 @@
 
 .home-practice-attempts-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
   font-size: 14px;
@@ -150,6 +134,7 @@
 .home-practice-attempts-table th,
 .home-practice-attempts-table td {
   padding: 14px 12px;
+  overflow-wrap: anywhere;
   border-bottom: 1px solid #edf0f4;
 }
 

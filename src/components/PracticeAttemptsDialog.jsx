@@ -104,11 +104,11 @@ export default function PracticeAttemptsDialog({
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <header className="home-practice-attempts-header">
-        <h2 id={titleId}>{recorded ? "Recorded Practice Scores" : "Practice Attempts"}</h2>
+        <h2 id={titleId}>Practice Attempts</h2>
         <button
           type="button"
           className="home-practice-attempts-close"
-          aria-label={recorded ? "Close recorded practice scores" : "Close practice attempts"}
+          aria-label="Close practice attempts"
           onClick={onClose}
           autoFocus
         >

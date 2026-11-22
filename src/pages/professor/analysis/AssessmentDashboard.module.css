@@ -555,3 +555,82 @@
  .courseTitle,.courseCode { display:block; max-width:100%; }
  .viewButton { white-space:normal; }
 }
+
+/* The professor's sidebar can narrow the report even on a wide screen. */
+@media screen {
+  .practiceReport {
+    container: practice-report / inline-size;
+  }
+}
+.practiceReport .tableHeading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  overflow-wrap: anywhere;
+}
+.practiceReport .performanceFilters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  align-items: end;
+  gap: 12px;
+  width: 100%;
+}
+.practiceReport .yearSectionFilter,
+.practiceReport .searchBox {
+  min-width: 0;
+  width: 100%;
+}
+.practiceReport select {
+  box-sizing: border-box;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+.practiceReport .tableWrap table {
+  min-width: 0;
+}
+@container practice-report (max-width: 44rem) {
+  .practiceReport .tableWrap table,
+  .practiceReport .tableWrap tbody,
+  .practiceReport .tableWrap tr {
+    display: block;
+  }
+  .practiceReport .tableWrap thead {
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .practiceReport .tableWrap tbody tr {
+    padding: 12px 0;
+    border-top: 1px solid #dce4ec;
+  }
+  .practiceReport .tableWrap td {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: baseline;
+    gap: 12px;
+    padding: 6px 0;
+    border: 0;
+    text-align: right;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .practiceReport .tableWrap td[data-label]::before {
+    content: attr(data-label);
+    color: #63758b;
+    font-weight: 600;
+    text-align: left;
+  }
+  .practiceReport .tableWrap td:first-child {
+    display: block;
+    text-align: left;
+  }
+  .practiceReport .tableWrap td:first-child::before {
+    display: none;
+  }
+  .practiceReport .viewButton {
+    justify-self: end;
+  }
+}

@@ -63,6 +63,7 @@ export function AssessmentReportTable({
   empty,
   pageKey = "",
   fixedPageSize,
+  hideSinglePageNavigation = false,
 }) {
   const [selection, setSelection] = useState({ key: pageKey, page: 1 });
   const pageSize = fixedPageSize ?? 10;
@@ -119,7 +120,7 @@ export function AssessmentReportTable({
           </tbody>
         </table>
       </div>
-      {rows.length > 0 && (
+      {rows.length > 0 && (!hideSinglePageNavigation || pageCount > 1) && (
         <div className={styles.reportPagination}>
           <nav className={styles.reportPaginationControls} aria-label="Table pages">
             <button

@@ -5,7 +5,7 @@ import {
   attemptModuleTitle,
   filterModuleAttempts,
 } from "../../src/utils/assessmentModuleScope.js";
-import { summarizeAssessment } from "../../src/utils/assessmentAnalytics.js";
+import { practiceModuleRows, summarizeAssessment } from "../../src/utils/assessmentAnalytics.js";
 const modules = [
   { id: "uuid-a", lesson_id: 51, title: "First" },
   { id: "uuid-b", lesson_id: 52, title: "Second" },
@@ -95,4 +95,28 @@ test("module lists accept stored JSON and reject malformed data", () => {
     modules,
   );
   assert.deepEqual(assessmentModules({ content_modules: "bad" }), []);
+});
+
+test("module performance keeps equal titles distinct and preserves unresolved attempts", () => {
+  const sameTitles = modules.map((module) => ({ ...module, title: "Review" }));
+  const first = { ...attempts[0], score: 1, total: 2 };
+  const history = [first, { ...first, score: 9, total: 10 }, { ...first, module_index: 1 },
+    { ...first, module_index: null }, { ...first, module_index: 9 }];
+  const rows = practiceModuleRows(history, sameTitles, "Databases");
+  assert.deepEqual(rows.map((row) => [row.moduleIndex, row.moduleTitle, row.attempts, row.average]), [
+    [0, "Review", 2, 70], [1, "Review", 1, 50], [-1, "Module unavailable", 2, 50],
+  ]);
+  assert.equal(new Set(rows.map((row) => row.key)).size, rows.length);
+  const single = practiceModuleRows(history, [modules[0]], "Databases");
+  assert.deepEqual(single.map((row) => [row.moduleIndex, row.attempts]), [[0, 3], [-1, 2]]);
+});
+
+test("the existing legacy module assignment stays limited to its student and course", () => {
+  const entries = [93, 94].flatMap((user_id) => [
+    { ...attempts[0], user_id }, { ...attempts[0], user_id, module_index: null },
+  ]);
+  const counts = (course) => practiceModuleRows(entries, modules, course)
+    .map((row) => [row.id, row.moduleIndex, row.attempts]);
+  assert.deepEqual(counts("Information Management"), [["93", 0, 2], ["94", 0, 1], ["94", -1, 1]]);
+  assert.deepEqual(counts("Statistics"), [["93", 0, 1], ["93", -1, 1], ["94", 0, 1], ["94", -1, 1]]);
 });

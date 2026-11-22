@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import test from "node:test";
 import { transformSync } from "esbuild";
-import { summarizeAssessment } from "../../src/utils/assessmentAnalytics.js";
-import { attemptModuleTitle } from "../../src/utils/assessmentModuleScope.js";
+import { practiceModuleRows, summarizeAssessment } from "../../src/utils/assessmentAnalytics.js";
+import { assessmentModuleTitle } from "../../src/utils/assessmentModuleScope.js";
 
 const compiled = [
   "pages/professor/analysis/ProfessorStudentPerformance.jsx",
@@ -66,7 +66,7 @@ function harness({ data = report, fails = false, pending = false } = {}) {
     h: (type, props, ...children) => ({ type, props: { ...props, children } }),
     styles: new Proxy({}, { get: (_, key) => key }),
     reportStyles: {},
-    attemptModuleTitle,
+    assessmentModuleTitle,
     ResultsPagination: "ResultsPagination",
     RESULTS_PER_PAGE: 5,
     useId: () => "test-id",
@@ -261,64 +261,107 @@ test("numbered report pages preserve row order and reset when the search changes
   );
 });
 
-test("View opens the selected student's scored submissions with their module, dates and average", () => {
+test("module filters, sorting and View use the same student's module-specific attempts", () => {
   const h = harness();
+  const modules = [{ title: "SQL" }, { title: "Database Design", lesson_id: 22 }];
   const scores = [8, 4, 9, 8, 9];
   const attempts = scores.map((score, i) => ({
     attempts_id: i + 1, user_id: 1, student_name: "Test Student", module_index: 0,
+    assessment_type: "practice",
     created_at: `2026-11-20T10:${String(i * 10).padStart(2, "0")}:00Z`, score, total: 10,
   }));
-  const { students } = summarizeAssessment([...attempts, { ...attempts[0], score: null }], [], []);
+  const students = practiceModuleRows([
+    ...attempts,
+    { ...attempts[0], attempts_id: 6, module_index: null, lesson_id: 22, score: 0 },
+    { ...attempts[0], attempts_id: 7, user_id: 2, student_name: "Another Student" },
+    { ...attempts[0], score: null },
+    { ...attempts[0], total: 0 },
+    { ...attempts[0], assessment_type: "main" },
+    { ...attempts[0], assessment_type: "recap" },
+  ], modules, "Databases", []).map((row) => ({
+    ...row, year: row.id === "1" ? "2" : "1", section: row.id === "1" ? "A" : "B",
+  }));
   const props = {
-    title: "Student Practice Performance", students, years: [], sections: [],
-    courseTitle: "Information Management", historyModules: [{ title: "Introduction to Database" }],
+    title: "Student Practice Performance", students, years: ["1", "2"], sections: ["A", "B"], modules,
   };
-  const table = nodes(h.practiceReport.render(props), (node) => node.type === h.tableType)[0];
-  const view = button(h.table.render(table.props), "View");
-  assert.equal(view.props["aria-label"], "View practice history for Test Student");
+  const render = () => h.practiceReport.render(props);
+  const table = () => nodes(render(), (node) => node.type === h.tableType)[0].props;
+  const select = (label, value) => {
+    const field = nodes(render(), (n) => n.type === "label" && text(n).startsWith(label))[0];
+    nodes(field, (n) => n.type === "select")[0].props.onChange({ target: { value } });
+  };
+  assert.deepEqual(Array.from(table().columns), ["Student", "Modules", "Practice Attempts", "Average Score", "Action"]);
+  assert.equal(table().rows.length, 3);
+  assert.match(text(table().rows[0].cells), /Test StudentSQL576%/);
+  select("Sort by", "title");
+  assert.match(text(table().rows[0].cells), /Database Design10%/);
+  select("Sort by", "module");
+  assert.match(text(table().rows[0].cells), /SQL/);
+  select("Module", "0");
+  select("Year Level", "2");
+  select("Section", "A");
+  assert.equal(table().rows.length, 1);
+  const view = button(h.table.render(table()), "View");
+  assert.equal(view.props["aria-label"], "View practice attempts for Test Student, SQL");
   view.props.onClick();
-  const history = nodes(h.practiceReport.render(props), (node) => node.type === h.historyType)[0];
+  const history = nodes(render(), (node) => node.type === h.historyType)[0];
   const dialog = h.history.render(history.props);
   assert.equal(dialog.props.heading, "Test Student");
-  assert.equal(dialog.props.description, "Information Management");
-  assert.match(text(dialog), /Scored attempts5Average score76%/);
+  assert.equal(dialog.props.description, "SQL");
+  assert.equal(nodes(dialog, (node) => node.type === "select").length, 0);
+  assert.match(text(dialog), /Practice attempts5Average score76%/);
   const entries = h.historyTable.render(dialog.props);
   assert.deepEqual(nodes(entries, (node) => node.type === "time").map((node) => node.props.dateTime),
     attempts.toReversed().map((row) => new Date(row.created_at).toISOString()));
-  assert.match(text(entries), /5Introduction to Database9\/10 \(90%\)/);
+  assert.match(text(entries), /59\/10 \(90%\)/);
   dialog.props.onClose();
-  assert.equal(nodes(h.practiceReport.render(props), (node) => node.type === h.historyType).length, 0);
+  assert.equal(nodes(render(), (node) => node.type === h.historyType).length, 0);
+  select("Module", "all");
+  nodes(render(), (n) => n.type === "input")[0].props.onChange({ target: { value: " design " } });
+  assert.equal(table().rows.length, 1);
+  assert.match(text(table().rows[0].cells), /Database Design10%/);
+  const scoped = h.practiceReport.render({ ...props, moduleScope: "0" });
+  assert.equal(nodes(scoped, (node) => node.type === h.tableType)[0].props.rows.length, 0);
 });
 
-test("recorded history and submitted practice show their own scores and pagination", () => {
+test("course-only score entries have their own row and open directly without inflating module results", () => {
   const h = harness();
-  const attemptHistory = Array.from({ length: 7 }, (_, i) => ({
-    attempts_id: i + 1, score: i, total: 10, created_at: null, module_index: 0,
+  const modules = [{ title: "SQL" }, { title: "Storage" }];
+  const attempts = Array.from({ length: 7 }, (_, i) => ({
+    attempts_id: i + 1, user_id: 1, student_name: "Test Student", assessment_type: "practice",
+    score: i, total: 10, created_at: null, module_index: 0,
   }));
-  const student = {
-    name: "Test Student", attempts: 1, average: 80,
+  const record = {
+    userId: 1, name: "Test Student", recordedScoreEntries: 1, recordedAverageScore: 80,
     recordedHistory: [{ quizNumber: 4, score: 8, total: 10, proposedDisplayAt: null }],
-    submittedPractice: { attempts: 7, average: 30, attemptHistory },
   };
-  const props = { student, courseTitle: "Databases", modules: [{ title: "SQL" }] };
-  let dialog = h.history.render(props);
+  const students = practiceModuleRows(attempts, modules, "Databases", [
+    record, { ...record, userId: 2, name: "Older Student", recordedHistory: [] },
+  ]);
+  assert.deepEqual(students.map((s) => [s.moduleIndex, s.attempts, s.average]), [[0, 7, 30], [-1, 1, 80], [-1, 1, 80]]);
+  const props = { students, title: "Student Practice Performance", modules, years: [], sections: [] };
+  const tree = h.practiceReport.render(props);
+  const table = nodes(tree, (node) => node.type === h.tableType)[0].props;
+  const view = table.rows.find((row) => row.key === "recorded:1").cells.at(-1);
+  view.props.onClick();
+  const selected = nodes(h.practiceReport.render(props), (node) => node.type === h.historyType)[0];
+  const dialog = h.history.render(selected.props);
+  assert.equal(dialog.props.description, "Module unavailable");
+  assert.equal(nodes(dialog, (node) => node.type === "select").length, 0);
   assert.match(text(dialog), /Recorded scores1Average score80%/);
   assert.match(text(h.historyTable.render(dialog.props)), /EntryScoreDisplay date48\/10 \(80%\)Unavailable/);
-  nodes(dialog, (node) => node.type === "select")[0].props.onChange({ target: { value: "submitted" } });
-  dialog = h.history.render(props);
-  assert.match(text(dialog), /Scored attempts7Average score30%/);
-  let entries = h.historyTable.render(dialog.props);
+  const submitted = h.history.render({ student: students[0] });
+  assert.match(text(submitted), /Practice attempts7Average score30%/);
+  let entries = h.historyTable.render(submitted.props);
   nodes(entries, (node) => node.type === "ResultsPagination")[0].props.onPageChange(2);
-  entries = h.historyTable.render(dialog.props);
+  entries = h.historyTable.render(submitted.props);
   assert.match(text(entries), /Showing 6–7 of 7 attempts/);
-  assert.match(text(entries), /1SQL0\/10 \(0%\)Unavailable/);
-  const legacy = harness();
-  const summaryOnly = legacy.history.render({ ...props, student: { ...student, recordedHistory: [] } });
-  assert.match(text(summaryOnly), /Scored attempts7Average score30%/);
-  nodes(summaryOnly, (node) => node.type === "select")[0].props.onChange({ target: { value: "recorded" } });
-  const recordedSummary = legacy.history.render({ ...props, student: { ...student, recordedHistory: [] } });
+  assert.match(text(entries), /10\/10 \(0%\)Unavailable/);
+  const recordedSummary = h.history.render({ student: students[2] });
   assert.match(text(recordedSummary), /Recorded scores1Average score80%/);
-  assert.match(text(legacy.historyTable.render(recordedSummary.props)), /Individual score details are unavailable/);
+  assert.match(text(h.historyTable.render(recordedSummary.props)), /Individual score details are unavailable/);
+  const scoped = h.practiceReport.render({ ...props, moduleScope: "0" });
+  assert.deepEqual(Array.from(nodes(scoped, (n) => n.type === h.tableType)[0].props.rows, (r) => r.key), ["submitted:1:0"]);
 });
 
 test("professor report requests include the stored session token, cancellation and fresh data", async () => {
