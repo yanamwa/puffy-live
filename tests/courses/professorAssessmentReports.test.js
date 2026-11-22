@@ -81,6 +81,7 @@ function harness({ data = report, fails = false, pending = false } = {}) {
     : null;
   const context = vm.createContext({
     AbortController,
+    window: new EventTarget(),
     Fragment: "fragment",
     h: (type, props, ...children) => ({ type, props: { ...props, children } }),
     styles: new Proxy({}, { get: (_, key) => key }),
@@ -145,6 +146,8 @@ function harness({ data = report, fails = false, pending = false } = {}) {
     table: renderer(context.Table),
     tableType: context.Table,
     practiceReport: renderer(context.PracticeStudentReport),
+    recordedHistory: renderer(context.RecordedQuizHistoryDialog),
+    recordedHistoryType: context.RecordedQuizHistoryDialog,
     history: renderer(context.ProfessorPracticeHistory),
     historyTable: renderer(context.PracticeAttemptsTable),
     historyTableType: context.PracticeAttemptsTable,
@@ -172,50 +175,40 @@ const button = (tree, label) =>
   nodes(tree, (node) => node.type === "button" && text(node) === label)[0];
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 
-test("the professor report shows both sections, real score states and searchable students", async () => {
+test("the professor overview shows only Students Needing Attention and filters its rows", async () => {
   const h = harness();
-  assert.match(text(h.root.render()), /Loading student performance/);
+  const loading = h.root.render();
+  assert.equal(loading.props.role, "status");
+  assert.match(text(loading), /Loading students needing attention/);
   await settle();
-  let tree = h.root.render();
-  assert.match(text(tree), /Student Performance/);
-  assert.match(text(tree), /Students Needing Attention/);
+
+  const render = () => h.root.render();
+  const tree = render();
+  assert.deepEqual(nodes(tree, (node) => node.type === "h2").map(text), ["Students Needing Attention"]);
   assert.match(text(tree), /configured 70% reporting threshold/);
-  let tables = nodes(tree, (node) => node.type === h.tableType);
-  assert.deepEqual(Array.from(tables[0].props.columns),
-    ["Student", "Course", "Module", "Attempts", "Average Score", "Modules Completed", "Least Mastered", "Action"]);
-  assert.equal(tables[0].props.rows.length, 2);
-  assert.equal(
-    text(tables[0].props.rows[0].cells),
-    "DianaUnderstanding the SelfIdentity560%1/3Identity (0%)View",
-  );
-  assert.match(text(tables[0].props.rows[1].cells), /0Not assessed0\/2No topic results/);
-  const performanceTable = h.table.render(tables[0].props);
-  const firstRow = nodes(
-    performanceTable,
-    (node) => node.type === "tr" && node.props.onClick,
-  )[0];
-  firstRow.props.onClick();
-  const dialog = nodes(h.root.render(), (node) => node.type === "dialog")[0];
-  assert.match(text(dialog), /Diana.*Course topic mastery.*Identity \(0%\)/);
-  assert.match(text(dialog), /CourseUnderstanding the SelfProgramBSITYear & Section4A/);
-  assert.match(text(dialog), /ModuleIdentityAttempts5Average score60%/);
-  const history = nodes(dialog, (node) => node.type === h.historyTableType)[0];
-  assert.deepEqual(Array.from(history.props.attempts, (entry) => entry.id), [5, 4, 3, 2, 1]);
-  dialog.props.onClose();
-  assert.equal(tables[1].props.rows.length, 1);
-  assert.equal(
-    text(tables[1].props.rows[0].cells),
-    "DianaUnderstanding the Self60%5",
-  );
-  nodes(
-    tree,
-    (node) => node.props?.["aria-label"] === "Search students, courses or modules",
-  )[0].props.onChange({ target: { value: "  PB-history  " } });
-  tree = h.root.render();
-  tables = nodes(tree, (node) => node.type === h.tableType);
-  assert.equal(tables[0].props.rows.length, 1);
-  assert.match(text(tables[0].props.rows[0].cells), /^AnyaHistory/);
-  assert.equal(tables[1].props.rows.length, 1);
+  const tables = () => nodes(render(), (node) => node.type === h.tableType);
+  assert.equal(tables().length, 1);
+  assert.deepEqual(Array.from(tables()[0].props.columns), ["Student", "Course", "Average Score", "Attempts"]);
+  const rows = () => Array.from(tables()[0].props.rows, (row) => text(row.cells));
+  const expected = ["DianaUnderstanding the Self60%5"];
+  assert.deepEqual(rows(), expected);
+
+  function change(label, value) {
+    const control = nodes(render(), (node) => node.props?.["aria-label"] === label)[0];
+    control.props.onChange({ target: { value } });
+  }
+  change("Search students needing attention", "  anya ");
+  assert.deepEqual(rows(), []);
+  assert.match(tables()[0].props.empty, /No students match/);
+  change("Search students needing attention", "  dia ");
+  assert.deepEqual(rows(), expected);
+  change("Filter students needing attention by year", "2");
+  assert.deepEqual(rows(), []);
+  change("Filter students needing attention by year", "4");
+  change("Filter students needing attention by section", "B");
+  assert.deepEqual(rows(), []);
+  change("Filter students needing attention by section", "A");
+  assert.deepEqual(rows(), expected);
 });
 
 test("missing thresholds, failed requests and canceled loads do not show misleading results", async () => {
@@ -230,9 +223,9 @@ test("missing thresholds, failed requests and canceled loads do not show mislead
   await settle();
   const tree = missing.root.render();
   const tables = nodes(tree, (node) => node.type === missing.tableType);
-  assert.match(text(tables[0].props.rows[0].cells), /Identity \(0%\)/);
-  assert.equal(tables[1].props.rows.length, 0);
-  assert.match(tables[1].props.empty, /not configured/);
+  assert.equal(tables.length, 1);
+  assert.equal(tables[0].props.rows.length, 0);
+  assert.match(tables[0].props.empty, /not configured/);
 
   const failed = harness({ fails: true });
   failed.root.render();
@@ -245,7 +238,7 @@ test("missing thresholds, failed requests and canceled loads do not show mislead
   assert.equal(canceled.signal().aborted, true);
   canceled.resolve(report);
   await settle();
-  assert.match(text(canceled.root.render()), /Loading student performance/);
+  assert.match(text(canceled.root.render()), /Loading students needing attention/);
 });
 
 test("numbered report pages preserve row order and reset when the search changes", () => {
@@ -349,7 +342,44 @@ test("module filters, sorting and View use the same student's module-specific at
   assert.equal(nodes(scoped, (node) => node.type === h.tableType)[0].props.rows.length, 0);
 });
 
-test("course-only recorded scores are excluded and submitted practice history stays available", () => {
+test("course-wide recorded scores appear inside Student Practice Performance with their five entries", () => {
+  const h = harness();
+  const recordedHistory = [5, 7, 8, 9, 10].map((score, index) => ({
+    quizNumber: index + 1, score, total: 10,
+  }));
+  const student = {
+    key: "recorded:42:1", name: "Test Student", moduleTitle: "Course-wide recorded quizzes",
+    attempts: 5, average: 78, recordedAverageScore: 78, recordedHistory, source: "recorded",
+  };
+  const props = {
+    title: "Student Practice Performance", students: [], recordedStudents: [student],
+    years: [], sections: [], modules, empty: "No practice attempts match these filters.",
+  };
+  const render = () => h.practiceReport.render(props);
+  const table = () => nodes(render(), (node) => node.type === h.tableType)[0].props;
+  assert.deepEqual(nodes(render(), (node) => node.type === "h2").map(text), [props.title]);
+  const [row] = table().rows;
+  assert.deepEqual(Array.from(row.cells, text), ["Test Student", student.moduleTitle, "5", "78%", "View"]);
+  button(h.table.render(table()), "View").props.onClick();
+  const history = nodes(render(), (node) => node.type === h.recordedHistoryType)[0];
+  const dialog = h.recordedHistory.render(history.props);
+  const body = nodes(dialog, (node) => node.type === "tbody")[0];
+  const entries = nodes(body, (node) => node.type === "tr")
+    .map((item) => nodes(item, (cell) => cell.type === "td").map(text));
+  assert.deepEqual(entries, recordedHistory.map(({ quizNumber, score }) => [
+    `Quiz ${quizNumber}`, `${score}/10`, `${10 * score}%`,
+  ]));
+  button(dialog, "Close").props.onClick();
+  h.recordedHistory.close();
+  assert.equal(nodes(render(), (node) => node.type === h.recordedHistoryType).length, 0);
+
+  const sourceLabel = nodes(render(), (node) => node.type === "label" && text(node).startsWith("Show results"))[0];
+  nodes(sourceLabel, (node) => node.type === "select")[0].props.onChange({ target: { value: "submitted" } });
+  assert.equal(table().rows.length, 0);
+  assert.equal(table().empty, props.empty);
+});
+
+test("module rows exclude course-only recorded scores and preserve submitted practice history", () => {
   const h = harness();
   const modules = [{ title: "SQL" }, { title: "Storage" }];
   const attempts = Array.from({ length: 7 }, (_, i) => ({
