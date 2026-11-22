@@ -233,6 +233,7 @@ export default function QuizAssessmentDashboard({
   const loadedCourseId = useRef(null);
   const [refreshError, setRefreshError] = useState("");
   const [passing, setPassing] = useState(tutorialMode ? 70 : null);
+  const [professorScoreRows, setProfessorScoreRows] = useState([]);
   const [thresholdStatus, setThresholdStatus] = useState(
     tutorialMode ? "" : "Loading the reporting threshold…",
   );
@@ -244,19 +245,42 @@ export default function QuizAssessmentDashboard({
       headers: lessonAuthHeaders(),
       signal: controller.signal,
     })
-      .then(async (response) => {
-        const result = await response.json();
-        if (!response.ok || !result.success) throw Error();
-        if (controller.signal.aborted) return;
-        const value = result.passingPercentage;
-        setPassing(value != null && value !== "" && Number.isFinite(Number(value)) ? Number(value) : null);
-        setThresholdStatus("");
-      })
+
+.then(async (response) => {
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw Error("Could not load professor assessment summary.");
+  }
+
+  if (controller.signal.aborted) return;
+
+  const value = result.passingPercentage;
+
+  setPassing(
+    value != null &&
+    value !== "" &&
+    Number.isFinite(Number(value))
+      ? Number(value)
+      : null
+  );
+
+  const courseScores = Array.isArray(result.students)
+    ? result.students.filter(
+        (student) =>
+          String(student.courseId) === String(courseId)
+      )
+    : [];
+
+  setProfessorScoreRows(courseScores);
+  setThresholdStatus("");
+})
+
       .catch(() => {
         if (!controller.signal.aborted) setThresholdStatus("Could not load the reporting threshold.");
       });
     return () => controller.abort();
-  }, [tutorialMode]);
+}, [tutorialMode, courseId]);
   useEffect(() => {
     if (!tutorialMode) return;
     setType(tutorialStep?.id === "analysis-main" || tutorialStep?.id === "analysis-responses" ? "main" : "practice");
