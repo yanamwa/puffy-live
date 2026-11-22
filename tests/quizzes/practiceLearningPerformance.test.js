@@ -91,7 +91,7 @@ test("topic labels use distinct participants and the inclusive 50% boundary", ()
   );
 });
 
-test("first attempts select a whole scored session per student and module, including score-only history", () => {
+test("topic performance uses scored answers from all Practice attempts, including retakes", () => {
   const attempts = [
     session(1, [answer(true)], { attempts_id: 4, created_at: "2026-10-11" }),
     session(1, [answer(false), answer(false, "Apply")], {
@@ -106,22 +106,17 @@ test("first attempts select a whole scored session per student and module, inclu
     session(3, [answer(true)], { attempts_id: 6, module_index: null }),
     session(4, [answer(true)], { assessment_type: "main" }),
     session(5, [answer(true)], { score: null }),
+    { userId: 6, recordedScoreEntries: 5, recordedAverageScore: 80 },
   ];
-  const first = summarizePracticeLearning(attempts, modules, [], true);
-  assert.equal(first.unlinkedAttempts, 1);
-  assert.deepEqual(
-    first.topics.map((r) => [
-      r.moduleTitle,
-      r.students,
-      r.responses,
-      r.accuracy,
-    ]),
-    [
-      ["Database foundations", 1, 2, 0],
-      ["Database design", 1, 1, 100],
-    ],
-  );
   const all = summarizePracticeLearning(attempts, modules, []);
+  const foundations = all.topics.find(
+    (topic) => topic.moduleTitle === "Database foundations",
+  );
+  assert.deepEqual(
+    [foundations.students, foundations.responses, foundations.correct],
+    [2, 4, 2],
+  );
+  assert.equal(Math.round(foundations.accuracy), 67);
   assert.equal(all.topics.length, 3);
   assert.equal(all.skills[0].responses, 6);
 });

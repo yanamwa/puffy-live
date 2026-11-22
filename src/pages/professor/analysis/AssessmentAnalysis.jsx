@@ -339,7 +339,7 @@ export default function AssessmentAnalysis() {
               </p>
             )}
           </section>
-          {!tutorialOverview && <ProfessorStudentPerformance />}
+          {!tutorialOverview && <ProfessorStudentPerformance courses={courses} />}
         </>
       )}
     </section>

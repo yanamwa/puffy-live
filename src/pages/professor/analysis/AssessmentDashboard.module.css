@@ -557,6 +557,13 @@
 }
 
 /* The professor's sidebar can narrow the report even on a wide screen. */
+.practiceReport {
+  padding: 20px 0 0;
+  border: 0;
+  border-top: 1px solid #d9dcdf;
+  border-radius: 0;
+  box-shadow: none;
+}
 @media screen {
   .practiceReport {
     container: practice-report / inline-size;

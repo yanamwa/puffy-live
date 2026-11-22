@@ -17,7 +17,7 @@ export function formatPracticeScore({ score, total }) {
   return `${score}/${total} (${percentFormat.format(score / total)})`;
 }
 
-function AttemptTable({ attempts, recorded }) {
+export function PracticeAttemptsTable({ attempts, recorded }) {
   const tableId = useId();
   const [selectedPage, setPage] = useState(1);
   if (!attempts.length) {
@@ -119,7 +119,7 @@ export default function PracticeAttemptsDialog({
         <h3>{heading}</h3>
         <p id={descriptionId}>{description}</p>
         {children}
-        <AttemptTable key={recorded ? "recorded" : "submitted"} attempts={attempts} recorded={recorded} />
+        <PracticeAttemptsTable key={recorded ? "recorded" : "submitted"} attempts={attempts} recorded={recorded} />
       </div>
     </dialog>,
     document.body,

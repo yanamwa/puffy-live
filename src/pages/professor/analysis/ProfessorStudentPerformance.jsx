@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiSearch, FiX } from "react-icons/fi";
 import { fetchProfessorAssessmentSummary } from "../../../services/reportApi.js";
+import { PracticeAttemptsTable } from "../../../components/PracticeAttemptsDialog.jsx";
+import { formatPracticeAverage, practiceHistoryEntries } from "./ProfessorPracticeHistory.jsx";
 import styles from "./AssessmentDashboard.module.css";
 
 const percentage = (value) =>
@@ -22,7 +24,6 @@ function yearAndSection(student = {}) {
     : sectionName;
 }
 
-const practiceAttemptsLabel = "Scored Attempts (Practice Quiz)";
 const YEAR_OPTIONS = [
   ["1", "1st Year"],
   ["2", "2nd Year"],
@@ -53,9 +54,6 @@ function getStudentSectionLetter(student = {}) {
     .toUpperCase();
   return section.match(/^(?:[1-4])?([A-F])$/)?.[1] || "";
 }
-const practiceCount = (student) =>
-  student.practiceAttempts?.length ??
-  (student.scoredAttempts === 0 ? 0 : "Unavailable");
 
 export function AssessmentReportTable({
   columns,
@@ -155,7 +153,7 @@ export function AssessmentReportTable({
   );
 }
 
-export default function ProfessorStudentPerformance() {
+export default function ProfessorStudentPerformance({ courses }) {
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -164,14 +162,19 @@ export default function ProfessorStudentPerformance() {
   const [attentionYearFilter, setAttentionYearFilter] = useState("all");
   const [attentionSectionFilter, setAttentionSectionFilter] = useState("all");
   const [attentionSearch, setAttentionSearch] = useState("");
-  const [selected, setSelected] = useState(null);
+  const [selection, setSelection] = useState(null);
+  const selected = selection?.student;
+  const selectedPractice = selection?.practice;
 
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
-    fetchProfessorAssessmentSummary({ signal: controller.signal })
+    fetchProfessorAssessmentSummary({ signal: controller.signal, courses })
       .then((data) => {
-        if (active) setReport(data);
+        if (active) {
+          setError("");
+          setReport(data);
+        }
       })
       .catch((failure) => {
         if (active && failure.name !== "AbortError") {
@@ -182,29 +185,32 @@ export default function ProfessorStudentPerformance() {
       active = false;
       controller.abort();
     };
-  }, []);
+  }, [courses]);
 
   const query = search.trim().toLowerCase();
   const attentionQuery = attentionSearch.trim().toLowerCase();
   const students = report?.students || [];
   const matching = useMemo(
-    () =>
-      students.filter(
-        (student) =>
-          (yearFilter === "all" ||
-            getStudentYearNumber(student) === yearFilter) &&
-          (sectionFilter === "all" ||
-            getStudentSectionLetter(student) === sectionFilter) &&
-          [student.name, student.course, student.courseCode]
-            .join(" ")
-            .toLowerCase()
-            .includes(query),
-      ),
+    () => students
+      .filter((student) =>
+        (yearFilter === "all" || getStudentYearNumber(student) === yearFilter) &&
+        (sectionFilter === "all" || getStudentSectionLetter(student) === sectionFilter),
+      )
+      .flatMap((student) => student.practiceRows.map((practice) => ({ student, practice })))
+      .filter(({ student, practice }) =>
+        [student.name, student.course, student.courseCode, practice.moduleTitle]
+          .join(" ").toLowerCase().includes(query),
+      )
+      .sort((a, b) => (b.practice.attempts ?? -1) - (a.practice.attempts ?? -1)),
     [students, query, yearFilter, sectionFilter],
   );
+  const passing = report?.passingPercentage;
+  const historiesUnavailable = students.some((student) => student.practiceAttempts == null);
   const attention = useMemo(
-    () => students.filter((student) => student.needsAttention),
-    [students],
+    () => students.filter((student) =>
+      passing != null && student.practiceAverage != null && student.practiceAverage < passing,
+    ),
+    [students, passing],
   );
   const filteredAttention = useMemo(
     () =>
@@ -218,7 +224,6 @@ export default function ProfessorStudentPerformance() {
       ),
     [attention, attentionYearFilter, attentionSectionFilter, attentionQuery],
   );
-  const passing = report?.passingPercentage;
 
   if (error)
     return (
@@ -243,8 +248,8 @@ export default function ProfessorStudentPerformance() {
           <div>
             <h2 id="student-performance-title">Student Performance</h2>
             <p>
-              Scored practice quiz attempts and module progress for students
-              enrolled in your courses. Select a row to view student details.
+              View each student's practice attempts and average score by module.
+              Least Mastered shows their lowest-scoring topic across the course.
             </p>
           </div>
           <div className={styles.performanceFilters}>
@@ -284,8 +289,8 @@ export default function ProfessorStudentPerformance() {
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search students or courses…"
-                aria-label="Search students or courses"
+                placeholder="Search students, courses or modules"
+                aria-label="Search students, courses or modules"
               />
             </label>
           </div>
@@ -295,35 +300,45 @@ export default function ProfessorStudentPerformance() {
           columns={[
             "Student",
             "Course",
-            practiceAttemptsLabel,
+            "Module",
+            "Attempts",
             "Average Score",
             "Modules Completed",
             "Least Mastered",
+            "Action",
           ]}
-          rows={matching.map((student) => ({
-            key: student.key,
-            onClick: () => setSelected(student),
-            cells: [
-              <strong>{student.name}</strong>,
-              student.course,
-              practiceCount(student),
-              percentage(student.averageScore),
-              `${student.completedModules}/${student.totalModules}`,
-              <button
-                type="button"
-                className={styles.masteryButton}
-                aria-haspopup="dialog"
-                aria-label={`View performance details for ${student.name} in ${student.course}`}
-                title="View student details"
-              >
-                {student.topics?.length
-                  ? `${student.topics[0].label} (${percentage(student.topics[0].percent)})`
-                  : student.scoredAttempts && !student.topics
-                    ? "Topic data unavailable"
-                    : "No topic results"}
-              </button>,
-            ],
-          }))}
+          rows={matching.map(({ student, practice }) => {
+            const viewDetails = () => setSelection({ student, practice });
+            return {
+              key: `${student.key}:${practice.key}`,
+              onClick: viewDetails,
+              cells: [
+                <strong>{student.name}</strong>,
+                student.course,
+                practice.moduleTitle ?? "—",
+                practice.attempts ?? "Unavailable",
+                practice.attempts == null ? "Unavailable" : formatPracticeAverage(practice.average),
+                `${student.completedModules}/${student.totalModules}`,
+                <span className={styles.masteryButton}>
+                  {student.topics?.length
+                    ? `${student.topics[0].label} (${percentage(student.topics[0].percent)})`
+                    : student.topics ? "No topic results" : "Topic data unavailable"}
+                </span>,
+                <button
+                  type="button"
+                  className={styles.viewButton}
+                  aria-haspopup="dialog"
+                  aria-label={`View performance details for ${student.name} in ${[student.course, practice.moduleTitle].filter(Boolean).join(", ")}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    viewDetails();
+                  }}
+                >
+                  View
+                </button>,
+              ],
+            };
+          })}
           empty="No matching enrolled students found."
         />
       </section>
@@ -334,7 +349,7 @@ export default function ProfessorStudentPerformance() {
           ref={(dialog) => {
             if (dialog && !dialog.open) dialog.showModal();
           }}
-          onClose={() => setSelected(null)}
+          onClose={() => setSelection(null)}
         >
           <header className={styles.detailsHeader}>
             <h2 id="student-details-title">Student Performance</h2>
@@ -352,24 +367,36 @@ export default function ProfessorStudentPerformance() {
               </div>
               <div>
                 <dt>Course</dt>
-                <dd>{selected.program?.trim() || "Unavailable"}</dd>
+                <dd>{selected.course}</dd>
               </div>
+              {selected.program?.trim() && (
+                <div>
+                  <dt>Program</dt>
+                  <dd>{selected.program}</dd>
+                </div>
+              )}
               <div>
                 <dt>Year &amp; Section</dt>
                 <dd>{yearAndSection(selected)}</dd>
               </div>
             </dl>
             <dl className={styles.detailsMetrics}>
-              <dt>{practiceAttemptsLabel}</dt>
-              <dd>{practiceCount(selected)}</dd>
+              {selectedPractice.moduleTitle && (
+                <>
+                  <dt>Module</dt>
+                  <dd>{selectedPractice.moduleTitle}</dd>
+                </>
+              )}
+              <dt>Attempts</dt>
+              <dd>{selectedPractice.attempts ?? "Unavailable"}</dd>
               <dt>Average score</dt>
-              <dd>{percentage(selected.averageScore)}</dd>
+              <dd>{selectedPractice.attempts == null ? "Unavailable" : formatPracticeAverage(selectedPractice.average)}</dd>
               <dt>Modules completed</dt>
               <dd>
                 {selected.completedModules}/{selected.totalModules}
               </dd>
             </dl>
-            <h3>Topic mastery</h3>
+            <h3>Course topic mastery</h3>
             {selected.topics?.length ? (
               <ul>
                 {selected.topics.map(({ label, percent }) => (
@@ -385,29 +412,12 @@ export default function ProfessorStudentPerformance() {
                   : "Topic data unavailable."}
               </p>
             )}
-            <h3>Scored practice quiz history</h3>
-            <AssessmentReportTable
-              fixedPageSize={10}
-              columns={["Date", "Score", "Percentage"]}
-              rows={(selected.practiceAttempts ?? [])
-                .slice()
-                .reverse()
-                .map((attempt) => ({
-                  key: attempt.attempts_id,
-                  cells: [
-                    attempt.created_at
-                      ? new Date(attempt.created_at).toLocaleDateString()
-                      : "Unavailable",
-                    `${attempt.score}/${attempt.total}`,
-                    percentage((attempt.score / attempt.total) * 100),
-                  ],
-                }))}
-              empty={
-                selected.practiceAttempts
-                  ? "No scored practice quiz attempts recorded."
-                  : "Quiz history unavailable."
-              }
-            />
+            <h3>Practice quiz history</h3>
+            {selectedPractice.attempts > 0 ? (
+              <PracticeAttemptsTable attempts={practiceHistoryEntries(selectedPractice.attemptHistory)} />
+            ) : (
+              <p>{selectedPractice.attempts === 0 ? "No practice attempts recorded." : "Practice history unavailable."}</p>
+            )}
           </div>
         </dialog>
       )}
@@ -421,7 +431,8 @@ export default function ProfessorStudentPerformance() {
             <p>
               {passing == null
                 ? "The university reporting threshold is not configured."
-                : `Students with a recorded course quiz average below the configured ${percentage(passing)} reporting threshold. This is an advisory flag, not a final grade.`}
+                : `Students whose practice average in a course falls below the configured ${percentage(passing)} reporting threshold.`}
+              {historiesUnavailable && " Some course practice histories are unavailable."}
             </p>
           </div>
           <div className={styles.performanceFilters}>
@@ -477,15 +488,15 @@ export default function ProfessorStudentPerformance() {
             "Student",
             "Course",
             "Average Score",
-            practiceAttemptsLabel,
+            "Attempts",
           ]}
           rows={filteredAttention.map((student) => ({
             key: student.key,
             cells: [
               <strong>{student.name}</strong>,
               student.course,
-              percentage(student.averageScore),
-              practiceCount(student),
+              formatPracticeAverage(student.practiceAverage),
+              student.practiceAttempts.length,
             ],
           }))}
           empty={
@@ -493,7 +504,7 @@ export default function ProfessorStudentPerformance() {
               ? "Reporting threshold is not configured."
               : attention.length > 0
                 ? "No students match your search and filters."
-                : "No enrolled students currently meet the attention criteria."
+                : "No students with available practice results are below the threshold."
           }
         />
       </section>

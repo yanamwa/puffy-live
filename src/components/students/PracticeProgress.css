@@ -95,6 +95,74 @@
   margin: 16px 0 12px;
 }
 
+.home-practice-attempts-dialog:has(.home-practice-topics) {
+  width: min(740px, calc(100vw - 32px));
+}
+
+.home-practice-topics {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 24px;
+  margin-top: 16px;
+  padding: 16px 0;
+  border-block: 1px solid #e4e8ed;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.home-practice-topics h4 {
+  margin: 0 0 8px;
+  color: #34485d;
+  font-size: 16px;
+}
+
+.home-practice-topics p,
+.home-practice-topics ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-practice-topics li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.home-practice-topics strong {
+  color: #345a7e;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.home-practice-lowest-rate {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 26px;
+}
+
+.home-practice-topics small {
+  display: block;
+  color: #69717f;
+  font-size: 12px;
+}
+
+.home-practice-topics summary {
+  width: fit-content;
+  margin-top: 6px;
+  color: #345a7e;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .home-practice-topics {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
 .practice-history-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

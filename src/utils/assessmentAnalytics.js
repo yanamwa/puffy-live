@@ -195,7 +195,7 @@ export function summarizePracticeReport(summary, passing) {
   };
 }
 
-export function practiceModuleRows(attempts, modules, courseTitle, recordedStudents = []) {
+export function practiceModuleRows(attempts, modules, courseTitle) {
   const byStudent = new Map();
   for (const attempt of attempts) {
     if (attempt.assessment_type !== "practice") continue;
@@ -239,26 +239,32 @@ export function practiceModuleRows(attempts, modules, courseTitle, recordedStude
     }
   }
 
-  // The separate score register identifies a course and student, but has no module link.
-  for (const student of recordedStudents) {
-    const count = Number(student.recordedScoreEntries);
-    const average = Number(student.recordedAverageScore);
-    if (!Number.isSafeInteger(count) || count < 1 ||
-        student.recordedAverageScore == null || !Number.isFinite(average)) {
-      continue;
-    }
-    rows.push({
-      key: `recorded:${student.userId}`,
-      id: String(student.userId),
-      name: student.name,
-      year: student.yearLevel,
-      section: student.section,
-      moduleIndex: -1,
-      moduleTitle: assessmentModuleTitle(modules, -1),
-      attempts: count,
-      average,
-      recordedHistory: Array.isArray(student.recordedHistory) ? student.recordedHistory : [],
+  return rows;
+}
+
+export function summarizeEnrollmentPractice(student, attempts, modules) {
+  const practiceRows = practiceModuleRows(attempts ?? [], modules, student.course);
+  const practiceAttempts = attempts && practiceRows.flatMap((row) => row.attemptHistory);
+  if (!practiceRows.length) {
+    practiceRows.push({
+      key: "enrollment",
+      moduleTitle: null,
+      attempts: attempts == null ? null : 0,
+      average: null,
+      attemptHistory: [],
     });
   }
-  return rows;
+
+  // Least Mastered describes the enrollment across all its scored quiz responses.
+  const scored = attempts?.filter((attempt) => attemptPercentage(attempt) != null);
+  const topics = scored && summarizeAssessment(scored, [], []).topics
+    .filter(({ label }) => label !== "Unclassified")
+    .sort((a, b) => a.percent - b.percent || a.label.localeCompare(b.label));
+  return {
+    ...student,
+    practiceRows,
+    practiceAttempts,
+    practiceAverage: mean((practiceAttempts ?? []).map(attemptPercentage)),
+    topics,
+  };
 }

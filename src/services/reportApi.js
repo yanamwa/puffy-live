@@ -1,5 +1,6 @@
 import { API_BASE } from "../config";
-import { summarizeAssessment } from "../utils/assessmentAnalytics.js";
+import { summarizeEnrollmentPractice } from "../utils/assessmentAnalytics.js";
+import { assessmentModules } from "../utils/assessmentModuleScope.js";
 
 function getToken() {
   return (
@@ -49,17 +50,28 @@ export async function fetchReportConfig({ signal } = {}) {
   return result.settings;
 }
 
-export async function fetchProfessorAssessmentSummary({ signal } = {}) {
+export async function fetchProfessorAssessmentSummary({ signal, courses = [] } = {}) {
   const report = await request("/reports/professor/assessments", signal);
-  const courses = new Map();
+  const modulesByCourse = new Map(
+    courses.map((course) => [String(course.id), assessmentModules(course.raw ?? course)]),
+  );
+  const histories = new Map();
   for (const student of report.students) {
-    if (!student.scoredAttempts) continue;
     const [courseId] = student.key.split(":");
-    if (!courses.has(courseId)) {
-      courses.set(
+    if (!histories.has(courseId)) {
+      histories.set(
         courseId,
         request(`/assessment-attempts/${encodeURIComponent(courseId)}`, signal)
-          .then(({ attempts }) => attempts)
+          .then(({ attempts }) => {
+            if (!Array.isArray(attempts)) return null;
+            const byStudent = new Map();
+            for (const attempt of attempts) {
+              const id = String(attempt.user_id ?? attempt.userId);
+              if (!byStudent.has(id)) byStudent.set(id, []);
+              byStudent.get(id).push(attempt);
+            }
+            return byStudent;
+          })
           .catch((error) => {
             if (signal?.aborted) throw error;
             return null;
@@ -70,28 +82,9 @@ export async function fetchProfessorAssessmentSummary({ signal } = {}) {
   const students = await Promise.all(
     report.students.map(async (student) => {
       const [courseId, studentId] = student.key.split(":");
-      const courseAttempts = student.scoredAttempts
-        ? await courses.get(courseId)
-        : [];
-      if (!Array.isArray(courseAttempts)) return student;
-
-      const attempts = courseAttempts.filter(
-        (attempt) =>
-          String(attempt.user_id) === studentId &&
-          attempt.score != null &&
-          Number.isFinite(Number(attempt.score)) &&
-          Number(attempt.total) > 0,
-      );
-      const practiceAttempts = attempts.filter(
-        (attempt) => attempt.assessment_type === "practice",
-      );
-      const topics = summarizeAssessment(attempts, [], [])
-        .topics.filter(({ label }) => label !== "Unclassified")
-        .sort(
-          (a, b) => a.percent - b.percent || a.label.localeCompare(b.label),
-        );
-
-      return { ...student, practiceAttempts, topics };
+      const byStudent = await histories.get(courseId);
+      const attempts = byStudent ? byStudent.get(studentId) ?? [] : null;
+      return summarizeEnrollmentPractice(student, attempts, modulesByCourse.get(courseId) ?? []);
     }),
   );
   return { ...report, students };

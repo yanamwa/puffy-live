@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
 import PracticeAttemptsDialog, { formatPracticeScore } from "../PracticeAttemptsDialog.jsx";
+import PracticeTopicMastery from "./PracticeTopicMastery.jsx";
 import ResultsPagination, { RESULTS_PER_PAGE } from "./ResultsPagination.jsx";
 import "./RecentMainQuizResults.css";
 
@@ -18,6 +19,7 @@ function PracticeProgressRow({ record, onViewAttempts }) {
     ((latest.score * first.total - first.score * latest.total) * 100) /
     (latest.total * first.total);
   const hasMultipleAttempts = attempts.length > 1;
+  const historyLabel = hasMultipleAttempts ? "View all attempts" : "View attempt";
   const status = hasMultipleAttempts
     ? change
       ? `${changeFormat.format(change)} percentage ${Math.abs(change) === 1 ? "point" : "points"}`
@@ -30,17 +32,15 @@ function PracticeProgressRow({ record, onViewAttempts }) {
       <td>
         <strong>{moduleTitle}</strong>
         <span>{courseTitle}</span>
-        {hasMultipleAttempts && (
-          <button
-            type="button"
-            className="home-results-view-all"
-            aria-haspopup="dialog"
-            aria-label={`View all attempts for ${moduleTitle}`}
-            onClick={() => onViewAttempts(record)}
-          >
-            View all attempts
-          </button>
-        )}
+        <button
+          type="button"
+          className="home-results-view-all"
+          aria-haspopup="dialog"
+          aria-label={`${historyLabel} for ${moduleTitle}`}
+          onClick={() => onViewAttempts(record)}
+        >
+          {historyLabel}
+        </button>
       </td>
       <td className="home-results-score">{formatPracticeScore(first)}</td>
       <td className="home-results-score">
@@ -168,7 +168,9 @@ export default function PracticeProgress() {
           description={selectedRecord.courseTitle}
           attempts={selectedRecord.attempts}
           onClose={closeAttempts}
-        />
+        >
+          <PracticeTopicMastery topics={selectedRecord.topicMastery} />
+        </PracticeAttemptsDialog>
       )}
     </section>
   );

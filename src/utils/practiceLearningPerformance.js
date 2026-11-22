@@ -86,24 +86,12 @@ function categoryRows(questions, field, labels) {
   }));
 }
 
-function recordedOrder(a, b) {
-  const time = Date.parse(a.created_at) - Date.parse(b.created_at);
-  return time || Number(a.attempts_id) - Number(b.attempts_id) || 0;
-}
-
-export function summarizePracticeLearning(
-  attempts,
-  modules,
-  items,
-  firstOnly = false,
-) {
+export function summarizePracticeLearning(attempts, modules, items) {
   const courseItems = indexAssessmentItems(items);
   const moduleItems = modules.map((module) =>
     indexAssessmentItems(module.quizItems ?? module.quiz_items),
   );
   const questions = new Map();
-  const firstSessions = new Set();
-  let unlinkedAttempts = 0;
   const scored = attempts.filter(
     (attempt) =>
       attempt.assessment_type === "practice" &&
@@ -112,7 +100,6 @@ export function summarizePracticeLearning(
       Number.isFinite(Number(attempt.score)) &&
       Number(attempt.total) > 0,
   );
-  if (firstOnly) scored.sort(recordedOrder);
   for (const attempt of scored) {
     const user = attempt.user_id ?? attempt.userId;
     if (user == null || user === "") continue;
@@ -126,16 +113,6 @@ export function summarizePracticeLearning(
     const moduleKey = linked
       ? moduleIndex
       : `unlinked:${attempt.lesson_id ?? attempt.lessonId ?? ""}`;
-    if (firstOnly) {
-      if (!linked) {
-        unlinkedAttempts++;
-        continue;
-      }
-      const session = JSON.stringify([student, moduleKey]);
-      if (firstSessions.has(session)) continue;
-      // A score-only first session still precedes any later session with question details.
-      firstSessions.add(session);
-    }
     for (const answer of Array.isArray(attempt.answers)
       ? attempt.answers
       : []) {
@@ -239,7 +216,6 @@ export function summarizePracticeLearning(
   );
   return {
     topics,
-    unlinkedAttempts,
     skills: categoryRows(entries, "skill", thinkingSkills),
     levels: categoryRows(entries, "level", bloomLevels),
   };

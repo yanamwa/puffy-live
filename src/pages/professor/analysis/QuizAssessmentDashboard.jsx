@@ -230,25 +230,18 @@ function PracticeStudentReport({
         columns={["Student", attention ? "Course" : "Modules", ...measures, ...(attention ? [] : ["Action"])]}
         rows={rows.map((student) => {
           const score = student.average == null ? "N/A" : pct(student.average);
-          const recorded = Array.isArray(student.recordedHistory);
-          const count = recorded ? (
-            <span>
-              {student.attempts}
-              <small className={reportStyles.courseCode}>Recorded scores</small>
-            </span>
-          ) : student.attempts;
           return {
             key: student.key ?? student.id,
             cells: [
               <strong>{student.name}</strong>,
               attention ? courseTitle : student.moduleTitle,
-              ...(attention ? [score, count] : [count, score]),
+              ...(attention ? [score, student.attempts] : [student.attempts, score]),
               ...(!attention ? [
                 <button
                   type="button"
                   className={reportStyles.viewButton}
                   aria-haspopup="dialog"
-                  aria-label={`View ${recorded ? "recorded scores" : "practice attempts"} for ${student.name}, ${student.moduleTitle}`}
+                  aria-label={`View practice attempts for ${student.name}, ${student.moduleTitle}`}
                   onClick={() => setSelectedKey(student.key)}
                 >
                   View
@@ -284,10 +277,8 @@ export default function QuizAssessmentDashboard({
 }) {
   const modules = useMemo(() => assessmentModules(course), [course]);
   const [moduleIndex, setModuleIndex] = useState("all");
-  const [practiceAttemptScope, setPracticeAttemptScope] = useState("all");
   useEffect(() => {
     setModuleIndex("all");
-    setPracticeAttemptScope("all");
   }, [courseId]);
   const moduleTitle =
     moduleIndex === "all"
@@ -321,20 +312,15 @@ export default function QuizAssessmentDashboard({
   const loadedCourseId = useRef(null);
   const [refreshError, setRefreshError] = useState("");
   const [passing, setPassing] = useState(tutorialMode ? 70 : null);
-  const [professorScoreRows, setProfessorScoreRows] = useState([]);
-  const [recordedScoresUnavailable, setRecordedScoresUnavailable] = useState(false);
   const [thresholdStatus, setThresholdStatus] = useState(
     tutorialMode ? "" : "Loading the reporting threshold…",
   );
   useEffect(() => {
-    setRecordedScoresUnavailable(false);
-    if (tutorialMode) {
-      setProfessorScoreRows([]);
-      return;
-    }
+    if (tutorialMode) return;
 
     const controller = new AbortController();
-    setProfessorScoreRows([]);
+    setPassing(null);
+    setThresholdStatus("Loading the reporting threshold.");
     fetch(`${API_BASE}/reports/professor/assessments?courseId=${encodeURIComponent(courseId)}`, {
       credentials: "include",
       headers: lessonAuthHeaders(),
@@ -356,19 +342,11 @@ export default function QuizAssessmentDashboard({
             : null,
         );
 
-        const courseScores = Array.isArray(result.students)
-          ? result.students.filter(
-              (student) => String(student.courseId) === String(courseId),
-            )
-          : [];
-        setProfessorScoreRows(courseScores);
-        setRecordedScoresUnavailable(result.recordedScoresUnavailable === true);
         setThresholdStatus("");
       })
       .catch(() => {
         if (!controller.signal.aborted) {
-          setProfessorScoreRows([]);
-          setThresholdStatus("Could not load the reporting threshold or recorded scores.");
+          setThresholdStatus("Could not load the reporting threshold.");
         }
       });
     return () => controller.abort();
@@ -449,7 +427,7 @@ export default function QuizAssessmentDashboard({
   const sectionOf = (s) => String(s.section_name ?? s.sectionName ?? s.student_section ?? s.section ?? s.student?.section ?? "").trim();
   const years = ["1", "2", "3", "4"];
   const roster = [...new Map([...data.students, ...enrolledStudents].map(s => [String(s.user_id ?? s.userId ?? s.id), s])).values()];
-  const sections = [...new Set([...roster, ...data.attempts, ...professorScoreRows].map(sectionOf).filter(value => value && value !== "N/A"))].sort();
+  const sections = [...new Set([...roster, ...data.attempts].map(sectionOf).filter(value => value && value !== "N/A"))].sort();
   const studentMatches = s => (yearFilter === "all" || yearOf(s) === yearFilter) && (sectionFilter === "all" || sectionOf(s) === sectionFilter);
   const filteredStudents = roster.filter(studentMatches);
   const filteredAttempts = data.attempts.filter(a => {
@@ -539,8 +517,8 @@ export default function QuizAssessmentDashboard({
   const { coverage, studentsNeedingAttention } =
     summarizePracticeReport(summary, passing);
   const modulePerformance = useMemo(
-    () => practiceModuleRows(data.attempts, modules, courseTitle, professorScoreRows),
-    [data.attempts, modules, courseTitle, professorScoreRows],
+    () => practiceModuleRows(data.attempts, modules, courseTitle),
+    [data.attempts, modules, courseTitle],
   );
   const practiceRoster = new Map([...data.attempts, ...roster].map((student) =>
     [String(student.user_id ?? student.userId ?? student.id), student],
@@ -593,7 +571,7 @@ export default function QuizAssessmentDashboard({
     <section className="qa-dashboard">
       {refreshError && <p role="status">{refreshError}</p>}
       <div className="qa-module-filter qa-shared-filters">
-        <div className="qa-filter-caption">Filter Responses <button type="button" onClick={() => { setYearFilter("all"); setSectionFilter("all"); setModuleIndex("all"); setPracticeAttemptScope("all"); setView("graph"); }}>Clear all</button></div>
+        <div className="qa-filter-caption">Filter Responses <button type="button" onClick={() => { setYearFilter("all"); setSectionFilter("all"); setModuleIndex("all"); setView("graph"); }}>Clear all</button></div>
         <label>Year Level<select value={yearFilter} onChange={e => setYearFilter(e.target.value)}><option value="all">All Year Levels</option>{years.map(y => <option key={y}>{y}</option>)}</select></label>
         <label>Section<select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}><option value="all">All Sections</option>{sections.map(s => <option key={s}>{s}</option>)}</select></label>
         <div className="qa-filter-field">
@@ -712,8 +690,6 @@ export default function QuizAssessmentDashboard({
                     modules={modules}
                     items={scopedItems}
                     showModule={moduleIndex === "all"}
-                    attemptScope={practiceAttemptScope}
-                    onAttemptScopeChange={setPracticeAttemptScope}
                     view={view}
                   />
                 ) : <>
@@ -859,9 +835,7 @@ export default function QuizAssessmentDashboard({
                   <PracticeStudentReport
                     key={`performance:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
                     title="Student Practice Performance"
-                    description={moduleIndex === "all" && recordedScoresUnavailable
-                      ? "Showing submitted practice attempts by module. Separately recorded scores are currently unavailable."
-                      : "View each student’s practice attempts and average score by module."}
+                    description="View each student's submitted practice attempts and average score by module."
                     students={displayedStudentPerformance}
                     modules={modules}
                     moduleScope={moduleIndex}
