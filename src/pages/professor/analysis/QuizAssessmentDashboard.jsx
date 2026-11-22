@@ -127,7 +127,17 @@ function CoverageBars({ rows, pageSize }) {
     </PaginatedBars>
   );
 }
-function PracticeStudentReport({ title, description, students, courseTitle, years, sections, empty, attention = false }) {
+function PracticeStudentReport({
+  title,
+  description,
+  students,
+  courseTitle,
+  years,
+  sections,
+  empty,
+  attention = false,
+  attemptLabel = "Scored Attempts (Practice Quiz)",
+}) {
   const headingId = useId();
   const [year, setYear] = useState("all");
   const [section, setSection] = useState("all");
@@ -138,7 +148,7 @@ function PracticeStudentReport({ title, description, students, courseTitle, year
     (section === "all" || student.section === section) &&
     `${student.name} ${courseTitle}`.toLowerCase().includes(query),
   );
-  const attempts = "Scored Attempts (Practice Quiz)";
+  const attempts = attemptLabel;
   const measures = attention ? ["Average Score", attempts] : [attempts, "Average Score"];
 
   return (
@@ -238,49 +248,50 @@ export default function QuizAssessmentDashboard({
     tutorialMode ? "" : "Loading the reporting threshold…",
   );
   useEffect(() => {
-    if (tutorialMode) return;
+    if (tutorialMode) {
+      setProfessorScoreRows([]);
+      return;
+    }
+
     const controller = new AbortController();
+    setProfessorScoreRows([]);
     fetch(`${API_BASE}/reports/professor/assessments`, {
       credentials: "include",
       headers: lessonAuthHeaders(),
       signal: controller.signal,
     })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error("Could not load professor assessment summary.");
+        }
+        if (controller.signal.aborted) return;
 
-.then(async (response) => {
-  const result = await response.json();
+        const value = result.passingPercentage;
+        setPassing(
+          value != null &&
+          value !== "" &&
+          Number.isFinite(Number(value))
+            ? Number(value)
+            : null,
+        );
 
-  if (!response.ok || !result.success) {
-    throw Error("Could not load professor assessment summary.");
-  }
-
-  if (controller.signal.aborted) return;
-
-  const value = result.passingPercentage;
-
-  setPassing(
-    value != null &&
-    value !== "" &&
-    Number.isFinite(Number(value))
-      ? Number(value)
-      : null
-  );
-
-  const courseScores = Array.isArray(result.students)
-    ? result.students.filter(
-        (student) =>
-          String(student.courseId) === String(courseId)
-      )
-    : [];
-
-  setProfessorScoreRows(courseScores);
-  setThresholdStatus("");
-})
-
+        const courseScores = Array.isArray(result.students)
+          ? result.students.filter(
+              (student) => String(student.courseId) === String(courseId),
+            )
+          : [];
+        setProfessorScoreRows(courseScores);
+        setThresholdStatus("");
+      })
       .catch(() => {
-        if (!controller.signal.aborted) setThresholdStatus("Could not load the reporting threshold.");
+        if (!controller.signal.aborted) {
+          setProfessorScoreRows([]);
+          setThresholdStatus("Could not load the reporting threshold or recorded scores.");
+        }
       });
     return () => controller.abort();
-}, [tutorialMode, courseId]);
+  }, [tutorialMode, courseId]);
   useEffect(() => {
     if (!tutorialMode) return;
     setType(tutorialStep?.id === "analysis-main" || tutorialStep?.id === "analysis-responses" ? "main" : "practice");
@@ -446,6 +457,23 @@ export default function QuizAssessmentDashboard({
   };
   const { coverage, studentPerformance, studentsNeedingAttention } =
     summarizePracticeReport(summary, passing);
+  // Score entries are reporting-only and have no submitted questions/answers.
+  // Do not merge them into the assessment summary or LOTS/HOTS analysis.
+  const recordedStudents = professorScoreRows
+    .filter((student) => Number(student.recordedScoreEntries) > 0)
+    .map((student) => ({
+      id: student.userId,
+      name: student.name,
+      year: yearOf(student),
+      section: sectionOf(student),
+      attempts: Number(student.recordedScoreEntries),
+      average:
+        student.recordedAverageScore == null ||
+        !Number.isFinite(Number(student.recordedAverageScore))
+          ? null
+          : Number(student.recordedAverageScore),
+    }))
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const practiceRoster = new Map([...data.attempts, ...roster].map((student) =>
     [String(student.user_id ?? student.userId ?? student.id), student],
   ));
@@ -748,6 +776,19 @@ export default function QuizAssessmentDashboard({
                     sections={sections}
                     empty="No scored practice attempts match these filters."
                   />
+                  {!tutorialMode && moduleIndex === "all" && recordedStudents.length > 0 && (
+                    <PracticeStudentReport
+                      key={`recorded:${courseId}:${yearFilter}:${sectionFilter}`}
+                      title="Recorded Practice Scores"
+                      description="Additional score entries recorded for this course, separate from completed adaptive Practice Quizzes."
+                      students={recordedStudents}
+                      courseTitle={courseTitle}
+                      years={years}
+                      sections={sections}
+                      attemptLabel="Recorded Score Entries"
+                      empty="No recorded practice scores match these filters."
+                    />
+                  )}
                   <PracticeStudentReport
                     key={`attention:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
                     title="Students Needing Attention"
