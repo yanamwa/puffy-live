@@ -12,6 +12,7 @@ import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
 import { uploadLessonSource } from "../../../services/lessonRagApi.js";
 import LessonSourceEvidence from "../../../components/lesson/LessonSourceEvidence.jsx";
 import LessonSourceManager from "../../../components/lesson/LessonSourceManager.jsx";
+import ModuleSourceCoverage from "../../../components/lesson/ModuleSourceCoverage.jsx";
 import LessonFilePicker from "../../../components/lesson/LessonFilePicker.jsx";
 import {
   LayoutDashboard,
@@ -357,6 +358,8 @@ export default function EditModule() {
   const [generatingEditQuiz, setGeneratingEditQuiz] = useState(false);
 
   const [uploadedFile, setUploadedFile] = useState([]);
+  const [selectedSourceIds, setSelectedSourceIds] = useState([]);
+  const [sourceCoverage, setSourceCoverage] = useState(null);
   const [extractingFile, setExtractingFile] = useState(false);
 
   const handleLimitedChange = (setter, limit) => (e) => {
@@ -571,11 +574,11 @@ export default function EditModule() {
   }, [id, navigate]);
 
   const handleUploadAndExtract = async () => {
-    if (!uploadedFile.length) {
+    if (!uploadedFile.length && !selectedSourceIds.length) {
       await Swal.fire({
         icon: "warning",
         title: "No File Selected",
-        text: "Please choose PDF, PPT, PPTX, DOCX, or TXT files first.",
+        text: "Choose an instructional file or a saved source for this module.",
       });
       return;
     }
@@ -611,6 +614,8 @@ export default function EditModule() {
     }
     formData.append("course_id", sourceCourseId);
     formData.append("lesson_id", id);
+    formData.append("saved_document_ids", JSON.stringify(selectedSourceIds));
+    formData.append("generation_context", JSON.stringify({ module_title: editTitle, learning_objectives: editLearningObjectives, instructions: editDesc }));
 
     setExtractingFile(true);
 
@@ -669,8 +674,10 @@ export default function EditModule() {
       setEditLearningObjectives(data.learning_objectives || "");
       setEditLessonPages(pages);
       setUploadedFile([]);
+      setSelectedSourceIds([]);
+      setSourceCoverage(data.source_coverage);
 
-      notifyLessonGenerated(pages);
+      notifyLessonGenerated(pages, data.source_coverage);
     } catch (err) {
       console.error("UPLOAD EXTRACT ERROR:", err);
       Swal.close();
@@ -1489,27 +1496,29 @@ export default function EditModule() {
                 type="button"
                 className={styles.popupAddBtn}
                 onClick={handleUploadAndExtract}
-                disabled={extractingFile || !uploadedFile.length}
+                disabled={extractingFile || !(uploadedFile.length + selectedSourceIds.length)}
               >
-                {extractingFile ? "Organizing..." : "Organizine Module"}
+                {extractingFile ? "Organizing..." : "Organize Module"}
               </button>
             </div>
             <LessonSourceManager
               courseId={sourceCourseId}
               lessonId={Number(id)}
+              selected={selectedSourceIds}
+              onSelect={setSelectedSourceIds}
+              onOrganizing={setExtractingFile}
+              disabled={extractingFile}
+              generationContext={{ module_title: editTitle, learning_objectives: editLearningObjectives, instructions: editDesc }}
               onGenerated={(result) => {
-                setEditTitle(result.module_title);
-                setEditDesc(result.description);
-                setEditSubject(result.subject);
-                setEditLearningObjectives(result.learning_objectives);
-                setEditLessonPages(
-                  result.lesson_pages.map((page, index) => ({
-                    ...page,
-                    id: index + 1,
-                  })),
-                );
+                setSourceCoverage(result.source_coverage);
+                setEditTitle(current => current || result.module_title);
+                setEditDesc(current => current || result.description);
+                setEditSubject(current => current || result.subject);
+                setEditLearningObjectives(current => current || result.learning_objectives);
+                setEditLessonPages(current => [...current, ...result.lesson_pages.map(page => ({ ...page, id: crypto.randomUUID() }))]);
               }}
             />
+            <ModuleSourceCoverage coverage={sourceCoverage} />
           </div>
 
           <div className={styles.popupSection}>

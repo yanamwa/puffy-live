@@ -1,17 +1,19 @@
 import { distributeQuizQuestions } from "./quizQuestionDistribution.js";
 import { buildPracticeQuizPrompt } from "./practiceQuizPrompt.js";
 import Swal from "sweetalert2";
+import { mountMainQuizTos, readMainQuizTos } from "./mainQuizTosEditor.js";
 import "./quizGenerationUi.css";
 
 export function requestQuizSettings({
   assessment = "practice",
   tutorialPreview = false,
+  topics = [], objectives = "", config = null,
 } = {}) {
   if (assessment !== "main") return requestPracticeQuizSettings();
-  return requestMainQuizSettings({ tutorialPreview });
+  return requestMainQuizSettings({ tutorialPreview, topics, objectives, config });
 }
 
-function requestMainQuizSettings({ tutorialPreview = false } = {}) {
+function requestMainQuizSettings({ tutorialPreview, topics, objectives, config }) {
   return Swal.fire({
     title: "Generate Main Quiz",
     customClass: {
@@ -26,7 +28,8 @@ function requestMainQuizSettings({ tutorialPreview = false } = {}) {
       <div><label for="main-id">Identification</label><input id="main-id" type="number" min="0" max="100" step="1" value="5" required /></div>
       <div><label for="main-tf">True/False</label><input id="main-tf" type="number" min="0" max="100" step="1" value="5" required /></div></div>
       <div class="practiceDistributionSummary" aria-live="polite"><strong id="main-assigned">20 of 20 questions assigned</strong></div></section></div>
-      <section id="main-quiz-passing-grade"><h3>Passing Grade</h3><div class="mainRequiredScore"><span>70% passing grade</span><strong id="main-required" aria-live="polite">14/20</strong><small>Required correct answers to pass, automatically calculated from the total questions.</small></div></section>
+      <details><summary>Table of Specifications</summary><p>Assign questions by topic and cognitive level, or leave the rows empty to use the module blueprint.</p><div id="main-tos-rows"></div><button type="button" id="main-tos-add">Add assignment</button></details>
+      <section id="main-quiz-passing-grade"><h3>Passing Grade</h3><label for="main-grade">Passing percentage</label><input id="main-grade" type="number" min="1" max="100" step="1" value="70" required /><div class="mainRequiredScore"><strong id="main-required" aria-live="polite">14/20</strong><small>Required correct answers to pass.</small></div></section>
       </div>`,
     showCloseButton: !tutorialPreview,
     closeButtonAriaLabel: "Close Main Quiz generation",
@@ -41,6 +44,11 @@ function requestMainQuizSettings({ tutorialPreview = false } = {}) {
     didOpen: (popup) => {
       popup.parentElement.style.zIndex = "1000000";
       const get = (id) => popup.querySelector("#main-" + id);
+      mountMainQuizTos(popup, topics.filter(t => typeof t === "string" && t.trim()), String(objectives || "").split(/[\n;]/).map(s=>s.trim()).filter(Boolean), config?.tosSlots);
+      if (config) {
+        for (const [id, key] of [["total","questionCount"],["mc","multipleChoiceCount"],["id","identificationCount"],["tf","trueFalseCount"],["grade","passingPercentage"]])
+          if (Number.isInteger(config[key])) get(id).value = config[key];
+      }
       const update = () => {
         const total = Number(get("total").value);
         const assigned = ["mc", "id", "tf"].reduce(
@@ -54,8 +62,8 @@ function requestMainQuizSettings({ tutorialPreview = false } = {}) {
             ["mc", "id", "tf"].every((id) => get(id).checkValidity()) &&
             assigned === total,
         );
-        get("required").textContent = get("total").checkValidity()
-          ? `${Math.ceil((total * 70) / 100)}/${total}`
+        get("required").textContent = get("total").checkValidity() && get("grade").checkValidity()
+          ? `${Math.ceil((total * Number(get("grade").value)) / 100)}/${total}`
           : "—";
       };
       get("total").addEventListener("input", () => {
@@ -67,18 +75,22 @@ function requestMainQuizSettings({ tutorialPreview = false } = {}) {
           );
         update();
       });
-      ["mc", "id", "tf"].forEach((id) =>
+      ["mc", "id", "tf", "grade"].forEach((id) =>
         get(id).addEventListener("input", update),
       );
       update();
       if (tutorialPreview) {
-        popup.querySelectorAll("input").forEach((input) => {
+        popup.querySelectorAll("input,select,#main-tos-add").forEach((input) => {
           input.disabled = true;
         });
       }
     },
     preConfirm: () => {
       const get = (id) => Swal.getPopup().querySelector("#main-" + id);
+      if (!get("grade").checkValidity()) {
+        Swal.showValidationMessage("Enter a whole passing percentage from 1 to 100.");
+        return false;
+      }
       if (["total", "mc", "id", "tf"].some((id) => !get(id).checkValidity())) {
         Swal.showValidationMessage(
           "Enter whole question counts (1–100 total).",
@@ -98,13 +110,16 @@ function requestMainQuizSettings({ tutorialPreview = false } = {}) {
         );
         return false;
       }
+      let tosSlots;
+      try { tosSlots = readMainQuizTos(Swal.getPopup(), { multiple_choice: multipleChoiceCount, identification: identificationCount, true_false: trueFalseCount }); }
+      catch (error) { Swal.showValidationMessage(error.message); return false; }
       return {
         assessmentType: "main",
         questionCount,
         multipleChoiceCount,
         identificationCount,
         trueFalseCount,
-        passingPercentage: 70,
+        passingPercentage: Number(get("grade").value), tosSlots,
       };
     },
   });
@@ -274,6 +289,7 @@ export function quizGenerationFields(settings, lesson = {}) {
         identification_count: settings.identificationCount,
         true_false_count: settings.trueFalseCount,
         passing_percentage: settings.passingPercentage,
+        ...(settings.tosSlots ? { tos_slots: settings.tosSlots } : {}),
       };
 }
 

@@ -14,6 +14,8 @@ export default function LessonSourceEvidence({ page }) {
       }}
     >
       <summary>Source references</summary>
+      {page.syllabus_topic && <p><strong>Syllabus topic</strong> {page.syllabus_topic}</p>}
+      {page.learning_objective && <p><strong>Learning objective</strong> {page.learning_objective}</p>}
       <p>
         Source: {page.source_filename || "Uploaded document"}. These excerpts
         support the generated statements. Review them alongside the original

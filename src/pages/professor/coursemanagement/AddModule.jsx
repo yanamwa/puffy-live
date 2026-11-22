@@ -5,11 +5,13 @@ import ManagementBackBar from "../../../components/ManagementBackBar.jsx";
 import { selectCourseBuilderDraft } from "../../../services/courseBuilderDraft.js";
 import { ensureGenerationCourse } from "../../../services/generationCourseDraft.js";
 import { notifyLessonGenerated } from "../../../services/lessonNotifications.js";
+import { organizedLessonDraft } from "../../../services/organizedLessonDraft.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import { uploadLessonSource } from "../../../services/lessonRagApi.js";
 import LessonSourceEvidence from "../../../components/lesson/LessonSourceEvidence.jsx";
 import LessonSourceManager from "../../../components/lesson/LessonSourceManager.jsx";
+import ModuleSourceCoverage from "../../../components/lesson/ModuleSourceCoverage.jsx";
 import LessonFilePicker from "../../../components/lesson/LessonFilePicker.jsx";
 import Swal from "sweetalert2";
 import { successDialog } from "../../../utils/successDialog.js";
@@ -323,6 +325,9 @@ function normalizeContentModule(module, index) {
 
     title: String(module?.title || "").trim() || `Module ${index + 1}`,
     catalogCoverageTitle: module?.catalogCoverageTitle || "",
+    syllabusModuleIndex: module?.syllabusModuleIndex,
+    catalogSyllabusVersionId: module?.catalogSyllabusVersionId,
+    sourceCoverage: module?.sourceCoverage,
     topics: Array.isArray(module?.topics) ? module.topics : [],
 
     description: String(module?.description || module?.summary || ""),
@@ -591,6 +596,8 @@ export default function AddModule() {
   });
 
   const [loading, setLoading] = useState(isEditing);
+  const currentForm = useRef(form);
+  currentForm.current = form;
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -600,6 +607,7 @@ export default function AddModule() {
   const [expandedModuleId, setExpandedModuleId] = useState(null);
 
   const [moduleFiles, setModuleFiles] = useState({});
+  const [savedSelections, setSavedSelections] = useState({});
 
   const [activePageIndexes, setActivePageIndexes] = useState({});
 
@@ -947,7 +955,8 @@ export default function AddModule() {
   const uploadAndAutoSort = async (moduleId) => {
     const uploadedFile = moduleFiles[moduleId] || [];
 
-    if (!uploadedFile.length) {
+    const savedIds = savedSelections[moduleId] || [];
+    if (!uploadedFile.length && !savedIds.length) {
       await Swal.fire({
         icon: "warning",
         title: "No File Selected",
@@ -978,6 +987,7 @@ export default function AddModule() {
       const formData = new FormData();
       formData.append("course_id", generationCourse.id);
       formData.append("client_module_key", moduleId);
+      formData.append("saved_document_ids", JSON.stringify(savedIds));
       formData.append("generation_context", JSON.stringify({
         module_title: selectedModule.title,
         topics: selectedModule.topics || [],
@@ -1027,26 +1037,17 @@ export default function AddModule() {
         objectives: selectedModule.learningObjectives || data.learning_objectives,
         pages: generatedPages, existing: selectedModule.quizItems || [],
       });
+      const latest = currentForm.current;
       const nextCourse = {
         ...generationCourse,
-        subject: limit(data.subject || generationCourse.subject, TITLE_LIMIT),
-        contentModules: generationCourse.contentModules.map((module) =>
+        ...latest, id: generationCourse.id,
+        subject: limit(latest.subject || data.subject, TITLE_LIMIT),
+        contentModules: latest.contentModules.map((module) =>
           module.id !== moduleId
             ? module
             : {
-                ...module,
-                title: limit(module.title || data.module_title, TITLE_LIMIT),
-                description: limit(
-                  data.description || module.description,
-                  LONG_LIMIT,
-                ),
-                learningObjectives: limit(
-                  module.learningObjectives || data.learning_objectives,
-                  LONG_LIMIT,
-                ),
-                studentPublished: false,
-                lessonPages: generatedPages,
-                quizItems: recap.questions.map(normalizeQuizItem),
+                ...organizedLessonDraft(module, data, generatedPages),
+                quizItems: module.quizItems?.length ? module.quizItems : recap.questions.map(normalizeQuizItem),
               },
         ),
       };
@@ -1063,7 +1064,8 @@ export default function AddModule() {
         [moduleId]: 0,
       }));
 
-      await notifyLessonGenerated(generatedPages);
+      setSavedSelections(current => ({ ...current, [moduleId]: [] }));
+      await notifyLessonGenerated(generatedPages, data.source_coverage);
       if (recap.error) {
         await Swal.fire({
           icon: "warning",
@@ -1741,17 +1743,20 @@ export default function AddModule() {
                               type="button"
                               onClick={() => uploadAndAutoSort(module.id)}
                               disabled={
-                                isProcessing || !moduleFiles[module.id]?.length
+                                isProcessing || (!moduleFiles[module.id]?.length && !savedSelections[module.id]?.length)
                               }
                             >
                               {isProcessing
-                                ? "Generating..."
-                                : module.lessonPages.length ? "Regenerate Lessons" : "Generate Lessons"}
+                                ? "Organizing…"
+                                : "Organize Module"}
                             </button>
                           </div>
                           <LessonSourceManager
                             courseId={id}
                             jobScope={module.id}
+                            selected={savedSelections[module.id] || []} disabled={isProcessing}
+                            onOrganizing={busy => setProcessingModuleId(current => busy ? module.id : current === module.id ? null : current)}
+                            onSelect={ids => setSavedSelections(current => ({ ...current, [module.id]: ids }))}
                             generationContext={{ module_title: module.title, topics: module.topics || [], learning_objectives: module.learningObjectives, instructions: module.description }}
                             lessonId={
                               Number.isInteger(Number(module.id)) &&
@@ -1766,24 +1771,12 @@ export default function AddModule() {
                                   (item) =>
                                     item.id !== module.id
                                       ? item
-                                      : {
-                                          ...item,
-                                          studentPublished: false,
-                                          title: item.title || result.module_title,
-                                          description: result.description,
-                                          learningObjectives:
-                                            item.learningObjectives || result.learning_objectives,
-                                          lessonPages: result.lesson_pages.map(
-                                            (page) => ({
-                                              ...page,
-                                              id: createId("page"),
-                                            }),
-                                          ),
-                                        },
+                                      : organizedLessonDraft(item, result, result.lesson_pages.map(page => ({ ...page, id: createId("page") }))),
                                 ),
                               }))
                             }
                           />
+                          <ModuleSourceCoverage coverage={module.sourceCoverage} />
                         </div>
 
                         <div className={styles.moduleInnerSection}>

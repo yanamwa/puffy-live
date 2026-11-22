@@ -23,6 +23,7 @@ export default function LessonSourceManager({
   jobScope,
   onGenerated,
   generationContext = null,
+  selected = [], onSelect, disabled = false, onOrganizing,
 }) {
   const [sources, setSources] = useState([]),
     [busy, setBusy] = useState(false),
@@ -41,18 +42,12 @@ export default function LessonSourceManager({
   const refresh = async () => {
     if (!(Number(courseId) > 0)) return;
     const requestedScope = key;
-    const result = await listLessonSources(courseId);
+    const result = await listLessonSources(courseId, jobScope ?? lessonId);
     if (sourceScope.current !== requestedScope) return;
     setLoadedScope(requestedScope);
-    setSources(
-      result.sources.filter(
-        (s) => String(s.lesson_id || "") === String(lessonId || ""),
-      ),
-    );
+    setSources(result.sources);
     if (!localStorage.getItem(key)) {
-      const failed = result.failed_jobs?.find(
-        (job) => String(job.lesson_id || "") === String(lessonId || ""),
-      );
+      const failed = result.failed_jobs?.[0];
       setFailedJob(succeeded.current ? null : failed?.job_id || null);
     }
   };
@@ -101,6 +96,10 @@ export default function LessonSourceManager({
   const visibleSources = loadedScope === key ? sources : [];
   const progress = (job) => setMessage(`${job.progress}% — ${job.phase}`);
   const queued = (jobId) => localStorage.setItem(key, jobId);
+  const organizing = value => {
+    setBusy(value);
+    onOrganizing?.(value);
+  };
   const complete = (result) => {
     if (sourceScope.current !== key) return;
     onGenerated(result);
@@ -109,12 +108,12 @@ export default function LessonSourceManager({
     localStorage.removeItem(key + ":failed");
     setFailedJob(null);
     setMessage("");
-    notifyLessonGenerated(result.lesson_pages || []);
+    notifyLessonGenerated(result.lesson_pages || [], result.source_coverage);
   };
   const generate = async (id, reindex) => {
     const confirmation = await Swal.fire({
-      title: "Generate new lesson pages?",
-      text: "New pages will replace this module's current lesson pages when generation succeeds. Any edits to those pages will be replaced. Your saved source files will be reused.",
+      title: "Organize this saved source?",
+      text: "PuffyBrain will use this document to prepare lesson pages for your review.",
       showCancelButton: true,
       confirmButtonText: "Generate pages",
       cancelButtonText: "Keep current pages",
@@ -132,29 +131,29 @@ export default function LessonSourceManager({
       },
     });
     if (!confirmation.isConfirmed || sourceScope.current !== key) return;
-    setBusy(true);
+    organizing(true);
     try {
-      complete(await regenerateLessonSource(id, reindex, progress, queued, generationContext));
+      complete(await regenerateLessonSource(id, reindex, progress, queued, generationContext, jobScope ?? lessonId));
       await refresh();
     } catch (error) {
       setMessage(error.message);
     } finally {
-      setBusy(false);
+      organizing(false);
     }
   };
   const resume = async () => {
-    setBusy(true);
+    organizing(true);
     try {
       complete(await waitForLessonJob(pending, progress));
       await refresh();
     } catch (error) {
       setMessage(error.message);
     } finally {
-      setBusy(false);
+      organizing(false);
     }
   };
   const retry = async () => {
-    setBusy(true);
+    organizing(true);
     localStorage.setItem(key, failedJob);
     try {
       const result = await retryLessonGeneration(failedJob, progress, queued);
@@ -164,7 +163,7 @@ export default function LessonSourceManager({
       setMessage(error.message);
       localStorage.removeItem(key);
     } finally {
-      setBusy(false);
+      organizing(false);
     }
   };
   const remove = async (id) => {
@@ -199,7 +198,7 @@ export default function LessonSourceManager({
         <button
           className={styles.primaryButton}
           type="button"
-          disabled={busy}
+          disabled={busy || disabled}
           onClick={resume}
         >
           <FiPlay aria-hidden="true" />
@@ -210,7 +209,7 @@ export default function LessonSourceManager({
         <button
           className={styles.primaryButton}
           type="button"
-          disabled={busy}
+          disabled={busy || disabled}
           onClick={retry}
         >
           <FiRotateCw aria-hidden="true" />
@@ -248,10 +247,17 @@ export default function LessonSourceManager({
             </span>
           </div>
           <div className={styles.actions}>
+            {onSelect && source.processing_status === "ready" && (
+              <label>
+                <input type="checkbox" checked={selected.includes(String(source.document_id))} disabled={busy || disabled}
+                  onChange={event => onSelect(event.target.checked ? [...selected, String(source.document_id)] : selected.filter(id => id !== String(source.document_id)))} />
+                Include in this module draft
+              </label>
+            )}
             <button
               className={styles.primaryButton}
               type="button"
-              disabled={busy || source.processing_status !== "ready"}
+              disabled={busy || disabled || source.processing_status !== "ready"}
               onClick={() => generate(source.document_id, false)}
             >
               <FiPlay aria-hidden="true" />
@@ -260,7 +266,7 @@ export default function LessonSourceManager({
             <button
               className={styles.secondaryButton}
               type="button"
-              disabled={busy}
+              disabled={busy || disabled}
               onClick={() => generate(source.document_id, true)}
             >
               <FiRefreshCw aria-hidden="true" />
@@ -269,7 +275,7 @@ export default function LessonSourceManager({
             <button
               className={styles.dangerButton}
               type="button"
-              disabled={busy}
+              disabled={busy || disabled}
               onClick={() => remove(source.document_id)}
             >
               <FiTrash2 aria-hidden="true" />

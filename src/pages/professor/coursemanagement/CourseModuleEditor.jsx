@@ -13,6 +13,7 @@ import {
   quizGenerationFields,
 } from "../../../services/quizGenerationUi.js";
 import { notifyLessonGenerated } from "../../../services/lessonNotifications.js";
+import { organizedLessonDraft } from "../../../services/organizedLessonDraft.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   useLocation,
@@ -28,6 +29,7 @@ import { uploadLessonSource } from "../../../services/lessonRagApi.js";
 import LessonFilePicker from "../../../components/lesson/LessonFilePicker.jsx";
 import LessonSourceEvidence from "../../../components/lesson/LessonSourceEvidence.jsx";
 import LessonSourceManager from "../../../components/lesson/LessonSourceManager.jsx";
+import ModuleSourceCoverage from "../../../components/lesson/ModuleSourceCoverage.jsx";
 import LoadingState from "../../../components/LoadingState.jsx";
 
 import styles from "./Addmodule.module.css";
@@ -355,6 +357,10 @@ function normalizeContentModule(module, index = 0) {
   const mainQuizSettings = normalizeMainQuizSettings(module);
 
   return {
+    catalogCoverageTitle: module?.catalogCoverageTitle || "",
+    syllabusModuleIndex: module?.syllabusModuleIndex,
+    catalogSyllabusVersionId: module?.catalogSyllabusVersionId,
+    sourceCoverage: module?.sourceCoverage,
     ...(module?.studentPublished !== undefined
       ? { studentPublished: module.studentPublished }
       : {}),
@@ -598,7 +604,11 @@ export default function CourseModuleEditor({ quizManagement = false }) {
   const [loading, setLoading] = useState(true);
   const [courseDraft, setCourseDraft] = useState(null);
   const [moduleDraft, setModuleDraft] = useState(null);
+  const latestModule = useRef(null);
+  latestModule.current = moduleDraft;
   const [uploadedFile, setUploadedFile] = useState([]);
+  const [selectedSources, setSelectedSources] = useState([]);
+  useEffect(() => { setSelectedSources([]); }, [id, moduleId]);
   const [generationProgress, setGenerationProgress] = useState("");
   const [processingFile, setProcessingFile] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
@@ -1288,7 +1298,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       return;
     }
 
-    const result = await requestQuizSettings({ assessment: "main" });
+    const result = await requestQuizSettings({ assessment: "main", topics: moduleDraft.topics || [], objectives: moduleDraft.learningObjectives, config: mainQuizConfig });
 
     if (!result.isConfirmed || !result.value) {
       return;
@@ -1385,7 +1395,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
   };
 
   const handleGenerateModule = async () => {
-    if (!uploadedFile.length) {
+    if (!uploadedFile.length && !selectedSources.length) {
       await Swal.fire({
         icon: "warning",
         title: "No File Selected",
@@ -1413,6 +1423,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
       const formData = new FormData();
       formData.append("course_id", generationCourse.id);
       formData.append("client_module_key", moduleId);
+      formData.append("saved_document_ids", JSON.stringify(selectedSources));
+      formData.append("generation_context", JSON.stringify({ module_title: moduleDraft.title, topics: moduleDraft.topics || [],
+        learning_objectives: moduleDraft.learningObjectives, instructions: moduleDraft.description }));
       if (Number.isInteger(Number(moduleId)) && Number(moduleId) > 0)
         formData.append("lesson_id", moduleId);
       uploadedFile.forEach((file) => formData.append("files", file));
@@ -1448,32 +1461,24 @@ export default function CourseModuleEditor({ quizManagement = false }) {
         );
       }
 
-      const generatedModule = {
-        ...moduleDraft,
-        title: limit(data.module_title || moduleDraft.title, TITLE_LIMIT),
-        description: limit(
-          data.description || moduleDraft.description,
-          LONG_LIMIT,
-        ),
-        learningObjectives: limit(
-          data.learning_objectives || moduleDraft.learningObjectives,
-          LONG_LIMIT,
-        ),
-        lessonPages: generatedPages,
-      };
+      const beforeRecap = latestModule.current;
+      if (String(beforeRecap?.id) !== String(moduleId)) return;
       setGenerationProgress("Generating Quick Recap questions…");
       const recap = await generateModuleRecap({
         courseId: generationCourse.id,
         moduleId,
-        title: generatedModule.title,
-        objectives: generatedModule.learningObjectives,
+        title: beforeRecap.title || data.module_title,
+        objectives: beforeRecap.learningObjectives || data.learning_objectives,
         pages: generatedPages,
-        existing: moduleDraft.quizItems || [],
+        existing: beforeRecap.quizItems || [],
       });
-      generatedModule.quizItems = recap.questions.map(normalizeQuizItem);
+      const currentModule = latestModule.current;
+      if (String(currentModule?.id) !== String(moduleId)) return;
+      const generatedModule = organizedLessonDraft(currentModule, data, generatedPages);
+      generatedModule.quizItems = currentModule.quizItems?.length ? currentModule.quizItems : recap.questions.map(normalizeQuizItem);
       const nextCourse = {
         ...generationCourse,
-        subject: limit(data.subject || generationCourse.subject, TITLE_LIMIT),
+        subject: limit(generationCourse.subject || data.subject, TITLE_LIMIT),
         contentModules: generationCourse.contentModules.map((module) =>
           String(module.id) === String(moduleId) ? generatedModule : module,
         ),
@@ -1491,7 +1496,8 @@ export default function CourseModuleEditor({ quizManagement = false }) {
 
       setGeneratorOpen(false);
       setUploadedFile([]);
-      await notifyLessonGenerated(generatedPages);
+      setSelectedSources([]);
+      await notifyLessonGenerated(generatedPages, data.source_coverage);
       if (recap.error) {
         await Swal.fire({
           icon: "warning",
@@ -1505,9 +1511,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
         title: /couldn.t verify|grounding/i.test(error.message || "")
           ? "Lesson needs another attempt"
           : "Generation Failed",
-        text: /couldn.t verify|grounding/i.test(error.message || "")
-          ? "Some lesson details could not be verified against your source. Your files are saved. Use Retry with saved sources in the module to try again without uploading them again."
-          : error.message || "Could not process the lesson file.",
+        text: error.message || "Could not organize the selected materials.",
         confirmButtonText: "OK",
       });
     } finally {
@@ -1827,11 +1831,11 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                   <div
                     className={styles.generatorOverlay}
                     onClick={(event) => {
-                      if (event.target === event.currentTarget)
+                      if (event.target === event.currentTarget && !processingFile)
                         setGeneratorOpen(false);
                     }}
                     onKeyDown={(event) => {
-                      if (event.key === "Escape") setGeneratorOpen(false);
+                      if (event.key === "Escape" && !processingFile) setGeneratorOpen(false);
                       if (event.key === "Tab") {
                         const controls = [
                           ...event.currentTarget.querySelectorAll(
@@ -1867,6 +1871,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           type="button"
                           className={styles.settingsDialogClose}
                           aria-label="Close module generator"
+                          disabled={processingFile}
                           autoFocus
                           onClick={() => setGeneratorOpen(false)}
                         >
@@ -1897,6 +1902,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                         <LessonSourceManager
                           courseId={id}
                           jobScope={moduleId}
+                          selected={selectedSources} onSelect={setSelectedSources} disabled={processingFile}
+                          onOrganizing={setProcessingFile}
+                          generationContext={{ module_title: moduleDraft.title, topics: moduleDraft.topics || [], learning_objectives: moduleDraft.learningObjectives, instructions: moduleDraft.description }}
                           lessonId={
                             Number.isInteger(Number(moduleId)) &&
                             Number(moduleId) > 0
@@ -1904,23 +1912,16 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                               : null
                           }
                           onGenerated={(result) => {
-                            setModuleDraft((current) => ({
-                              ...current,
-                              title: result.module_title,
-                              description: result.description,
-                              learningObjectives: result.learning_objectives,
-                              lessonPages: result.lesson_pages.map((page) => ({
-                                ...page,
-                                id: createId("page"),
-                              })),
-                            }));
+                            setModuleDraft(current => organizedLessonDraft(current, result,
+                              result.lesson_pages.map(page => ({ ...page, id: createId("page") }))));
                             setCourseDraft((current) => ({
                               ...current,
-                              subject: result.subject,
+                              subject: current.subject || result.subject,
                             }));
                             setActivePageIndex(0);
                             setGeneratorOpen(false);
                             setUploadedFile([]);
+                            setSelectedSources([]);
                           }}
                         />
                       </section>
@@ -1928,6 +1929,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                         <button
                           type="button"
                           className={styles.generatorCancel}
+                          disabled={processingFile}
                           onClick={() => setGeneratorOpen(false)}
                         >
                           Cancel
@@ -1936,9 +1938,9 @@ export default function CourseModuleEditor({ quizManagement = false }) {
                           className={styles.popupAddBtn}
                           type="button"
                           onClick={handleGenerateModule}
-                          disabled={processingFile || !uploadedFile.length}
+                          disabled={processingFile || (!uploadedFile.length && !selectedSources.length)}
                         >
-                          {processingFile ? "Generating..." : "Generate Module"}
+                          {processingFile ? "Organizing…" : "Organize Module"}
                         </button>
                       </div>
                     </div>
@@ -1948,6 +1950,7 @@ export default function CourseModuleEditor({ quizManagement = false }) {
               )}
 
             <section className={styles.moduleEditorDetails}>
+              <ModuleSourceCoverage coverage={moduleDraft.sourceCoverage} />
               <div className={styles.popupField}>
                 <label className={styles.popupLabel}>
                   Module Title{" "}

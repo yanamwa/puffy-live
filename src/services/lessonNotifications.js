@@ -1,8 +1,8 @@
 import "./lessonNotifications.css";
 import Swal from "sweetalert2";
 
-export function notifyLessonGenerated(pageCount) {
-  if (Array.isArray(pageCount)) return showLessonGenerationSummary(pageCount);
+export function notifyLessonGenerated(pageCount, coverage) {
+  if (Array.isArray(pageCount)) return showLessonGenerationSummary(pageCount, coverage);
   return Swal.fire({
     toast: true,
     position: "top-end",
@@ -22,7 +22,7 @@ export function notifyLessonGenerated(pageCount) {
   });
 }
 
-function showLessonGenerationSummary(pages) {
+function showLessonGenerationSummary(pages, coverage) {
   const content = document.createElement("div");
   content.className = "lessonGenerationSummaryContent";
   const message = document.createElement("p");
@@ -38,6 +38,21 @@ function showLessonGenerationSummary(pages) {
     list.append(item);
   });
   content.append(list);
+  const section = (title, entries) => {
+    if (!entries?.length) return;
+    const heading = document.createElement("h3"), list = document.createElement("ul");
+    heading.textContent = title;
+    for (const entry of entries) {
+      const li = document.createElement("li");
+      li.textContent = entry;
+      list.append(li);
+    }
+    content.append(heading, list);
+  };
+  section("Topics needing more instructional material", coverage?.missing_topic_details?.map(item => item.topic + " — " + item.reason) || coverage?.missing_topics);
+  section("Consulted instructional sources", coverage?.consulted_sources);
+  section("References listed in the syllabus", coverage?.syllabus_references?.flatMap(group =>
+    group.entries.map(e => group.category + " — " + e.text + " (syllabus p. " + e.source_page + ")")));
   const reminder = document.createElement("p");
   reminder.className = "lessonGenerationSummaryReminder";
   reminder.textContent =

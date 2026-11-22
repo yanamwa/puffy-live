@@ -42,23 +42,27 @@ export function applyCatalogToDraft(
   const titles = new Set(
     preserved.map((module) => module.title.trim().toLowerCase()),
   );
+  const addedSyllabusRows = new Set();
   const additions =
     alreadySeeded || (same && modules.length)
       ? []
       : coverageList(version?.coverage_modules).flatMap((row) => {
           const title = String(row.title || "").trim();
+          const indexed = Number.isInteger(row.syllabus_module_index);
           if (
             !title ||
-            titles.has(title.toLowerCase()) ||
+            (indexed ? addedSyllabusRows.has(row.syllabus_module_index) || preserved.some(m => m.title.trim().toLowerCase() === title.toLowerCase()) : titles.has(title.toLowerCase())) ||
             /^(?:(?:course|general|student|gad)\s+)?orientation\b/i.test(title)
           )
             return [];
           titles.add(title.toLowerCase());
+          if (indexed) addedSyllabusRows.add(row.syllabus_module_index);
           return [
             {
               id: createId(),
               title,
               catalogCoverageTitle: title,
+              ...(indexed ? { syllabusModuleIndex: row.syllabus_module_index, catalogSyllabusVersionId: version.version_id } : {}),
               description: String(row.description || ""),
               learningObjectives: String(row.learning_objectives || ""),
               topics: [...(row.topics || [])],

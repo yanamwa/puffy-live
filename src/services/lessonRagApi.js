@@ -57,8 +57,8 @@ export async function uploadLessonSource(formData, onProgress) {
   return { success: true, ...result };
 }
 
-export const listLessonSources = (courseId) =>
-  request(`/sources?course_id=${encodeURIComponent(courseId)}`);
+export const listLessonSources = (courseId, moduleKey) =>
+  request(`/sources?course_id=${encodeURIComponent(courseId)}` + (moduleKey != null ? `&module_key=${encodeURIComponent(moduleKey)}` : ""));
 export const deleteLessonSource = (documentId) =>
   request(`/sources/${encodeURIComponent(documentId)}`, { method: "DELETE" });
 export async function regenerateLessonSource(
@@ -67,10 +67,11 @@ export async function regenerateLessonSource(
   onProgress,
   onQueued = () => {},
   generationContext = null,
+  moduleKey = null,
 ) {
   const queued = await request(
     `/sources/${encodeURIComponent(documentId)}/${reindex ? "reindex" : "generate"}`,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ generation_context: generationContext }) },
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ generation_context: generationContext, client_module_key: moduleKey == null ? null : String(moduleKey) }) },
   );
   onQueued(queued.job_id);
   return waitForLessonJob(queued.job_id, onProgress);

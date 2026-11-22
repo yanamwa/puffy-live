@@ -382,7 +382,12 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
                   readOnly
                 />
               </label>
-              <CoverageModules
+                {!!details.course_outcomes?.length && <details><summary>Course learning outcomes</summary><ul>{details.course_outcomes.map((s,i) => <li key={i}>{s}</li>)}</ul></details>}
+                {!!details.references?.length && <details><summary>References listed in the syllabus</summary>
+                  {details.references.map((group,i) => <section key={i}><strong>{group.category}</strong>
+                    <ul>{group.entries.map((entry,j) => <li key={j}>{entry.text} (p. {entry.source_page})</li>)}</ul></section>)}
+                </details>}
+                <CoverageModules
                 value={details.coverage_modules}
                 busy={busy}
                 onChange={changeCoverage}
