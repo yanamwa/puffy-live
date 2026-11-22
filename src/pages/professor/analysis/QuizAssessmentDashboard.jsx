@@ -265,6 +265,200 @@ function PracticeStudentReport({
   );
 }
 
+
+// Course-level recorded quiz scores are kept separate from adaptive Practice
+// attempts. These entries have no reliable module association.
+const validRecordedQuizHistory = (history) =>
+  (Array.isArray(history) ? history : [])
+    .filter((entry) => {
+      const score = Number(entry?.score);
+      const total = Number(entry?.total);
+      return entry?.score != null && entry?.total != null &&
+        Number.isFinite(score) && Number.isFinite(total) &&
+        total > 0 && score >= 0 && score <= total;
+    })
+    .sort((a, b) => Number(a.quizNumber ?? 0) - Number(b.quizNumber ?? 0));
+
+const safeRecordedPercentage = (value) =>
+  value != null && value !== "" && Number.isFinite(Number(value))
+    ? `${Math.round(Number(value))}%`
+    : "N/A";
+
+const recordedDialogStyles = {
+  backdrop: {
+    position: "fixed", inset: 0, zIndex: 9999, background: "rgba(15, 23, 42, .52)",
+    display: "flex", justifyContent: "center", alignItems: "center", padding: 16,
+  },
+  panel: {
+    width: "min(560px, 100%)", maxHeight: "85vh", overflowY: "auto",
+    background: "#fff", color: "#17324f", borderRadius: 12,
+    padding: 24, boxShadow: "0 20px 60px rgba(15, 23, 42, .22)",
+  },
+  header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 },
+  table: { width: "100%", borderCollapse: "collapse", marginTop: 16, fontSize: 14 },
+  cell: { padding: "10px 12px", borderBottom: "1px solid #e8edf4", textAlign: "left" },
+  button: { padding: "8px 14px", background: "#eef4fc", color: "#24476b", border: 0, borderRadius: 7, cursor: "pointer" },
+};
+
+function RecordedQuizScoresReport({
+  courseId,
+  students = [],
+  loading = false,
+  error = "",
+  unavailable = false,
+  years = [],
+  sections = [],
+}) {
+  const headingId = useId();
+  const dialogTitleId = useId();
+  const [year, setYear] = useState("all");
+  const [section, setSection] = useState("all");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("name");
+  const [selectedKey, setSelectedKey] = useState(null);
+  const getKey = (student) => `${student.courseId ?? student.course_id}:${student.userId ?? student.user_id}`;
+  const getYear = (student) => {
+    const label = String(student.yearLevel ?? student.year_level ?? student.year ?? "").trim();
+    return label.match(/[1-4]/)?.[0] ?? label;
+  };
+  const getSection = (student) => String(student.section ?? "").trim();
+  const query = search.trim().toLowerCase();
+
+  const visible = students
+    .filter((student) => String(student.courseId ?? student.course_id) === String(courseId))
+    .filter((student) => validRecordedQuizHistory(student.recordedHistory).length > 0)
+    .filter((student) => (year === "all" || getYear(student) === year) &&
+      (section === "all" || getSection(student) === section) &&
+      String(student.name ?? "").toLowerCase().includes(query))
+    .sort((a, b) => {
+      if (sort === "count") {
+        const diff = validRecordedQuizHistory(b.recordedHistory).length - validRecordedQuizHistory(a.recordedHistory).length;
+        if (diff) return diff;
+      } else if (sort === "average") {
+        const diff = Number(b.recordedAverageScore ?? -1) - Number(a.recordedAverageScore ?? -1);
+        if (diff) return diff;
+      }
+      return String(a.name ?? "").localeCompare(String(b.name ?? ""));
+    });
+
+  const selected = visible.find((student) => getKey(student) === selectedKey);
+  const selectedHistory = selected ? validRecordedQuizHistory(selected.recordedHistory) : [];
+  useEffect(() => {
+    if (!selected) return;
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setSelectedKey(null);
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [selected]);
+
+  return (
+    <section className={`${reportStyles.panel} ${reportStyles.studentReport} ${reportStyles.practiceReport}`} aria-labelledby={headingId}>
+      <div className={reportStyles.tableHeading}>
+        <div>
+          <h2 id={headingId}>Recorded Quiz Scores</h2>
+          <p>Five-quiz score records and averages for this course. These are separate from submitted Practice attempts and are not assigned to individual modules.</p>
+        </div>
+        {!loading && !error && !unavailable && (
+          <div className={reportStyles.performanceFilters}>
+            <label className={reportStyles.yearSectionFilter}>
+              <span>Year Level</span>
+              <select value={year} onChange={(event) => setYear(event.target.value)}>
+                <option value="all">All Years</option>
+                {years.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
+            <label className={reportStyles.yearSectionFilter}>
+              <span>Section</span>
+              <select value={section} onChange={(event) => setSection(event.target.value)}>
+                <option value="all">All Sections</option>
+                {sections.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
+            <label className={reportStyles.yearSectionFilter}>
+              <span>Sort by</span>
+              <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                <option value="name">Student A–Z</option>
+                <option value="count">Most recorded quizzes</option>
+                <option value="average">Highest average</option>
+              </select>
+            </label>
+            <label className={reportStyles.searchBox}>
+              <FiSearch aria-hidden="true" />
+              <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search students" aria-label="Search recorded quiz students" />
+            </label>
+          </div>
+        )}
+      </div>
+      {loading ? (
+        <p role="status">Loading recorded quiz scores…</p>
+      ) : error ? (
+        <p role="alert">{error}</p>
+      ) : unavailable ? (
+        <p role="status">Recorded quiz scores are unavailable to the API database user. No scores have been changed.</p>
+      ) : (
+        <AssessmentReportTable
+          columns={["Student", "Recorded Quizzes", "Average Score", "Action"]}
+          rows={visible.map((student) => ({
+            key: getKey(student),
+            cells: [
+              <strong>{student.name || "Student"}</strong>,
+              validRecordedQuizHistory(student.recordedHistory).length,
+              safeRecordedPercentage(student.recordedAverageScore),
+              <button
+                type="button"
+                className={reportStyles.viewButton}
+                aria-haspopup="dialog"
+                aria-label={`View recorded quiz scores for ${student.name || "student"}`}
+                onClick={() => setSelectedKey(getKey(student))}
+              >
+                View
+              </button>,
+            ],
+          }))}
+          fixedPageSize={10}
+          pageKey={JSON.stringify([courseId, year, section, sort, query])}
+          empty={students.length ? "No recorded scores match these filters." : "No recorded quiz scores have been found for this course."}
+        />
+      )}
+      {selected && (
+        <div style={recordedDialogStyles.backdrop} role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setSelectedKey(null);
+        }}>
+          <div role="dialog" aria-modal="true" aria-labelledby={dialogTitleId} style={recordedDialogStyles.panel}>
+            <div style={recordedDialogStyles.header}>
+              <div>
+                <h3 id={dialogTitleId} style={{ margin: 0 }}>{selected.name || "Student"}</h3>
+                <p style={{ margin: "6px 0 0" }}>Recorded quiz scores for this course</p>
+              </div>
+              <button type="button" style={recordedDialogStyles.button} onClick={() => setSelectedKey(null)} aria-label="Close recorded quiz scores">Close</button>
+            </div>
+            <p><strong>Recorded quizzes:</strong> {selectedHistory.length}</p>
+            <p><strong>Average score:</strong> {safeRecordedPercentage(selected.recordedAverageScore)}</p>
+            <table style={recordedDialogStyles.table}>
+              <thead>
+                <tr><th scope="col" style={recordedDialogStyles.cell}>Quiz</th><th scope="col" style={recordedDialogStyles.cell}>Score</th><th scope="col" style={recordedDialogStyles.cell}>Percentage</th></tr>
+              </thead>
+              <tbody>
+                {selectedHistory.map((entry, index) => (
+                  <tr key={`${entry.quizNumber ?? index}:${index}`}>
+                    <td style={recordedDialogStyles.cell}>Quiz {entry.quizNumber ?? index + 1}</td>
+                    <td style={recordedDialogStyles.cell}>{entry.score}/{entry.total}</td>
+                    <td style={recordedDialogStyles.cell}>{safeRecordedPercentage((Number(entry.score) / Number(entry.total)) * 100)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ fontSize: 12, color: "#64748b", marginTop: 16 }}>
+              These course-level recorded scores do not change adaptive Practice attempts, module mastery, or Main Quiz results.
+            </p>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function QuizAssessmentDashboard({
   courseId,
   courseTitle,
@@ -315,16 +509,22 @@ export default function QuizAssessmentDashboard({
   const [thresholdStatus, setThresholdStatus] = useState(
     tutorialMode ? "" : "Loading the reporting threshold…",
   );
+  // Recorded-score report is independent of submitted assessment attempts.
+  const [recordedReport, setRecordedReport] = useState({
+    students: [], loading: !tutorialMode, error: "", unavailable: false,
+  });
   useEffect(() => {
     if (tutorialMode) return;
 
     const controller = new AbortController();
     setPassing(null);
     setThresholdStatus("Loading the reporting threshold.");
+    setRecordedReport({ students: [], loading: true, error: "", unavailable: false });
     fetch(`${API_BASE}/reports/professor/assessments?courseId=${encodeURIComponent(courseId)}`, {
       credentials: "include",
       headers: lessonAuthHeaders(),
       signal: controller.signal,
+      cache: "no-store",
     })
       .then(async (response) => {
         const result = await response.json();
@@ -342,11 +542,24 @@ export default function QuizAssessmentDashboard({
             : null,
         );
 
+        // The existing report endpoint already includes recordedScoreEntries,
+        // recordedAverageScore, and recordedHistory for authorized professors.
+        setRecordedReport({
+          students: Array.isArray(result.students) ? result.students : [],
+          loading: false,
+          error: "",
+          unavailable: result.recordedScoresUnavailable === true,
+        });
         setThresholdStatus("");
       })
-      .catch(() => {
+      .catch((error) => {
         if (!controller.signal.aborted) {
           setThresholdStatus("Could not load the reporting threshold.");
+          setRecordedReport({
+            students: [], loading: false,
+            error: error?.message || "Could not load recorded quiz scores.",
+            unavailable: false,
+          });
         }
       });
     return () => controller.abort();
@@ -843,6 +1056,18 @@ export default function QuizAssessmentDashboard({
                     sections={sections}
                     empty="No practice attempts match these filters."
                   />
+                  {moduleIndex === "all" && !tutorialMode && (
+                    <RecordedQuizScoresReport
+                      key={`recorded:${courseId}`}
+                      courseId={courseId}
+                      students={recordedReport.students}
+                      loading={recordedReport.loading}
+                      error={recordedReport.error}
+                      unavailable={recordedReport.unavailable}
+                      years={years}
+                      sections={sections}
+                    />
+                  )}
                   <PracticeStudentReport
                     key={`attention:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
                     title="Students Needing Attention"
