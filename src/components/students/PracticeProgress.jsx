@@ -1,129 +1,14 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
+import PracticeAttemptsDialog, { formatPracticeScore } from "../PracticeAttemptsDialog.jsx";
 import ResultsPagination, { RESULTS_PER_PAGE } from "./ResultsPagination.jsx";
 import "./RecentMainQuizResults.css";
-import "./PracticeProgress.css";
 
-const percentFormat = new Intl.NumberFormat(undefined, {
-  style: "percent",
-  maximumFractionDigits: 1,
-});
 const changeFormat = new Intl.NumberFormat(undefined, {
   signDisplay: "always",
   maximumFractionDigits: 1,
 });
-const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
-const timeFormat = new Intl.DateTimeFormat(undefined, {
-  hour: "numeric",
-  minute: "2-digit",
-  hour12: true,
-});
-
-function formatScore({ score, total }) {
-  return `${score}/${total} (${percentFormat.format(score / total)})`;
-}
-
-function PracticeAttemptsModal({ record, onClose }) {
-  const dialogRef = useRef(null);
-  const titleId = useId();
-  const descriptionId = useId();
-  const tableId = useId();
-  const [page, setPage] = useState(1);
-  const { attempts, moduleTitle, courseTitle } = record;
-  const pageCount = Math.ceil(attempts.length / RESULTS_PER_PAGE);
-  const start = (page - 1) * RESULTS_PER_PAGE;
-  const visibleAttempts = attempts.slice(start, start + RESULTS_PER_PAGE);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    const previousFocus = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    dialog.showModal();
-    document.body.style.overflow = "hidden";
-    return () => {
-      dialog.close();
-      document.body.style.overflow = previousOverflow;
-      if (previousFocus?.isConnected) previousFocus.focus();
-    };
-  }, []);
-
-  return (
-    <dialog
-      ref={dialogRef}
-      className="home-practice-attempts-dialog"
-      aria-labelledby={titleId}
-      aria-describedby={descriptionId}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <header className="home-practice-attempts-header">
-        <h2 id={titleId}>Practice Attempts</h2>
-        <button
-          type="button"
-          className="home-practice-attempts-close"
-          aria-label="Close practice attempts"
-          onClick={onClose}
-          autoFocus
-        >
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </header>
-      <div className="home-practice-attempts-body">
-        <h3>{moduleTitle}</h3>
-        <p id={descriptionId}>{courseTitle}</p>
-        <p className="home-practice-attempts-count">
-          Showing {start + 1}&ndash;
-          {start + visibleAttempts.length} of{" "}
-          {attempts.length} attempts &middot; Latest first
-        </p>
-        <table id={tableId} className="home-practice-attempts-table">
-          <thead>
-            <tr>
-              <th scope="col">Attempt</th>
-              <th scope="col">Score</th>
-              <th scope="col">Date &amp; time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleAttempts.map((attempt, index) => (
-              <tr key={attempt.id}>
-                <th scope="row">{attempts.length - start - index}</th>
-                <td>{formatScore(attempt)}</td>
-                <td>
-                  {attempt.completedAt ? (
-                    <time dateTime={attempt.completedAt}>
-                      <span>
-                        {dateFormat.format(new Date(attempt.completedAt))}
-                      </span>
-                      <span className="home-practice-attempts-time">
-                        {timeFormat.format(new Date(attempt.completedAt))}
-                      </span>
-                    </time>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <ResultsPagination
-          label="Practice attempts pagination"
-          tableId={tableId}
-          page={page}
-          pageCount={pageCount}
-          onPageChange={setPage}
-        />
-      </div>
-    </dialog>
-  );
-}
 
 function PracticeProgressRow({ record, onViewAttempts }) {
   const { attempts, moduleTitle, courseTitle } = record;
@@ -157,9 +42,9 @@ function PracticeProgressRow({ record, onViewAttempts }) {
           </button>
         )}
       </td>
-      <td className="home-results-score">{formatScore(first)}</td>
+      <td className="home-results-score">{formatPracticeScore(first)}</td>
       <td className="home-results-score">
-        {hasMultipleAttempts ? formatScore(latest) : "—"}
+        {hasMultipleAttempts ? formatPracticeScore(latest) : "-"}
       </td>
       <td>
         <span className={`home-results-outcome ${outcome}`}>{status}</span>
@@ -278,8 +163,10 @@ export default function PracticeProgress() {
         onPageChange={setPage}
       />
       {selectedRecord && (
-        <PracticeAttemptsModal
-          record={selectedRecord}
+        <PracticeAttemptsDialog
+          heading={selectedRecord.moduleTitle}
+          description={selectedRecord.courseTitle}
+          attempts={selectedRecord.attempts}
           onClose={closeAttempts}
         />
       )}

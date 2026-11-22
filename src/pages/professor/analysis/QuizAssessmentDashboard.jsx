@@ -13,6 +13,7 @@ import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
 import "./QuizAssessmentDashboard.css";
 import { summarizeAssessment, summarizePracticeReport } from "../../../utils/assessmentAnalytics.js";
 import { AssessmentReportTable } from "./ProfessorStudentPerformance.jsx";
+import ProfessorPracticeHistory from "./ProfessorPracticeHistory.jsx";
 import {
   tutorialAssessmentAttempts,
   tutorialAssessmentStudents,
@@ -136,12 +137,16 @@ function PracticeStudentReport({
   sections,
   empty,
   attention = false,
+  historyModules,
+  moduleTitle,
+  showScoreSource = false,
   attemptLabel = "Scored Attempts (Practice Quiz)",
 }) {
   const headingId = useId();
   const [year, setYear] = useState("all");
   const [section, setSection] = useState("all");
   const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
   const query = search.trim().toLowerCase();
   const rows = students.filter((student) =>
     (year === "all" || student.year === year) &&
@@ -150,6 +155,7 @@ function PracticeStudentReport({
   );
   const attempts = attemptLabel;
   const measures = attention ? ["Average Score", attempts] : [attempts, "Average Score"];
+  const selectedStudent = rows.find((student) => String(student.id) === selectedId);
 
   return (
     <section className={`${reportStyles.panel} ${reportStyles.studentReport}`} aria-labelledby={headingId}>
@@ -180,18 +186,51 @@ function PracticeStudentReport({
         </div>
       </div>
       <AssessmentReportTable
-        columns={["Student", "Course", ...measures]}
+        columns={["Student", "Course", ...measures, ...(historyModules ? ["Action"] : [])]}
         rows={rows.map((student) => {
           const score = student.average == null ? "N/A" : pct(student.average);
+          const count = showScoreSource ? (
+            <>
+              {student.attempts}
+              <small className={reportStyles.courseCode}>
+                {Array.isArray(student.recordedHistory) ? "Recorded scores" : "Submitted attempts"}
+              </small>
+            </>
+          ) : student.attempts;
           return {
             key: student.id,
-            cells: [<strong>{student.name}</strong>, courseTitle, ...(attention ? [score, student.attempts] : [student.attempts, score])],
+            cells: [
+              <strong>{student.name}</strong>,
+              courseTitle,
+              ...(attention ? [score, count] : [count, score]),
+              ...(historyModules ? [
+                <button
+                  type="button"
+                  className={reportStyles.viewButton}
+                  aria-haspopup="dialog"
+                  aria-label={`View practice history for ${student.name}`}
+                  onClick={() => setSelectedId(String(student.id))}
+                >
+                  View
+                </button>,
+              ] : []),
+            ],
           };
         })}
         pageKey={JSON.stringify([year, section, query])}
         fixedPageSize={10}
         empty={students.length ? "No students match these filters." : empty}
       />
+      {selectedStudent && (
+        <ProfessorPracticeHistory
+          key={selectedId}
+          student={selectedStudent}
+          courseTitle={courseTitle}
+          moduleTitle={moduleTitle}
+          modules={historyModules}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </section>
   );
 }
@@ -244,10 +283,12 @@ export default function QuizAssessmentDashboard({
   const [refreshError, setRefreshError] = useState("");
   const [passing, setPassing] = useState(tutorialMode ? 70 : null);
   const [professorScoreRows, setProfessorScoreRows] = useState([]);
+  const [recordedScoresUnavailable, setRecordedScoresUnavailable] = useState(false);
   const [thresholdStatus, setThresholdStatus] = useState(
     tutorialMode ? "" : "Loading the reporting threshold…",
   );
   useEffect(() => {
+    setRecordedScoresUnavailable(false);
     if (tutorialMode) {
       setProfessorScoreRows([]);
       return;
@@ -255,7 +296,7 @@ export default function QuizAssessmentDashboard({
 
     const controller = new AbortController();
     setProfessorScoreRows([]);
-    fetch(`${API_BASE}/reports/professor/assessments`, {
+    fetch(`${API_BASE}/reports/professor/assessments?courseId=${encodeURIComponent(courseId)}`, {
       credentials: "include",
       headers: lessonAuthHeaders(),
       signal: controller.signal,
@@ -282,6 +323,7 @@ export default function QuizAssessmentDashboard({
             )
           : [];
         setProfessorScoreRows(courseScores);
+        setRecordedScoresUnavailable(result.recordedScoresUnavailable === true);
         setThresholdStatus("");
       })
       .catch(() => {
@@ -457,30 +499,63 @@ export default function QuizAssessmentDashboard({
   };
   const { coverage, studentPerformance, studentsNeedingAttention } =
     summarizePracticeReport(summary, passing);
-  // Score entries are reporting-only and have no submitted questions/answers.
-  // Do not merge them into the assessment summary or LOTS/HOTS analysis.
-  const recordedStudents = professorScoreRows
-    .filter((student) => Number(student.recordedScoreEntries) > 0)
-    .map((student) => ({
-      id: student.userId,
-      name: student.name,
-      year: yearOf(student),
-      section: sectionOf(student),
-      attempts: Number(student.recordedScoreEntries),
-      average:
-        student.recordedAverageScore == null ||
-        !Number.isFinite(Number(student.recordedAverageScore))
-          ? null
-          : Number(student.recordedAverageScore),
-    }))
-    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const practiceRoster = new Map([...data.attempts, ...roster].map((student) =>
     [String(student.user_id ?? student.userId ?? student.id), student],
   ));
   const withStudentSection = (student) => {
     const record = practiceRoster.get(String(student.id)) ?? {};
-    return { ...student, year: yearOf(record), section: sectionOf(record) };
+    return {
+      ...student,
+      year: yearOf(record) || student.year || "",
+      section: sectionOf(record) || student.section || "",
+    };
   };
+
+  // Only the score-summary table uses independently recorded entries.
+  // Question-level metrics, completed Practice attempts, and learning feedback
+  // continue to use submitted quiz answers through summarizeAssessment().
+  const performanceById = new Map(
+    studentPerformance.map((student) => [String(student.id), student]),
+  );
+
+  if (!tutorialMode && moduleIndex === "all") {
+    for (const row of professorScoreRows) {
+      const count = Number(row.recordedScoreEntries);
+      const average = row.recordedAverageScore == null
+        ? NaN
+        : Number(row.recordedAverageScore);
+      if (!Number.isSafeInteger(count) || count < 1 || !Number.isFinite(average)) {
+        continue;
+      }
+
+      const id = String(row.userId);
+      const existing = performanceById.get(id);
+      const rosterRecord = practiceRoster.get(id) ?? {};
+      const year = yearOf(row) || yearOf(rosterRecord) || existing?.year || "";
+      const section = sectionOf(row) || sectionOf(rosterRecord) || existing?.section || "";
+
+      // Match the dashboard's existing global year/section filters.
+      if (!studentMatches({ year_level: year, section_name: section })) continue;
+
+      performanceById.set(id, {
+        ...existing,
+        id: row.userId,
+        name: row.name || existing?.name || "Student",
+        year,
+        section,
+        attempts: count,
+        average,
+        recordedHistory: Array.isArray(row.recordedHistory) ? row.recordedHistory : [],
+        submittedPractice: existing,
+      });
+    }
+  }
+
+  const displayedStudentPerformance = [...performanceById.values()].sort(
+    (a, b) => Number(b.attempts || 0) - Number(a.attempts || 0) ||
+      String(a.name).localeCompare(String(b.name)),
+  );
+  const hasRecordedScores = displayedStudentPerformance.some((student) => Array.isArray(student.recordedHistory));
   const metrics = [
     ["Students", summary.assessedStudents],
     ["Attempts", summary.attempts],
@@ -769,26 +844,23 @@ export default function QuizAssessmentDashboard({
                   <PracticeStudentReport
                     key={`performance:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
                     title="Student Practice Performance"
-                    description="Scored practice quiz attempts and average scores for this course."
-                    students={studentPerformance.map(withStudentSection)}
+                    description={moduleIndex === "all" && recordedScoresUnavailable
+                      ? "Showing submitted practice attempts. Separately recorded scores are currently unavailable."
+                      : hasRecordedScores
+                        ? "View a student's submitted attempts or separately recorded scores for this course."
+                        : `Scored practice quiz attempts and average scores for this ${moduleIndex === "all" ? "course" : "module"}.`}
+                    students={displayedStudentPerformance.map(withStudentSection)}
                     courseTitle={courseTitle}
+                    historyModules={modules}
+                    showScoreSource={hasRecordedScores}
+                    moduleTitle={moduleIndex === "all" ? null : moduleTitle}
                     years={years}
                     sections={sections}
-                    empty="No scored practice attempts match these filters."
+                    attemptLabel={hasRecordedScores
+                      ? "Scored Practice Records"
+                      : "Scored Attempts (Practice Quiz)"}
+                    empty="No scored practice records match these filters."
                   />
-                  {!tutorialMode && moduleIndex === "all" && recordedStudents.length > 0 && (
-                    <PracticeStudentReport
-                      key={`recorded:${courseId}:${yearFilter}:${sectionFilter}`}
-                      title="Recorded Practice Scores"
-                      description="Additional score entries recorded for this course, separate from completed adaptive Practice Quizzes."
-                      students={recordedStudents}
-                      courseTitle={courseTitle}
-                      years={years}
-                      sections={sections}
-                      attemptLabel="Recorded Score Entries"
-                      empty="No recorded practice scores match these filters."
-                    />
-                  )}
                   <PracticeStudentReport
                     key={`attention:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
                     title="Students Needing Attention"

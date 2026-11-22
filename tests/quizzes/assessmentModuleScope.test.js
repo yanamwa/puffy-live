@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   assessmentModules,
+  attemptModuleTitle,
   filterModuleAttempts,
 } from "../../src/utils/assessmentModuleScope.js";
 import { summarizeAssessment } from "../../src/utils/assessmentAnalytics.js";
@@ -69,6 +70,24 @@ test("statistics do not mix identical questions across modules", () => {
   assert.equal(summary("1").average, 0);
   assert.equal(summary("0").questions[0].percent, 100);
   assert.equal(summary("1").questions[0].percent, 0);
+});
+test("student practice history contains the scored attempts behind the selected module average", () => {
+  const submitted = [
+    ...attempts,
+    { ...attempts[0], score: 0 },
+    { ...attempts[0], score: null },
+    { ...attempts[0], total: 0 },
+    { ...attempts[0], assessment_type: "recap" },
+  ];
+  const scoped = filterModuleAttempts(submitted, "0", modules).filter((row) => row.assessment_type === "practice");
+  const student = summarizeAssessment(scoped, [], []).students.find((row) => row.id === "1");
+  assert.deepEqual(student.attemptHistory.map((row) => row.score), [1, 0]);
+  assert.equal(student.attempts, student.attemptHistory.length);
+  assert.equal(student.average, 50);
+  assert.equal(attemptModuleTitle(attempts[0], modules), "First");
+  assert.equal(attemptModuleTitle(attempts[1], modules), "Second");
+  assert.equal(attemptModuleTitle(attempts[3], modules), "First");
+  assert.equal(attemptModuleTitle(attempts[4], modules), "Module unavailable");
 });
 test("module lists accept stored JSON and reject malformed data", () => {
   assert.deepEqual(

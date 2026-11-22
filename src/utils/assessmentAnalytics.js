@@ -16,7 +16,7 @@ export function summarizeAssessment(attempts, students, items) {
   const progress = new Map(
     students.map((s) => [
       String(s.user_id ?? s.userId ?? s.id),
-      { name: s.student_name || s.name || `Student ${s.user_id ?? s.userId ?? s.id}`, scores: [] },
+      { name: s.student_name || s.name || `Student ${s.user_id ?? s.userId ?? s.id}`, scores: [], attemptHistory: [] },
     ]),
   );
   const questions = new Map();
@@ -29,15 +29,17 @@ export function summarizeAssessment(attempts, students, items) {
     missingCognitiveLevelResponses: 0,
   };
   for (const attempt of attempts) {
-    const key = String(attempt.user_id);
+    const key = String(attempt.user_id ?? attempt.userId);
     if (!progress.has(key))
       progress.set(key, {
         name: attempt.student_name || `Unavailable account (ID ${key})`,
         scores: [],
+        attemptHistory: [],
       });
     if (attempt.score != null && Number.isFinite(Number(attempt.score)) && Number(attempt.total) > 0) {
       const score = (Number(attempt.score) / Number(attempt.total)) * 100;
       progress.get(key).scores.push(score);
+      progress.get(key).attemptHistory.push(attempt);
       scores.push(score);
     }
     for (const answer of attempt.answers || []) {
@@ -116,6 +118,7 @@ export function summarizeAssessment(attempts, students, items) {
       id,
       name: s.name,
       attempts: s.scores.length,
+      attemptHistory: s.attemptHistory,
       average: mean(s.scores),
       first: s.scores[0] ?? null,
       latest: s.scores.at(-1) ?? null,

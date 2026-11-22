@@ -22,17 +22,19 @@ export function filterModuleAttempts(
   const selected = Number(moduleIndex);
   const module = modules[selected];
   if (!module || !Number.isInteger(selected)) return [];
-  return attempts.filter((attempt) => {
-    const index = attempt.module_index ?? attempt.moduleIndex;
-    if (index !== null && index !== undefined && index !== "")
-      return Number(index) === selected;
-    // Older lesson-linked attempts can be scoped only by a known lesson ID.
-    const lesson = attempt.lesson_id ?? attempt.lessonId;
-    const moduleLesson = module.lesson_id ?? module.lessonId;
-    return (
-      lesson != null &&
-      moduleLesson != null &&
-      String(lesson) === String(moduleLesson)
-    );
-  });
+  return attempts.filter((attempt) => matchesModule(attempt, module, selected));
+}
+
+function matchesModule(attempt, module, moduleIndex) {
+  const index = attempt.module_index ?? attempt.moduleIndex;
+  if (index != null && index !== "") return Number(index) === moduleIndex;
+  // Older lesson-linked attempts can be scoped only by a known lesson ID.
+  const lesson = attempt.lesson_id ?? attempt.lessonId;
+  const moduleLesson = module.lesson_id ?? module.lessonId;
+  return lesson != null && moduleLesson != null && String(lesson) === String(moduleLesson);
+}
+
+export function attemptModuleTitle(attempt, modules) {
+  const index = modules.findIndex((module, i) => matchesModule(attempt, module, i));
+  return index < 0 ? "Module unavailable" : modules[index].title || `Module ${index + 1}`;
 }

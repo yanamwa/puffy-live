@@ -1,4 +1,5 @@
 .home-practice-attempts-dialog {
+  margin: auto;
   width: min(640px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
   padding: 0;
@@ -91,6 +92,52 @@
 
 .home-practice-attempts-body .home-practice-attempts-count {
   margin: 16px 0 12px;
+}
+
+.practice-history-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.practice-history-source select {
+  padding: 6px 10px;
+  border: 1px solid #bacbdc;
+  border-radius: 7px;
+  background: #fff;
+  color: #355a80;
+  font: inherit;
+}
+
+.practice-history-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #f3f7fc;
+}
+
+.practice-history-summary dt,
+.home-practice-attempts-table tbody small {
+  font-size: 13px;
+  color: #526781;
+}
+
+.practice-history-summary dd {
+  margin: 2px 0 0;
+  color: #294765;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.home-practice-attempts-table tbody small {
+  display: block;
+  overflow-wrap: anywhere;
 }
 
 .home-practice-attempts-table {

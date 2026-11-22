@@ -4,21 +4,20 @@ import vm from "node:vm";
 import test from "node:test";
 import { transformSync } from "esbuild";
 import { summarizeAssessment } from "../../src/utils/assessmentAnalytics.js";
+import { attemptModuleTitle } from "../../src/utils/assessmentModuleScope.js";
 
-const source = readFileSync(
-  new URL(
-    "../../src/pages/professor/analysis/ProfessorStudentPerformance.jsx",
-    import.meta.url,
-  ),
-  "utf8",
-);
-const compiled = transformSync(
-  source
+const compiled = [
+  "pages/professor/analysis/ProfessorStudentPerformance.jsx",
+  "pages/professor/analysis/QuizAssessmentDashboard.jsx",
+  "pages/professor/analysis/ProfessorPracticeHistory.jsx",
+  "components/PracticeAttemptsDialog.jsx",
+].map((file) => {
+  const source = readFileSync(new URL(`../../src/${file}`, import.meta.url), "utf8")
     .replace(/^import[\s\S]*?;\r?\n/gm, "")
     .replace("export default ", "")
-    .replace(/^export /gm, ""),
-  { loader: "jsx", jsxFactory: "h", jsxFragment: "Fragment" },
-).code;
+    .replace(/^export /gm, "");
+  return transformSync(source, { loader: "jsx", jsxFactory: "h", jsxFragment: "Fragment" }).code;
+}).join("\n");
 const report = {
   passingPercentage: 70,
   students: [
@@ -66,6 +65,11 @@ function harness({ data = report, fails = false, pending = false } = {}) {
     Fragment: "fragment",
     h: (type, props, ...children) => ({ type, props: { ...props, children } }),
     styles: new Proxy({}, { get: (_, key) => key }),
+    reportStyles: {},
+    attemptModuleTitle,
+    ResultsPagination: "ResultsPagination",
+    RESULTS_PER_PAGE: 5,
+    useId: () => "test-id",
     FiSearch: "search-icon",
     FiX: "close-icon",
     useState(initial) {
@@ -121,6 +125,10 @@ function harness({ data = report, fails = false, pending = false } = {}) {
     root: renderer(context.Report),
     table: renderer(context.Table),
     tableType: context.Table,
+    practiceReport: renderer(context.PracticeStudentReport),
+    history: renderer(context.ProfessorPracticeHistory),
+    historyTable: renderer(context.AttemptTable),
+    historyType: context.ProfessorPracticeHistory,
     resolve: (value) => resolve(value),
     signal: () => requestSignal,
   };
@@ -215,7 +223,7 @@ test("missing thresholds, failed requests and canceled loads do not show mislead
   assert.match(text(canceled.root.render()), /Loading student performance/);
 });
 
-test("report tables paginate, resize and reset searches without losing or duplicating rows", () => {
+test("numbered report pages preserve row order and reset when the search changes", () => {
   const h = harness();
   const props = {
     columns: ["Student"],
@@ -225,15 +233,16 @@ test("report tables paginate, resize and reset searches without losing or duplic
     })),
     empty: "No matching students.",
   };
+  const visibleStudents = (tree) => nodes(tree, (node) => node.type === "td").map(text);
   let tree = h.table.render(props);
-  assert.match(text(tree), /Showing 1–10 of 25 records/);
+  assert.deepEqual(visibleStudents(tree), props.rows.slice(0, 10).map((row) => row.cells[0]));
   assert.equal(button(tree, "Previous").props.disabled, true);
   button(tree, "Next").props.onClick();
   tree = h.table.render(props);
-  assert.match(text(tree), /Showing 11–20 of 25 records/);
-  button(tree, "Last").props.onClick();
+  assert.deepEqual(visibleStudents(tree), props.rows.slice(10, 20).map((row) => row.cells[0]));
+  button(tree, "3").props.onClick();
   tree = h.table.render(props);
-  assert.match(text(tree), /Showing 21–25 of 25 records/);
+  assert.deepEqual(visibleStudents(tree), props.rows.slice(20).map((row) => row.cells[0]));
   assert.equal(button(tree, "Next").props.disabled, true);
   assert.equal(
     nodes(tree, (node) => node.type === "tbody")[0].props.children[0].length,
@@ -244,26 +253,72 @@ test("report tables paginate, resize and reset searches without losing or duplic
     pageKey: "search",
     rows: props.rows.slice(0, 2),
   });
-  assert.match(text(tree), /Showing 1–2 of 2 records/);
-  tree = h.table.render(props);
-  nodes(tree, (node) => node.type === "select")[0].props.onChange({
-    target: { value: "25" },
-  });
-  tree = h.table.render(props);
-  assert.match(text(tree), /Showing 1–25 of 25 records/);
+  assert.deepEqual(visibleStudents(tree), ["Student 1", "Student 2"]);
   assert.equal(button(tree, "Next").props.disabled, true);
   assert.match(
     text(h.table.render({ ...props, rows: [] })),
     /No matching students/,
   );
-  tree = h.table.render({ ...props, pageKey: "history", fixedPageSize: 10 });
-  assert.match(text(tree), /Showing 1–10 of 25 records/);
-  assert.equal(nodes(tree, (node) => node.type === "select").length, 0);
-  button(tree, "Next").props.onClick();
-  assert.match(
-    text(h.table.render({ ...props, pageKey: "history", fixedPageSize: 10 })),
-    /Showing 11–20 of 25 records/,
-  );
+});
+
+test("View opens the selected student's scored submissions with their module, dates and average", () => {
+  const h = harness();
+  const scores = [8, 4, 9, 8, 9];
+  const attempts = scores.map((score, i) => ({
+    attempts_id: i + 1, user_id: 1, student_name: "Test Student", module_index: 0,
+    created_at: `2026-11-20T10:${String(i * 10).padStart(2, "0")}:00Z`, score, total: 10,
+  }));
+  const { students } = summarizeAssessment([...attempts, { ...attempts[0], score: null }], [], []);
+  const props = {
+    title: "Student Practice Performance", students, years: [], sections: [],
+    courseTitle: "Information Management", historyModules: [{ title: "Introduction to Database" }],
+  };
+  const table = nodes(h.practiceReport.render(props), (node) => node.type === h.tableType)[0];
+  const view = button(h.table.render(table.props), "View");
+  assert.equal(view.props["aria-label"], "View practice history for Test Student");
+  view.props.onClick();
+  const history = nodes(h.practiceReport.render(props), (node) => node.type === h.historyType)[0];
+  const dialog = h.history.render(history.props);
+  assert.equal(dialog.props.heading, "Test Student");
+  assert.equal(dialog.props.description, "Information Management");
+  assert.match(text(dialog), /Scored attempts5Average score76%/);
+  const entries = h.historyTable.render(dialog.props);
+  assert.deepEqual(nodes(entries, (node) => node.type === "time").map((node) => node.props.dateTime),
+    attempts.toReversed().map((row) => new Date(row.created_at).toISOString()));
+  assert.match(text(entries), /5Introduction to Database9\/10 \(90%\)/);
+  dialog.props.onClose();
+  assert.equal(nodes(h.practiceReport.render(props), (node) => node.type === h.historyType).length, 0);
+});
+
+test("recorded history and submitted practice show their own scores and pagination", () => {
+  const h = harness();
+  const attemptHistory = Array.from({ length: 7 }, (_, i) => ({
+    attempts_id: i + 1, score: i, total: 10, created_at: null, module_index: 0,
+  }));
+  const student = {
+    name: "Test Student", attempts: 1, average: 80,
+    recordedHistory: [{ quizNumber: 4, score: 8, total: 10, proposedDisplayAt: null }],
+    submittedPractice: { attempts: 7, average: 30, attemptHistory },
+  };
+  const props = { student, courseTitle: "Databases", modules: [{ title: "SQL" }] };
+  let dialog = h.history.render(props);
+  assert.match(text(dialog), /Recorded scores1Average score80%/);
+  assert.match(text(h.historyTable.render(dialog.props)), /EntryScoreDisplay date48\/10 \(80%\)Unavailable/);
+  nodes(dialog, (node) => node.type === "select")[0].props.onChange({ target: { value: "submitted" } });
+  dialog = h.history.render(props);
+  assert.match(text(dialog), /Scored attempts7Average score30%/);
+  let entries = h.historyTable.render(dialog.props);
+  nodes(entries, (node) => node.type === "ResultsPagination")[0].props.onPageChange(2);
+  entries = h.historyTable.render(dialog.props);
+  assert.match(text(entries), /Showing 6–7 of 7 attempts/);
+  assert.match(text(entries), /1SQL0\/10 \(0%\)Unavailable/);
+  const legacy = harness();
+  const summaryOnly = legacy.history.render({ ...props, student: { ...student, recordedHistory: [] } });
+  assert.match(text(summaryOnly), /Scored attempts7Average score30%/);
+  nodes(summaryOnly, (node) => node.type === "select")[0].props.onChange({ target: { value: "recorded" } });
+  const recordedSummary = legacy.history.render({ ...props, student: { ...student, recordedHistory: [] } });
+  assert.match(text(recordedSummary), /Recorded scores1Average score80%/);
+  assert.match(text(legacy.historyTable.render(recordedSummary.props)), /Individual score details are unavailable/);
 });
 
 test("professor report requests include the stored session token, cancellation and fresh data", async () => {
