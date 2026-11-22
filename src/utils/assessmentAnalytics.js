@@ -199,6 +199,9 @@ export function practiceModuleRows(attempts, modules, courseTitle) {
   const byStudent = new Map();
   for (const attempt of attempts) {
     if (attempt.assessment_type !== "practice") continue;
+    // Older submissions may have only the assessment type. Modern module
+    // submissions store adaptive_practice regardless of the question format.
+    if (attempt.quiz_mode && attempt.quiz_mode !== "adaptive_practice") continue;
     const percent = attemptPercentage(attempt);
     if (percent == null) continue;
     const id = String(attempt.user_id ?? attempt.userId);

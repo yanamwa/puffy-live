@@ -146,8 +146,6 @@ function harness({ data = report, fails = false, pending = false } = {}) {
     table: renderer(context.Table),
     tableType: context.Table,
     practiceReport: renderer(context.PracticeStudentReport),
-    recordedHistory: renderer(context.RecordedQuizHistoryDialog),
-    recordedHistoryType: context.RecordedQuizHistoryDialog,
     history: renderer(context.ProfessorPracticeHistory),
     historyTable: renderer(context.PracticeAttemptsTable),
     historyTableType: context.PracticeAttemptsTable,
@@ -296,6 +294,7 @@ test("module filters, sorting and View use the same student's module-specific at
     { ...attempts[0], total: 0 },
     { ...attempts[0], assessment_type: "main" },
     { ...attempts[0], assessment_type: "recap" },
+    { ...attempts[0], source: "lesson", quiz_mode: "multiple" },
   ], modules, "Databases").map((row) => ({
     ...row, year: row.id === "1" ? "2" : "1", section: row.id === "1" ? "A" : "B",
   }));
@@ -342,41 +341,43 @@ test("module filters, sorting and View use the same student's module-specific at
   assert.equal(nodes(scoped, (node) => node.type === h.tableType)[0].props.rows.length, 0);
 });
 
-test("course-wide recorded scores appear inside Student Practice Performance with their five entries", () => {
+test("Student Practice Performance only shows submitted module attempts, five rows per page", () => {
   const h = harness();
-  const recordedHistory = [5, 7, 8, 9, 10].map((score, index) => ({
-    quizNumber: index + 1, score, total: 10,
+  const submissions = fiveAttempts.map((attempt) => ({
+    ...attempt, quiz_mode: "adaptive_practice", student_name: "Test Student",
   }));
-  const student = {
-    key: "recorded:42:1", name: "Test Student", moduleTitle: "Course-wide recorded quizzes",
-    attempts: 5, average: 78, recordedAverageScore: 78, recordedHistory, source: "recorded",
-  };
+  const classmates = Array.from({ length: 5 }, (_, offset) => ({
+    ...submissions[0], attempts_id: offset + 6, user_id: offset + 2,
+    student_name: `Classmate ${offset + 1}`, module_index: 1, score: 9,
+  }));
   const props = {
-    title: "Student Practice Performance", students: [], recordedStudents: [student],
-    years: [], sections: [], modules, empty: "No practice attempts match these filters.",
+    title: "Student Practice Performance", years: [], sections: [], modules,
+    students: practiceModuleRows([...submissions, ...classmates], modules, "Sample course"),
+    empty: "No practice attempts match these filters.",
   };
-  const render = () => h.practiceReport.render(props);
-  const table = () => nodes(render(), (node) => node.type === h.tableType)[0].props;
-  assert.deepEqual(nodes(render(), (node) => node.type === "h2").map(text), [props.title]);
-  const [row] = table().rows;
-  assert.deepEqual(Array.from(row.cells, text), ["Test Student", student.moduleTitle, "5", "78%", "View"]);
-  button(h.table.render(table()), "View").props.onClick();
-  const history = nodes(render(), (node) => node.type === h.recordedHistoryType)[0];
-  const dialog = h.recordedHistory.render(history.props);
-  const body = nodes(dialog, (node) => node.type === "tbody")[0];
-  const entries = nodes(body, (node) => node.type === "tr")
-    .map((item) => nodes(item, (cell) => cell.type === "td").map(text));
-  assert.deepEqual(entries, recordedHistory.map(({ quizNumber, score }) => [
-    `Quiz ${quizNumber}`, `${score}/10`, `${10 * score}%`,
-  ]));
-  button(dialog, "Close").props.onClick();
-  h.recordedHistory.close();
-  assert.equal(nodes(render(), (node) => node.type === h.recordedHistoryType).length, 0);
+  const render = (overrides = {}) => h.practiceReport.render({ ...props, ...overrides });
+  const table = (tree = render()) => nodes(tree, (node) => node.type === h.tableType)[0].props;
+  const tree = render();
+  assert.doesNotMatch(text(tree), /Show results|Five recorded quizzes/i);
+  const pageOne = h.table.render(table(tree));
+  const bodyRows = (page) => nodes(nodes(page, (node) => node.type === "tbody")[0], (node) => node.type === "tr");
+  assert.equal(bodyRows(pageOne).length, 5);
+  assert.deepEqual(nodes(bodyRows(pageOne)[0], (node) => node.type === "td").map(text),
+    ["Test Student", "Identity", "5", "60%", "View"]);
+  button(pageOne, "View").props.onClick();
+  const history = nodes(render(), (node) => node.type === h.historyType)[0];
+  const dialog = h.history.render(history.props);
+  assert.deepEqual(Array.from(dialog.props.attempts, (attempt) => attempt.id), [5, 4, 3, 2, 1]);
+  dialog.props.onClose();
 
-  const sourceLabel = nodes(render(), (node) => node.type === "label" && text(node).startsWith("Show results"))[0];
-  nodes(sourceLabel, (node) => node.type === "select")[0].props.onChange({ target: { value: "submitted" } });
-  assert.equal(table().rows.length, 0);
-  assert.equal(table().empty, props.empty);
+  button(pageOne, "Next").props.onClick();
+  const pageTwo = h.table.render(table());
+  assert.equal(bodyRows(pageTwo).length, 1);
+  assert.deepEqual(nodes(bodyRows(pageTwo)[0], (node) => node.type === "td").map(text),
+    ["Classmate 5", "Culture", "1", "90%", "View"]);
+  const emptyTable = table(render({ students: [] }));
+  assert.equal(emptyTable.rows.length, 0);
+  assert.equal(emptyTable.empty, props.empty);
 });
 
 test("module rows exclude course-only recorded scores and preserve submitted practice history", () => {
