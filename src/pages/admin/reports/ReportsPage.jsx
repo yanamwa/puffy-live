@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   FiActivity, FiBarChart2, FiBookOpen, FiCalendar,
-  FiLayers, FiPrinter, FiSearch, FiShield,
-  FiUserCheck, FiUsers, FiAlertCircle,
+  FiLayers, FiPrinter, FiShield, FiUsers, FiAlertCircle,
 } from "react-icons/fi";
 import { fetchReports, fetchReportConfig } from "../../../services/reportApi";
 import AdminStatCard from "../shared/AdminStatCard.jsx";
@@ -20,10 +19,10 @@ function getRange(filter, now) {
   if (filter === "month") start.setDate(1);
   return { start: dateString(start), end: dateString(now) };
 }
-function Section({ icon: Icon, title, subtitle, action, children }) {
+function Section({ icon: Icon, title, subtitle, children }) {
   return <section className="report-section">
     <div className="report-section-header"><span className="report-section-icon"><Icon /></span>
-      <div><h2>{title}</h2><p>{subtitle}</p></div>{action}</div>{children}
+      <div><h2>{title}</h2><p>{subtitle}</p></div></div>{children}
   </section>;
 }
 function Table({ columns, rows, empty = "No records found.", paginate = true }) {
@@ -61,7 +60,6 @@ function Table({ columns, rows, empty = "No records found.", paginate = true }) 
 export default function ReportsPage({ superAdmin = false }) {
   const reportOwner = superAdmin ? "Super Admin" : "Admin";
   const [filter, setFilter] = useState("month");
-  const [search, setSearch] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -108,7 +106,7 @@ export default function ReportsPage({ superAdmin = false }) {
   const view = useMemo(() => {
     const r = data || {};
     const courses = r.courses || [], students = r.students || [], professors = r.professors || [];
-    const modules = r.modules || [], attempts = r.attempts || [], progress = r.progress || [];
+    const attempts = r.attempts || [];
     const configuredPassing = r.settings?.passingPercentage ?? reportSettings?.passingPercentage;
     const passing = configuredPassing == null || configuredPassing === "" || !Number.isFinite(Number(configuredPassing)) ? null : Number(configuredPassing);
     const courseMap = new Map(courses.map(c => [String(c.id), c]));
@@ -118,26 +116,22 @@ export default function ReportsPage({ superAdmin = false }) {
     const passed = passing == null ? null : activeScores.filter(a => exactPercent(a) >= passing).length;
     const mean = arr => arr.length ? arr.reduce((s, a) => s + exactPercent(a), 0) / arr.length : null;
     const scoreMean = mean(activeScores);
-    const progressSet = new Set(progress.filter(p => number(p.progressPercent) >= 100).map(p => `${p.userId}:${p.lessonId}`));
-    const studentRows = students.flatMap(s => (s.courseIds || []).map(id => {
-      const ownModules = modules.filter(m => String(m.courseId) === String(id));
-      const completed = ownModules.filter(m => progressSet.has(`${s.id}:${m.id}`)).length;
+    const intervention = passing == null ? [] : students.flatMap(s => (s.courseIds || []).flatMap(id => {
       const ownAttempts = activeScores.filter(a => String(a.userId) === String(s.id) && String(a.courseId) === String(id));
       const avg = mean(ownAttempts);
-      return { key: `${s.id}:${id}`, name: s.name, course: courseMap.get(String(id))?.title || `Course ${id}`, avg, completed, total: ownModules.length, attempts: ownAttempts.length, intervention: passing != null && avg != null && avg < passing };
+      if (avg == null || avg >= passing) return [];
+      return [{ key: `${s.id}:${id}`, name: s.name, course: courseMap.get(String(id))?.title || `Course ${id}`, avg, attempts: ownAttempts.length }];
     }));
     const courseRows = courses.map(c => ({ key: c.id, name: c.title, professor: professorMap.get(String(c.professorId)) || "Unassigned", students: number(c.students), modules: number(c.modules), attempts: number(c.quizAttempts), average: c.averageScore, completion: c.moduleCompletionRate }));
     const modeRows = (r.quizModes || []).map(m => ({ label: m.name, value: number(m.count) }));
     const daily = new Map();
     for (const a of attempts) { if (!a.createdAt) continue; const day = String(a.createdAt).slice(0, 10); daily.set(day, (daily.get(day) || 0) + 1); }
-    return { courses, students, professors, modules, attempts, passing, courseRows, studentRows, modeRows,
+    return { professors, passing, courseRows, intervention, modeRows,
       participation: [...daily.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([label, value]) => ({ label, value })),
       totalAttempts: attempts.length, scored: activeScores.length, average: scoreMean,
       passRate: passing != null && activeScores.length ? 100 * passed / activeScores.length : null,
-      intervention: studentRows.filter(s => s.intervention),
     };
   }, [data, reportSettings]);
-  const matching = view.studentRows.filter(s => `${s.name} ${s.course}`.toLowerCase().includes(search.trim().toLowerCase()));
   const metrics = [
     { label: "Students", value: data?.overview?.totalStudents ?? 0, detail: "Active student accounts", icon: FiUsers },
     { label: "Professors", value: data?.overview?.totalProfessors ?? 0, detail: "Active professor accounts", icon: FiShield },
@@ -153,7 +147,7 @@ export default function ReportsPage({ superAdmin = false }) {
       <p>{reportOwner} · Quiz activity from {range.start} to {range.end}</p>
     </header>
     <section className="reports-dashboard-header"><div><span className="reports-kicker"><FiBarChart2 /> {reportOwner} reports</span>
-      <h1>Reports Dashboard</h1><p>Academic activity, course participation, and student performance across PuffyBrain.</p></div>
+      <h1>Reports Dashboard</h1><p>Review course participation, professor activity, and quiz results across PuffyBrain.</p></div>
       <div className="report-export-actions">
         <button type="button" onClick={() => window.print()} disabled={!data}><FiPrinter /> Print Report</button>
       </div></section>
@@ -169,11 +163,6 @@ export default function ReportsPage({ superAdmin = false }) {
       <Section icon={FiBookOpen} title="Course Reports" subtitle="Current courses, approved enrollment, module completion, and quiz participation.">
         <Table columns={["Course", "Professor", "Students", "Modules", "Quiz Attempts", "Average Score", "Module Completion"]}
           rows={view.courseRows.map(c => ({ key: c.key, cells: [<strong className="table-strong">{c.name}</strong>, c.professor, c.students, c.modules, c.attempts, pct(c.average), pct(c.completion)] }))} empty="No active courses found." />
-      </Section>
-      <Section icon={FiUserCheck} title="Student Performance" subtitle="Students enrolled in current courses, with recorded quiz and module progress."
-        action={<label className="report-search"><FiSearch /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students or courses..." /></label>}>
-        <Table columns={["Student", "Course", "Scored Attempts", "Average Score", "Modules Completed", "Assessment Status"]}
-          rows={matching.map(s => ({ key: s.key, cells: [<strong className="table-strong">{s.name}</strong>, s.course, s.attempts, pct(s.avg), `${s.completed}/${s.total}`, s.avg == null ? "Not assessed" : view.passing == null ? "Threshold not configured" : s.intervention ? "Needs attention" : "Assessed"] }))} empty="No matching enrolled students found." />
       </Section>
       <Section icon={FiShield} title="Professor Activity" subtitle="Course ownership and academic activity from current records.">
         <Table columns={["Professor", "Courses Handled", "Modules", "Unique Students", "Quiz Attempts"]}

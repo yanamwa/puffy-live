@@ -2,7 +2,6 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { API_BASE } from "../../config.js";
 import { lessonAuthHeaders } from "../../services/lessonAuth.js";
 import PracticeAttemptsDialog, { formatPracticeScore } from "../PracticeAttemptsDialog.jsx";
-import PracticeTopicMastery from "./PracticeTopicMastery.jsx";
 import ResultsPagination, { RESULTS_PER_PAGE } from "./ResultsPagination.jsx";
 import "./RecentMainQuizResults.css";
 
@@ -168,9 +167,7 @@ export default function PracticeProgress() {
           description={selectedRecord.courseTitle}
           attempts={selectedRecord.attempts}
           onClose={closeAttempts}
-        >
-          <PracticeTopicMastery topics={selectedRecord.topicMastery} />
-        </PracticeAttemptsDialog>
+        />
       )}
     </section>
   );

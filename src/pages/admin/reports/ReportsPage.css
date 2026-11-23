@@ -518,86 +518,6 @@
 
 
 
-.report-section-header .report-search {
-
-  margin-left: auto;
-
-}
-
-
-
-.report-search {
-
-  position: relative;
-
-  width: min(320px, 42vw);
-
-  display: block;
-
-  flex: 0 0 auto;
-
-}
-
-
-
-.report-search svg {
-
-  position: absolute;
-
-  top: 50%;
-
-  left: 14px;
-
-  width: 15px;
-
-  height: 15px;
-
-  color: var(--report-muted);
-
-  transform: translateY(-50%);
-
-}
-
-
-
-.report-search input {
-
-  width: 100%;
-
-  min-height: 40px;
-
-  box-sizing: border-box;
-
-  border: 1.5px solid var(--report-line);
-
-  border-radius: 999px;
-
-  color: var(--report-ink);
-
-  font-family: inherit;
-
-  font-size: 12px;
-
-  font-weight: 800;
-
-  outline: none;
-
-  padding: 0 14px 0 38px;
-
-}
-
-
-
-.report-search input:focus {
-
-  border-color: var(--report-blue);
-
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-
-}
-
-
-
 .report-table-wrap {
 
   max-width: 100%;
@@ -1066,18 +986,6 @@
 
 
 
-  .report-section-header .report-search,
-
-  .report-search {
-
-    width: 100%;
-
-    margin-left: 0;
-
-  }
-
-
-
   .report-overview,
 
   .report-analytics-grid,
@@ -1206,7 +1114,7 @@
   html, body { background: white !important; overflow: visible !important; }
   .reports-page { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; color: #111827 !important; overflow: visible !important; }
   .reports-dashboard-header { box-shadow: none !important; border: 0 !important; }
-  .report-export-actions, .report-date-filter, .report-search, .report-pagination, .report-paginated-table > .report-table-wrap { display: none !important; }
+  .report-export-actions, .report-date-filter, .report-pagination, .report-paginated-table > .report-table-wrap { display: none !important; }
   .report-print-table { display: block !important; width: 100%; }
   .report-print-table table { width: 100%; min-width: 0 !important; border-collapse: collapse; font-size: 9pt; }
   .report-print-table th, .report-print-table td { padding: 7px; border: 1px solid #d1d5db; overflow-wrap: anywhere; }

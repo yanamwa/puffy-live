@@ -40,7 +40,7 @@ export const adminTutorialSteps = [
     path: "/admin/reports",
     title: "Reports",
     description:
-      "Review course participation, academic activity, and student performance. Use the report filters to focus on the records you need.",
+      "Review course participation, professor activity, and quiz results. Use the date filter to choose the reporting period.",
   },
   {
     id: "notifications",

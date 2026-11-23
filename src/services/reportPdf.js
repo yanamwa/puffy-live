@@ -21,7 +21,6 @@ export async function downloadReportsPdf({
   view,
   metrics,
   range,
-  studentRows,
   reportOwner = "Admin",
 }) {
   if (!data) {
@@ -172,32 +171,6 @@ export async function downloadReportsPdf({
       text(c.attempts),
       percent(c.average),
       percent(c.completion),
-    ])
-  );
-
-  section(
-    "Student Performance",
-    [
-      "Student",
-      "Course",
-      "Graded Attempts",
-      "Average Score",
-      "Modules Completed",
-      "Assessment Status",
-    ],
-    studentRows.map((s) => [
-      text(s.name),
-      text(s.course),
-      text(s.attempts),
-      percent(s.avg),
-      `${s.completed}/${s.total}`,
-      s.avg == null
-        ? "Not assessed"
-        : view.passing == null
-          ? "Threshold not configured"
-          : s.intervention
-            ? "Needs attention"
-            : "Assessed",
     ])
   );
 
