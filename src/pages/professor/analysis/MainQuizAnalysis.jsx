@@ -908,32 +908,13 @@ function buildCognitiveAnalytics(rows) {
     counts[skill] = 0;
     return counts;
   }, {});
-  const skillPerformance = THINKING_SKILL_ORDER.reduce((summary, skill) => {
-    summary[skill] = {
-      correct: 0,
-      total: 0,
-    };
-    return summary;
-  }, {});
-
   rows.forEach((row) => {
     const detail = inferCognitiveLevel(row);
     const level = detail.level;
     const skill = detail.category;
-    const responseTotal = getQuestionResponseTotal(row);
 
     levelCounts[level] = (levelCounts[level] || 0) + 1;
     skillCounts[skill] = (skillCounts[skill] || 0) + 1;
-
-    if (!skillPerformance[skill]) {
-      skillPerformance[skill] = {
-        correct: 0,
-        total: 0,
-      };
-    }
-
-    skillPerformance[skill].correct += Number(row.totalCorrect || 0);
-    skillPerformance[skill].total += responseTotal;
   });
 
   const questionTotal = Math.max(rows.length, 1);
@@ -947,20 +928,7 @@ function buildCognitiveAnalytics(rows) {
     label: skill,
     percent: ((skillCounts[skill] || 0) / questionTotal) * 100,
   }));
-  const performance = THINKING_SKILL_ORDER.map((skill) => {
-    const summary = skillPerformance[skill] || { correct: 0, total: 0 };
-
-    return {
-      label: skill,
-      percent: summary.total ? (summary.correct / summary.total) * 100 : 0,
-    };
-  });
-
-  return {
-    levels,
-    performance,
-    skills,
-  };
+  return { levels, skills };
 }
 
 function getQuestionResponseTotal(question) {
@@ -1131,7 +1099,35 @@ function buildTableOfSpecifications(rows) {
   );
 }
 
-function MainQuizTableOfSpecifications({ rows }) {
+function ReportTable({ title, columns, rows }) {
+  return (
+    <div className={`${styles.tableWrap} ${styles.mainReportTable}`}>
+      <table aria-label={title}>
+        <thead>
+          <tr>{columns.map((column) => <th scope="col" key={column}>{column}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map(({ key, cells }) => (
+            <tr key={key}>
+              {cells.map((cell, index) => <td key={columns[index]}>{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MainQuizTableOfSpecifications({ rows, view }) {
+  const groups = rows.map((row) => {
+    const accuracy = row.responses ? (row.correct / row.responses) * 100 : null;
+    return {
+      ...row,
+      key: JSON.stringify([row.topic, row.skill, row.level]),
+      accuracy,
+      label: accuracy == null ? "No responses" : formatPercent(accuracy),
+    };
+  });
   return (
     <section className={styles.analysisSection}>
       <div className={styles.analysisSectionTitle}>
@@ -1142,34 +1138,35 @@ function MainQuizTableOfSpecifications({ rows }) {
         and cognitive level. Items without a specific topic are grouped under
         General Concepts.
       </p>
-      <div className={styles.tableWrap}>
-        <table>
-          <thead>
-            <tr>
-              <th>Topic</th>
-              <th>Thinking Skill</th>
-              <th>Cognitive Level</th>
-              <th>Questions</th>
-              <th>Responses</th>
-              <th>Accuracy</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length ? rows.map((row) => (
-              <tr key={`${row.topic}:${row.skill}:${row.level}`}>
-                <td>{row.topic}</td>
-                <td>{row.skill}</td>
-                <td>{row.level}</td>
-                <td>{row.questions}</td>
-                <td>{row.responses}</td>
-                <td>{formatPercent(row.responses ? (row.correct / row.responses) * 100 : 0)}</td>
-              </tr>
-            )) : (
-              <tr><td colSpan="6">TOS coverage appears when the quiz contains classified questions.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {!groups.length ? (
+        <p>TOS coverage appears when the quiz contains classified questions.</p>
+      ) : view === "table" ? (
+        <ReportTable
+          title="Main Quiz Table of Specifications"
+          columns={["Topic", "Thinking Skill", "Cognitive Level", "Questions", "Responses", "Accuracy"]}
+          rows={groups.map((row) => ({
+            key: row.key,
+            cells: [row.topic, row.skill, row.level, row.questions, row.responses, row.label],
+          }))}
+        />
+      ) : (
+        <div className="qa-bars qa-specification-bars" role="list" aria-label="Response accuracy by topic, thinking skill and cognitive level">
+          {groups.map((row) => (
+            <div key={row.key} role="listitem">
+              <div>
+                <strong>{row.topic}</strong>
+                <small className="qa-bar-detail">
+                  {row.skill} · {row.level} · {row.questions} {row.questions === 1 ? "question" : "questions"} · {row.responses} {row.responses === 1 ? "response" : "responses"}
+                </small>
+              </div>
+              <div className="qa-bar-track" aria-hidden="true">
+                {row.accuracy != null && <div style={{ width: `${row.accuracy}%` }} />}
+              </div>
+              <strong>{row.label}</strong>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -1180,6 +1177,7 @@ export default function MainQuizAnalysis({
   attempts,
   students,
   passScore,
+  view = "graph",
   responseView = false,
   moduleIndex = "all",
   modules = [],
@@ -1467,52 +1465,77 @@ export default function MainQuizAnalysis({
             <div className={styles.analysisSectionTitle}>
               Overall Quiz Analysis
             </div>
-            <div className={styles.performanceGrid}>
-              {performanceCards.map((card) => (
-                <div className={styles.performanceCard} key={card.label}>
-                  <span>{card.label}</span>
-                  <strong>{card.primary}</strong>
-                  {card.secondary ? <em>{card.secondary}</em> : null}
-                </div>
-              ))}
-            </div>
+            {view === "table" ? (
+              <ReportTable
+                title="Overall Quiz Analysis"
+                columns={["Statistic", "Value"]}
+                rows={performanceCards.map((card) => ({
+                  key: card.label,
+                  cells: [card.label, [card.primary, card.secondary].filter(Boolean).join(" · ")],
+                }))}
+              />
+            ) : (
+              <div className={styles.performanceGrid}>
+                {performanceCards.map((card) => (
+                  <div className={styles.performanceCard} key={card.label}>
+                    <span>{card.label}</span>
+                    <strong>{card.primary}</strong>
+                    {card.secondary ? <em>{card.secondary}</em> : null}
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
-          <MainQuizTableOfSpecifications rows={tableOfSpecifications} />
+          <MainQuizTableOfSpecifications rows={tableOfSpecifications} view={view} />
           <section className={styles.analysisSection}>
             <div className={styles.analysisSectionTitle}>
               Student Scores
             </div>
-            <div className={styles.studentScoreList}>
-              {visibleStudentResults.map((student) => (
-                <article
-                  key={student.id}
-                  className={styles.studentScoreRow}
-                >
-                  <div>
-                    <strong>{student.name}</strong>
-                    <span>Section: {student.section}</span>
-                    {questionGroups.size > 1 && <span>{student.moduleTitle}</span>}
-                  </div>
-                  <div
-                    className={styles.studentScoreBar}
-                    role="img"
-                    aria-label={`${student.name}: ${formatScoreWithPercent(student.earnedScore, student.total)}`}
+            {view === "table" ? (
+              <ReportTable
+                title="Student Scores"
+                columns={["Student", "Section", "Module", "Score"]}
+                rows={visibleStudentResults.map((student) => ({
+                  key: student.id,
+                  cells: [
+                    student.name, student.section, student.moduleTitle,
+                    formatScoreWithPercent(student.earnedScore, student.total),
+                  ],
+                }))}
+              />
+            ) : (
+              <div className={styles.studentScoreList}>
+                {visibleStudentResults.map((student) => (
+                  <article
+                    key={student.id}
+                    className={styles.studentScoreRow}
                   >
-                    <i
-                      style={{
-                        width: `${Math.max(0, Math.min(100, getScorePercent(student.earnedScore, student.total) || 0))}%`,
-                      }}
-                    />
-                  </div>
-                  <strong>
-                    {formatScoreWithPercent(
-                      student.earnedScore,
-                      student.total,
-                    )}
-                  </strong>
-                </article>
-              ))}
-            </div>
+                    <div>
+                      <strong>{student.name}</strong>
+                      <span>Section: {student.section}</span>
+                      {questionGroups.size > 1 && <span>{student.moduleTitle}</span>}
+                    </div>
+                    <div
+                      className={styles.studentScoreBar}
+                      role="img"
+                      aria-label={`${student.name}: ${formatScoreWithPercent(student.earnedScore, student.total)}`}
+                    >
+                      <i
+                        style={{
+                          width: `${Math.max(0, Math.min(100, getScorePercent(student.earnedScore, student.total) || 0))}%`,
+                        }}
+                      />
+                    </div>
+                    <strong>
+                      {formatScoreWithPercent(
+                        student.earnedScore,
+                        student.total,
+                      )}
+                    </strong>
+                  </article>
+                ))}
+              </div>
+            )}
             {!printing && studentPageCount > 1 && (
               <nav
                 className={styles.studentPagination}
@@ -1543,142 +1566,135 @@ export default function MainQuizAnalysis({
             <div className={styles.analysisSectionTitle}>
               Student Overview
             </div>
-            <div className={styles.pieGrid}>
-              <article className={styles.pieCard}>
-                <h3>Examinees</h3>
-                <div
-                  className={styles.pieGraphic}
-                  style={{
-                    background: genderGradient,
-                  }}
-                  role="img"
-                  aria-label={`Male ${totals.maleStudents}, Female ${totals.femaleStudents}`}
-                >
-                  <span>Male / Female</span>
-                </div>
-                <div className={styles.pieLegend}>
-                  <div>
-                    <ChartLabel label="Male" />
-                    <strong>{totals.maleStudents}</strong>
+            {view === "table" ? (
+              <ReportTable
+                title="Student Overview"
+                columns={["Category", "Count"]}
+                rows={[
+                  { key: "Male", cells: ["Male examinees", totals.maleStudents] },
+                  { key: "Female", cells: ["Female examinees", totals.femaleStudents] },
+                  { key: "Passed", cells: ["Passing submissions", passedCount] },
+                  { key: "Failed", cells: ["Failing submissions", failedCount] },
+                ]}
+              />
+            ) : (
+              <div className={styles.pieGrid}>
+                <article className={styles.pieCard}>
+                  <h3>Examinees</h3>
+                  <div
+                    className={styles.pieGraphic}
+                    style={{
+                      background: genderGradient,
+                    }}
+                    role="img"
+                    aria-label={`Male ${totals.maleStudents}, Female ${totals.femaleStudents}`}
+                  >
+                    <span>Male / Female</span>
                   </div>
-                  <div>
-                    <ChartLabel label="Female" />
-                    <strong>{totals.femaleStudents}</strong>
+                  <div className={styles.pieLegend}>
+                    <div>
+                      <ChartLabel label="Male" />
+                      <strong>{totals.maleStudents}</strong>
+                    </div>
+                    <div>
+                      <ChartLabel label="Female" />
+                      <strong>{totals.femaleStudents}</strong>
+                    </div>
                   </div>
-                </div>
-              </article>
+                </article>
 
-              <article className={styles.pieCard}>
-                <h3>Quiz Result</h3>
-                <div
-                  className={styles.pieGraphic}
-                  style={{
-                    background: resultTotal
-                      ? `conic-gradient(${CHART_COLORS.Passed} 0 ${passedPercent}%, ${CHART_COLORS.Failed} ${passedPercent}% 100%)`
-                      : "#edf1f5",
-                  }}
-                  role="img"
-                  aria-label={`Passed ${passedCount}, Failed ${failedCount}`}
-                >
-                  <span>Pass / Fail</span>
-                </div>
-                <div className={styles.pieLegend}>
-                  <div>
-                    <ChartLabel label="Passed" />
-                    <strong>{passedCount}</strong>
+                <article className={styles.pieCard}>
+                  <h3>Quiz Result</h3>
+                  <div
+                    className={styles.pieGraphic}
+                    style={{
+                      background: resultTotal
+                        ? `conic-gradient(${CHART_COLORS.Passed} 0 ${passedPercent}%, ${CHART_COLORS.Failed} ${passedPercent}% 100%)`
+                        : "#edf1f5",
+                    }}
+                    role="img"
+                    aria-label={`Passed ${passedCount}, Failed ${failedCount}`}
+                  >
+                    <span>Pass / Fail</span>
                   </div>
-                  <div>
-                    <ChartLabel label="Failed" />
-                    <strong>{failedCount}</strong>
+                  <div className={styles.pieLegend}>
+                    <div>
+                      <ChartLabel label="Passed" />
+                      <strong>{passedCount}</strong>
+                    </div>
+                    <div>
+                      <ChartLabel label="Failed" />
+                      <strong>{failedCount}</strong>
+                    </div>
                   </div>
-                </div>
-              </article>
-            </div>
+                </article>
+              </div>
+            )}
           </section>
 
           <section className={styles.analysisSection}>
             <div className={styles.analysisSectionTitle}>
               Cognitive Analysis
             </div>
-            <div className={styles.pieGrid}>
-              <article className={styles.pieCard}>
-                <h3>HOTS / LOTS Distribution</h3>
-                <div
-                  className={styles.pieGraphic}
-                  style={{ background: cognitiveGradient }}
-                  role="img"
-                  title={cognitiveAnalytics.skills
-                    .map(
-                      (skill) =>
-                        `${skill.label}: ${skill.count} (${formatPercent(skill.percent)})`,
-                    )
-                    .join(", ")}
-                  aria-label={cognitiveAnalytics.skills
-                    .map(
-                      (skill) =>
-                        `${skill.label}: ${skill.count} (${formatPercent(skill.percent)})`,
-                    )
-                    .join(", ")}
-                >
-                  <span>HOTS / LOTS</span>
-                </div>
-                <div className={styles.pieLegend}>
-                  {cognitiveAnalytics.skills.map((skill) => (
-                    <div key={skill.label}>
-                      <ChartLabel label={skill.label} />
-                      <strong>
-                        {skill.count} / {rows.length || 0}{" "}
-                        {formatPercent(skill.percent)}
-                      </strong>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
-              <article className={`${styles.pieCard} ${styles.levelCard}`}>
-                <h3>Cognitive Levels</h3>
-                <div className={styles.levelRows}>
-                  {cognitiveAnalytics.levels.map((level) => (
-                    <div key={level.label}>
-                      <span>{level.label}</span>
-                      <strong>{level.count}</strong>
-                      <em>{formatPercent(level.percent)}</em>
-                    </div>
-                  ))}
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section className={styles.analysisSection}>
-            <div className={styles.analysisSectionTitle}>
-              LOTS / HOTS Performance
-            </div>
-            <div className={styles.skillPerformance}>
-              {cognitiveAnalytics.performance.map((skill) => (
-                <div
-                  className={styles.skillPerformanceRow}
-                  key={skill.label}
-                >
-                  <span>{skill.label}</span>
-                  <div className={styles.skillTrack}>
-                    <i
-                      style={{ width: `${Math.min(skill.percent, 100)}%` }}
-                    />
+            {view === "table" ? (
+              <ReportTable
+                title="Cognitive Analysis"
+                columns={["Classification", "Questions", "Share of questions"]}
+                rows={[...cognitiveAnalytics.skills, ...cognitiveAnalytics.levels].map((item) => ({
+                  key: item.label,
+                  cells: [item.label, item.count, formatPercent(item.percent)],
+                }))}
+              />
+            ) : (
+              <div className={styles.pieGrid}>
+                <article className={styles.pieCard}>
+                  <h3>HOTS / LOTS Distribution</h3>
+                  <div
+                    className={styles.pieGraphic}
+                    style={{ background: cognitiveGradient }}
+                    role="img"
+                    title={cognitiveAnalytics.skills
+                      .map(
+                        (skill) =>
+                          `${skill.label}: ${skill.count} (${formatPercent(skill.percent)})`,
+                      )
+                      .join(", ")}
+                    aria-label={cognitiveAnalytics.skills
+                      .map(
+                        (skill) =>
+                          `${skill.label}: ${skill.count} (${formatPercent(skill.percent)})`,
+                      )
+                      .join(", ")}
+                  >
+                    <span>HOTS / LOTS</span>
                   </div>
-                  <strong>{formatPercent(skill.percent)}</strong>
-                </div>
-              ))}
-            </div>
+                  <div className={styles.pieLegend}>
+                    {cognitiveAnalytics.skills.map((skill) => (
+                      <div key={skill.label}>
+                        <ChartLabel label={skill.label} />
+                        <strong>
+                          {skill.count} / {rows.length || 0}{" "}
+                          {formatPercent(skill.percent)}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                </article>
 
-            <div className={styles.thinkingSkillMeaning}>
-              <span>
-                <strong>LOTS</strong> means Lower-Order Thinking Skills.
-              </span>
-              <span>
-                <strong>HOTS</strong> means Higher-Order Thinking Skills.
-              </span>
-            </div>
+                <article className={`${styles.pieCard} ${styles.levelCard}`}>
+                  <h3>Cognitive Levels</h3>
+                  <div className={styles.levelRows}>
+                    {cognitiveAnalytics.levels.map((level) => (
+                      <div key={level.label}>
+                        <span>{level.label}</span>
+                        <strong>{level.count}</strong>
+                        <em>{formatPercent(level.percent)}</em>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              </div>
+            )}
           </section>
 
           <section className={styles.analysisSection}>
@@ -1689,48 +1705,67 @@ export default function MainQuizAnalysis({
               <p>No Main Quiz question responses recorded yet.</p>
             )}
 
-            <div className={styles.questionResponses}>
-              {rows.map((item) => {
-                const totalResponses = getQuestionResponseTotal(item);
-                const correctPercent =
-                  (item.totalCorrect / Math.max(totalResponses, 1)) * 100;
+            {view === "table" ? (
+              <ReportTable
+                title="Question Analysis"
+                columns={["Item", "Question", "Correct", "Responses", "Accuracy", "Action"]}
+                rows={rows.map((item) => {
+                  const total = getQuestionResponseTotal(item);
+                  return {
+                    key: item.key,
+                    cells: [
+                      questionGroups.size > 1 ? item.label + " · " + item.moduleTitle : item.label,
+                      item.question, item.totalCorrect, total,
+                      total ? formatPercent((item.totalCorrect / total) * 100) : "No responses",
+                      <button type="button" onClick={() => setSelectedQuestion(item)}>View Analysis</button>,
+                    ],
+                  };
+                })}
+              />
+            ) : (
+              <div className={styles.questionResponses}>
+                {rows.map((item) => {
+                  const totalResponses = getQuestionResponseTotal(item);
+                  const correctPercent =
+                    (item.totalCorrect / Math.max(totalResponses, 1)) * 100;
 
-                return (
-                  <article className={styles.responseCard} key={item.key}>
-                    <header>
-                      <span className={styles.questionNumber}>
-                        {item.label}{questionGroups.size > 1 && ` · ${item.moduleTitle}`}
-                      </span>
-                      <h4>{item.question}</h4>
-                      <div className={styles.questionResult}>
-                        <span>
-                          {item.totalCorrect} / {totalResponses} Correct
+                  return (
+                    <article className={styles.responseCard} key={item.key}>
+                      <header>
+                        <span className={styles.questionNumber}>
+                          {item.label}{questionGroups.size > 1 && ` · ${item.moduleTitle}`}
                         </span>
-                        <strong>{formatPercent(correctPercent)}</strong>
-                      </div>
-                    </header>
+                        <h4>{item.question}</h4>
+                        <div className={styles.questionResult}>
+                          <span>
+                            {item.totalCorrect} / {totalResponses} Correct
+                          </span>
+                          <strong>{formatPercent(correctPercent)}</strong>
+                        </div>
+                      </header>
 
-                    <div
-                      className={styles.questionProgress}
-                      aria-label={`${formatPercent(correctPercent)} correct`}
-                    >
-                      <i
-                        style={{
-                          width: `${Math.min(correctPercent, 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.questionViewButton}
-                      onClick={() => setSelectedQuestion(item)}
-                    >
-                      View Analysis
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
+                      <div
+                        className={styles.questionProgress}
+                        aria-label={`${formatPercent(correctPercent)} correct`}
+                      >
+                        <i
+                          style={{
+                            width: `${Math.min(correctPercent, 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className={styles.questionViewButton}
+                        onClick={() => setSelectedQuestion(item)}
+                      >
+                        View Analysis
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </section>
         </div>
       </section>

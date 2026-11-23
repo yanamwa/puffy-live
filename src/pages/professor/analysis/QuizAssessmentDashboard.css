@@ -339,6 +339,23 @@
   background: #7fa8d6;
   border-radius: 4px;
 }
+.qa-specification-bars > div {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) max-content;
+  overflow-wrap: anywhere;
+}
+.qa-specification-bars > div > strong {
+  text-align: right;
+}
+@media (max-width: 600px) {
+  .qa-specification-bars > div {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+  }
+  .qa-specification-bars .qa-bar-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
 .qa-cognitive-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));

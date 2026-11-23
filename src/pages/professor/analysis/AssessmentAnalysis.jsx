@@ -294,7 +294,6 @@ export default function AssessmentAnalysis() {
                     <span className={folderStyles.stats}>
                       <span>{course.students} {Number(course.students) === 1 ? "student" : "students"}</span>
                       <span>{course.modules} {course.modules === 1 ? "module" : "modules"}</span>
-                      <span>{course.quizzes} quiz {course.quizzes === 1 ? "question" : "questions"}</span>
                     </span>
                   </Link>
                 ))}

@@ -19,7 +19,6 @@ import {
 } from "../../../utils/assessmentAnalytics.js";
 import { AssessmentReportTable } from "./ProfessorStudentPerformance.jsx";
 import ProfessorPracticeHistory from "./ProfessorPracticeHistory.jsx";
-import PracticeAttemptsDialog from "../../../components/PracticeAttemptsDialog.jsx";
 import PracticeLearningPerformance from "./PracticeLearningPerformance.jsx";
 import {
   tutorialAssessmentAttempts,
@@ -56,75 +55,6 @@ const sectionOf = (student) => String(
   "",
 ).trim();
 
-// The backend supplies these records through
-// GET /reports/professor/assessments?courseId=...
-// They are persisted course-level score histories, NOT new adaptive submissions.
-function validRecordedHistory(value) {
-  let history = value;
-  if (typeof history === "string") {
-    try {
-      history = JSON.parse(history);
-    } catch {
-      return [];
-    }
-  }
-  if (!Array.isArray(history)) return [];
-  return history
-    .filter((entry) => {
-      const score = Number(entry?.score);
-      const total = Number(entry?.total);
-      return entry?.score != null && entry?.total != null &&
-        Number.isFinite(score) && Number.isFinite(total) &&
-        total > 0 && score >= 0 && score <= total;
-    })
-    .map((entry, index) => ({
-      quizNumber: Number.isInteger(Number(entry.quizNumber)) && Number(entry.quizNumber) > 0
-        ? Number(entry.quizNumber)
-        : index + 1,
-      score: Number(entry.score),
-      total: Number(entry.total),
-      proposedDisplayAt: entry.proposedDisplayAt ?? entry.proposed_display_at ?? null,
-    }));
-}
-
-function RecordedPracticeHistory({ student, courseTitle, onClose }) {
-  const history = validRecordedHistory(student.recordedHistory);
-  const attempts = history
-    .map((entry) => ({
-      id: `course-score-${entry.quizNumber}`,
-      number: entry.quizNumber,
-      score: entry.score,
-      total: entry.total,
-      completedAt: entry.proposedDisplayAt || null,
-    }))
-    .sort((a, b) => b.number - a.number);
-
-  return (
-    <PracticeAttemptsDialog
-      heading={student.name}
-      description={`${courseTitle || "Course"} · Course-level quiz scores`}
-      attempts={attempts}
-      recorded
-      onClose={onClose}
-    >
-      <dl className="practice-history-summary">
-        <div>
-          <dt>Practice attempts</dt>
-          <dd>{attempts.length}</dd>
-        </div>
-        <div>
-          <dt>Average score</dt>
-          <dd>{pct(student.average)}</dd>
-        </div>
-      </dl>
-      <p style={{ color: "#64748b", fontSize: 12, marginTop: 8 }}>
-        These saved scores belong to the course and are separate from
-        submitted adaptive Practice Quiz responses.
-      </p>
-    </PracticeAttemptsDialog>
-  );
-}
-
 function PracticeStudentReport({
   title,
   description,
@@ -136,9 +66,6 @@ function PracticeStudentReport({
   attention = false,
   modules = [],
   moduleScope = "all",
-  recordedLoading = false,
-  recordedError = "",
-  recordedUnavailable = false,
 }) {
   const headingId = useId();
   const [year, setYear] = useState("all");
@@ -223,9 +150,6 @@ function PracticeStudentReport({
                   {moduleScope === "all" && students.some((student) => student.moduleIndex === -1) && (
                     <option value="-1">Module unavailable</option>
                   )}
-                  {moduleScope === "all" && students.some((student) => student.isRecorded) && (
-                    <option value="-2">Course-level quiz scores</option>
-                  )}
                 </select>
               </label>
               <label className={reportStyles.yearSectionFilter}>
@@ -250,13 +174,6 @@ function PracticeStudentReport({
           </label>
         </div>
       </div>
-      {!attention && recordedLoading && <p role="status">Loading saved quiz scores…</p>}
-      {!attention && recordedError && <p role="alert">{recordedError}</p>}
-      {!attention && recordedUnavailable && !recordedError && (
-        <p role="status">
-          The backend report cannot read saved quiz scores. Showing submitted Practice attempts only.
-        </p>
-      )}
       <AssessmentReportTable
         columns={["Student", attention ? "Course" : "Modules", ...measures, ...(attention ? [] : ["Action"])]}
         rows={rows.map((student) => {
@@ -282,26 +199,17 @@ function PracticeStudentReport({
           };
         })}
         pageKey={JSON.stringify([year, section, selectedModule, sort, query])}
-        fixedPageSize={10}
+        fixedPageSize={attention ? 10 : 5}
         empty={students.length ? "No students match these filters." : empty}
       />
       {selectedStudent && (
-        selectedStudent.isRecorded ? (
-          <RecordedPracticeHistory
-            key={selectedKey}
-            student={selectedStudent}
-            courseTitle={courseTitle}
-            onClose={() => setSelectedKey(null)}
-          />
-        ) : (
-          <ProfessorPracticeHistory
-            key={selectedKey}
-            student={selectedStudent}
-            courseTitle={courseTitle}
-            modules={modules}
-            onClose={() => setSelectedKey(null)}
-          />
-        )
+        <ProfessorPracticeHistory
+          key={selectedKey}
+          student={selectedStudent}
+          courseTitle={courseTitle}
+          modules={modules}
+          onClose={() => setSelectedKey(null)}
+        />
       )}
     </section>
   );
@@ -352,24 +260,11 @@ export default function QuizAssessmentDashboard({
   const [thresholdStatus, setThresholdStatus] = useState(
     tutorialMode ? "" : "Loading the reporting threshold…",
   );
-  // This holds existing practice_score_entries returned by reportController.
-  // Do not mutate the database or count these as genuine adaptive responses.
-  const [recordedReport, setRecordedReport] = useState({
-    students: [],
-    loading: !tutorialMode,
-    error: "",
-    unavailable: false,
-  });
-
   useEffect(() => {
-    if (tutorialMode) {
-      setRecordedReport({ students: [], loading: false, error: "", unavailable: false });
-      return;
-    }
+    if (tutorialMode) return;
     const controller = new AbortController();
     setPassing(null);
     setThresholdStatus("Loading the reporting threshold.");
-    setRecordedReport({ students: [], loading: true, error: "", unavailable: false });
 
     fetch(`${API_BASE}/reports/professor/assessments?courseId=${encodeURIComponent(courseId)}`, {
       credentials: "include",
@@ -390,22 +285,10 @@ export default function QuizAssessmentDashboard({
             : null,
         );
         setThresholdStatus("");
-        setRecordedReport({
-          students: Array.isArray(result.students) ? result.students : [],
-          loading: false,
-          error: "",
-          unavailable: result.recordedScoresUnavailable === true,
-        });
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
           setThresholdStatus("Could not load the reporting threshold.");
-          setRecordedReport({
-            students: [],
-            loading: false,
-            error: "Could not load saved quiz scores from the professor report.",
-            unavailable: false,
-          });
         }
       });
     return () => controller.abort();
@@ -502,7 +385,7 @@ export default function QuizAssessmentDashboard({
       .map((student) => [String(studentId(student)), student]),
   ).values()];
   const sections = [...new Set(
-    [...roster, ...data.attempts, ...recordedReport.students]
+    [...roster, ...data.attempts]
       .map(sectionOf)
       .filter((value) => value && value !== "N/A"),
   )].sort();
@@ -551,53 +434,9 @@ export default function QuizAssessmentDashboard({
     };
   };
 
-  // At All Modules, use the existing saved five-score history for students
-  // who have it, while keeping other students' real adaptive submissions.
-  // Filtering by a specific module continues to use actual adaptive attempts.
-  const recordedStudents = useMemo(() => {
-    if (tutorialMode || moduleIndex !== "all") return [];
-    return recordedReport.students
-      .filter((student) => String(student.courseId ?? student.course_id) === String(courseId))
-      .map((student) => {
-        const history = validRecordedHistory(student.recordedHistory);
-        const id = studentId(student);
-        if (id == null || !history.length) return null;
-        const member = roster.find((item) => String(studentId(item)) === String(id)) || {};
-        const average = student.recordedAverageScore == null
-          ? NaN
-          : Number(student.recordedAverageScore);
-        const fromHistory = history.reduce(
-          (sum, entry) => sum + (100 * entry.score) / entry.total,
-          0,
-        ) / history.length;
-        return {
-          id,
-          key: `course-score:${courseId}:${id}`,
-          name: student.name || member.student_name || member.name || `Student ${id}`,
-          year: yearOf(student) || yearOf(member),
-          section: sectionOf(student) || sectionOf(member),
-          moduleIndex: -2,
-          moduleTitle: "Course-level quiz scores",
-          attempts: history.length,
-          average: Number.isFinite(average) ? average : fromHistory,
-          isRecorded: true,
-          recordedHistory: history,
-        };
-      })
-      .filter(Boolean);
-  }, [courseId, moduleIndex, tutorialMode, recordedReport.students, roster]);
-
-  const displayedStudentPerformance = useMemo(() => {
-    const submitted = modulePerformance.map(withStudentSection);
-    if (moduleIndex !== "all" || !recordedStudents.length) {
-      return submitted.filter(studentMatches);
-    }
-    const savedIds = new Set(recordedStudents.map((student) => String(student.id)));
-    return [
-      ...submitted.filter((student) => !savedIds.has(String(student.id))),
-      ...recordedStudents,
-    ].filter(studentMatches);
-  }, [modulePerformance, recordedStudents, moduleIndex, yearFilter, sectionFilter, data.attempts, enrolledStudents]);
+  const displayedStudentPerformance = modulePerformance
+    .map(withStudentSection)
+    .filter(studentMatches);
 
   const metrics = [
     ["Students", summary.assessedStudents],
@@ -656,7 +495,7 @@ export default function QuizAssessmentDashboard({
             ))}
           </select>
         </div>
-        {type === "practice" && (
+        {!responseView && (
           <label>
             View as
             <select value={view} onChange={(event) => setView(event.target.value)}>
@@ -718,6 +557,7 @@ export default function QuizAssessmentDashboard({
               moduleIndex={moduleIndex}
               modules={modules}
               moduleTitle={moduleTitle}
+              view={view}
               responseView={responseView}
               onSummary={() => setResponseView(false)}
             />
@@ -767,16 +607,13 @@ export default function QuizAssessmentDashboard({
               <PracticeStudentReport
                 key={`performance:${courseId}:${moduleIndex}:${yearFilter}:${sectionFilter}`}
                 title="Student Practice Performance"
-                description="View saved quiz scores and submitted Practice Quiz attempts. Saved course scores appear under All Modules."
+                description="View each student's submitted Adaptive Practice Quiz attempts and average score by module."
                 students={displayedStudentPerformance}
                 courseTitle={courseTitle}
                 modules={modules}
                 moduleScope={moduleIndex}
                 years={years}
                 sections={sections}
-                recordedLoading={recordedReport.loading}
-                recordedError={recordedReport.error}
-                recordedUnavailable={recordedReport.unavailable}
                 empty="No practice attempts match these filters."
               />
               <PracticeStudentReport

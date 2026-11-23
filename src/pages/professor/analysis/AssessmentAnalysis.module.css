@@ -685,63 +685,17 @@
   text-align: right;
 }
 
-.skillPerformance {
-  width: min(100%, 840px);
-  display: grid;
-  gap: 16px;
-  margin: 0 auto;
-}
-
-.skillPerformanceRow {
-  display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) 56px;
-  align-items: center;
-  gap: 12px;
-  color: #303946;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.skillTrack,
 .questionProgress {
   overflow: hidden;
   border-radius: 999px;
   background: #edf1f5;
 }
 
-.skillTrack {
-  height: 18px;
-}
-
-.skillTrack i,
 .questionProgress i {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: #7fa8d6;
-}
-
-.skillPerformanceRow strong {
-  color: #303946;
-  font-size: 13px;
-  text-align: right;
-}
-
-.thinkingSkillMeaning {
-  width: min(100%, 840px);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px 24px;
-  margin: 12px auto 0;
-  color: #4b5563;
-  font-size: 13px;
-  line-height: 1.4;
-  text-align: center;
-}
-
-.thinkingSkillMeaning strong {
-  color: #303946;
 }
 
 .questionResponses {
@@ -963,6 +917,17 @@
 .tableWrap th:first-child,
 .tableWrap td:first-child {
   text-align: left;
+}
+
+.mainReportTable table {
+  min-width: 0;
+  table-layout: auto;
+}
+
+.mainReportTable th,
+.mainReportTable td {
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .tableWrap button {
