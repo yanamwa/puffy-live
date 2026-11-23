@@ -176,7 +176,7 @@ function TopicRow({ topic, showModule, table, expanded, onToggle }) {
   return (
     <article className={styles.topicRow}>
       {toggle}
-      <div className={styles.topicSummary}>
+      <div>
         <AccuracyBar value={topic.accuracy} />
         <div className={styles.topicMeta}>
           <small>
@@ -255,11 +255,10 @@ function TopicResults({ topics, showModule, table }) {
 }
 
 function ThinkingPerformance({ report, table }) {
-  const [lots, hots, ...other] = report.skills;
+  const [lots, hots] = report.skills;
   const classified = lots.responses + hots.responses;
   const share = (row) =>
     classified ? (100 * row.responses) / classified : null;
-  const unclassified = other.reduce((total, row) => total + row.responses, 0);
   const titleId = useId();
   return (
     <section className={styles.section} aria-labelledby={titleId}>
@@ -335,12 +334,6 @@ function ThinkingPerformance({ report, table }) {
               </figcaption>
             </figure>
           )}
-          {unclassified > 0 && (
-            <p className={styles.chartNote}>
-              {count(unclassified, "response")}{" "}
-              {unclassified === 1 ? "has" : "have"} no thinking-skill label.
-            </p>
-          )}
         </section>
         <section className={styles.chartCard}>
           <h4>Accuracy by Bloom’s Level</h4>
@@ -405,19 +398,21 @@ export default function PracticeLearningPerformance({
             No scored question responses are available for this selection.
           </p>
         )}
-        <ul className={styles.guide} aria-label="Topic status guide">
-          {Object.entries(statuses).map(([status, { description }]) => (
-            <li key={status}>
-              <TopicStatus status={status} />
-              <span>{description}</span>
-            </li>
-          ))}
-        </ul>
-        <p className={styles.note}>
-          A rating needs {practiceReviewCriteria.minStudents} students and{" "}
-          {practiceReviewCriteria.minResponses} responses. The review threshold
-          is {threshold}%.
-        </p>
+        <div className={styles.statusGuide}>
+          <ul className={styles.guide} aria-label="Topic status guide">
+            {Object.entries(statuses).map(([status, { description }]) => (
+              <li key={status}>
+                <TopicStatus status={status} />
+                <span>{description}</span>
+              </li>
+            ))}
+          </ul>
+          <p className={styles.note}>
+            A rating needs {practiceReviewCriteria.minStudents} students and{" "}
+            {practiceReviewCriteria.minResponses} responses. The review threshold
+            is {threshold}%.
+          </p>
+        </div>
       </section>
       <ThinkingPerformance report={report} table={view === "table"} />
     </div>

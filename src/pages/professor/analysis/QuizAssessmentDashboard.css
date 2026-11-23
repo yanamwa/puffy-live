@@ -262,9 +262,6 @@
   background: transparent;
   min-height: 0;
 }
-.qa-main-analysis > section > header {
-  display: none;
-}
 .qa-main-analysis > section > section {
   width: 100%;
   margin: 0;
@@ -882,6 +879,9 @@
   align-items: center;
   gap: 18px;
   font-size: 14px;
+}
+.qa-shared-filters .qa-filter-field:last-child {
+  grid-column: 1 / -1;
 }
 .qa-filter-caption button {
   border: 0;

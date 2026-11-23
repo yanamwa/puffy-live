@@ -99,6 +99,27 @@
   font-size: 18px;
   font-weight: 600;
 }
+.folderLink {
+  min-width: 0;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.folderLink h3 {
+  margin: 4px 0 8px;
+  color: var(--professor-ink, #5f6064);
+  font-size: 28px;
+  font-weight: 750;
+  line-height: 1.15;
+}
+.folderDescription {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 0;
+  color: var(--professor-muted, #858d9b);
+  line-height: 1.45;
+}
 .panelHeading,
 .tableHeading {
   display: flex;

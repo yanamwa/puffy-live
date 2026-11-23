@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 import {
   fetchCourses,
   fetchCourseEnrollmentCount,
@@ -9,11 +9,10 @@ import {
   FiUsers,
   FiLayers,
   FiFileText,
-  FiArrowRight,
   FiSearch,
 } from "react-icons/fi";
 import styles from "./AssessmentDashboard.module.css";
-import ProfessorStudentPerformance from "./ProfessorStudentPerformance.jsx";
+import folderStyles from "./AssessmentAnalysis.module.css";
 import { tutorialCourseExamples } from "../tutorial/professorTutorialExamples.js";
 
 function formatDate(value) {
@@ -54,7 +53,7 @@ function normalizeCourse(course, index) {
       course.summary ||
       course.description ||
       course.subject ||
-      "Course details not available",
+      "",
     students:
       course.students || course.studentCount || course.student_count || 0,
     modules:
@@ -83,7 +82,6 @@ function normalizeCourse(course, index) {
 }
 
 export default function AssessmentAnalysis() {
-  const navigate = useNavigate();
   const { previewOnly, tutorialStep } = useOutletContext() ?? {};
   const tutorialOverview = tutorialStep?.id === "analysis";
 
@@ -154,12 +152,6 @@ export default function AssessmentAnalysis() {
         .includes(query),
     );
   }, [visibleCourses, searchQuery]);
-
-  const openAssessment = (course) => {
-    navigate(`/professor/assessment/${course.id}`, {
-      state: { course },
-    });
-  };
 
   const metrics = [
     {
@@ -285,51 +277,27 @@ export default function AssessmentAnalysis() {
               </label>
             </div>
             {filteredCourses.length ? (
-              <div className={styles.tableWrap}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Course</th>
-                      <th scope="col">Students</th>
-                      <th scope="col">Modules</th>
-                      <th scope="col">Quiz questions</th>
-                      <th scope="col">Created</th>
-                      <th scope="col">Analysis</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCourses.map((course) => (
-                      <tr key={course.id}>
-                        <td data-label="Course">
-                          <strong className={styles.courseTitle}>
-                            {course.title}
-                          </strong>
-                          <span className={styles.courseCode}>
-                            {course.code}
-                          </span>
-                        </td>
-                        <td data-label="Students">
-                          <span className={styles.countBadge}>
-                            {course.students}
-                          </span>
-                        </td>
-                        <td data-label="Modules">{course.modules}</td>
-                        <td data-label="Quiz questions">{course.quizzes}</td>
-                        <td data-label="Created">{course.date}</td>
-                        <td data-label="Analysis">
-                          <button
-                            className={styles.viewButton}
-                            type="button"
-                            onClick={() => openAssessment(course)}
-                            aria-label={`View analysis for ${course.title}`}
-                          >
-                            View analysis <FiArrowRight aria-hidden="true" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className={folderStyles.courseGrid}>
+                {filteredCourses.map((course) => (
+                  <Link
+                    key={course.id}
+                    to={`/professor/assessment/${course.id}`}
+                    state={{ course }}
+                    className={`${folderStyles.courseCard} ${styles.folderLink}`}
+                    aria-label={`View analysis for ${course.title}`}
+                  >
+                    <span className={folderStyles.dateText}>Date created: {course.date}</span>
+                    <span className={folderStyles.codeText}><span>Course Code:</span> {course.code}</span>
+                    <h3>{course.title}</h3>
+                    {course.description && <p className={styles.folderDescription}>{course.description}</p>}
+                    <span className={folderStyles.divider} aria-hidden="true" />
+                    <span className={folderStyles.stats}>
+                      <span>{course.students} {Number(course.students) === 1 ? "student" : "students"}</span>
+                      <span>{course.modules} {course.modules === 1 ? "module" : "modules"}</span>
+                      <span>{course.quizzes} quiz {course.quizzes === 1 ? "question" : "questions"}</span>
+                    </span>
+                  </Link>
+                ))}
               </div>
             ) : (
               <p className={styles.empty}>
@@ -339,7 +307,6 @@ export default function AssessmentAnalysis() {
               </p>
             )}
           </section>
-          {!tutorialOverview && <ProfessorStudentPerformance courses={courses} />}
         </>
       )}
     </section>

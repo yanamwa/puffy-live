@@ -3,6 +3,7 @@ import {
   mainQuizKey,
   mainQuizQuestions,
   mainQuizAnswerAt,
+  summarizeMainQuizScores,
 } from "../../src/services/mainQuizAnalysisData.js";
 
 const attempts = [0, 1].map((student) => ({
@@ -18,6 +19,19 @@ assert.equal(questions[9].attemptIndex, 9);
 assert.equal(mainQuizKey({ module_index: 1 }), "1");
 assert.equal(mainQuizQuestions([{ total: 5, answers: [] }]).length, 5);
 assert.equal(mainQuizQuestions([]).length, 0);
+const smallerQuiz = { score: 1, total: 4, passScore: 3 };
+const largerQuiz = { score: 8, total: 10, passScore: 7 };
+const combinedScores = summarizeMainQuizScores([smallerQuiz, largerQuiz]);
+assert.equal(combinedScores.mixedTotals, true);
+assert.equal(combinedScores.averageScore, 52.5);
+assert.equal(combinedScores.medianScore, 52.5);
+assert.equal(combinedScores.standardDeviation, 27.5);
+assert.equal(combinedScores.passRate, 50);
+const moduleScores = summarizeMainQuizScores([smallerQuiz]);
+assert.equal(moduleScores.mixedTotals, false);
+assert.equal(moduleScores.scale, 4);
+assert.equal(moduleScores.averageScore, 1);
+assert.equal(summarizeMainQuizScores([]).averageScore, null);
 const shuffledAttempts = [
   {
     total: 3,

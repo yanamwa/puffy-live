@@ -40,7 +40,9 @@ export default function MainQuizResponses({
   const [resultFilter, setResultFilter] = useState("all");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const percentOf = (a) => a.earnedScore != null && Number.isFinite(Number(a.earnedScore)) && Number(a.total) > 0 ? Math.round(Number(a.earnedScore) / Number(a.total) * 100) : null;
-  const passed = (a) => percentOf(a) !== null && Number(a.earnedScore) >= (Number.isFinite(passScore) ? passScore : Math.max(1, Math.ceil(Number(a.total || 0) * 0.7)));
+  const passingScoreFor = (attempt) => attempt.passScore ??
+    (Number.isFinite(passScore) ? passScore : Math.max(1, Math.ceil(Number(attempt.total || 0) * 0.7)));
+  const passed = (a) => percentOf(a) !== null && Number(a.earnedScore) >= passingScoreFor(a);
   const visibleResponses = attempts.filter(a => `${a.name || ""} ${a.section || ""} ${a.email || ""} ${a.moduleTitle || ""}`.toLowerCase().includes(search.toLowerCase()) && (resultFilter === "all" || (percentOf(a) === null ? "ungraded" : passed(a) ? "passed" : "failed") === resultFilter));
   const [selectedId, setSelectedId] = useState(null);
   const [includeKey, setIncludeKey] = useState(true);
@@ -588,7 +590,7 @@ export default function MainQuizResponses({
               })}
             </div>
             <h3>Quiz Details</h3>
-            <dl className="response-quiz-facts"><dt>Assessment</dt><dd>{assessmentTitle || `${courseTitle} - ${quizTitle || "Main Quiz"}`}</dd><dt>Module</dt><dd>{attempt.moduleTitle || "Module unavailable"}</dd><dt>Passing Score</dt><dd>{Number(attempt.total) > 0 ? `${Math.round((Number.isFinite(passScore) ? passScore : Math.max(1, Math.ceil(Number(attempt.total) * 0.7))) / Number(attempt.total) * 100)}%` : "N/A"}</dd></dl>
+            <dl className="response-quiz-facts"><dt>Assessment</dt><dd>{assessmentTitle || `${courseTitle} - ${quizTitle || "Main Quiz"}`}</dd><dt>Module</dt><dd>{attempt.moduleTitle || "Module unavailable"}</dd><dt>Passing Score</dt><dd>{Number(attempt.total) > 0 ? `${Math.round(passingScoreFor(attempt) / Number(attempt.total) * 100)}%` : "N/A"}</dd></dl>
           </section>
           <section className="response-student-answers response-student-answers-screen">
             <h2>Student Answers</h2>

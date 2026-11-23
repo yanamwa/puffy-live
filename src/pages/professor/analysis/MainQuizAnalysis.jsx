@@ -1,28 +1,16 @@
-import { filterModuleAttempts } from "../../../utils/assessmentModuleScope.js";
+import { attemptModuleIndex } from "../../../utils/assessmentModuleScope.js";
 import MainQuizResponses from "./MainQuizResponses.jsx";
 import { flushSync } from "react-dom";
 import "./QuizAssessmentDashboard.css";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FiBarChart2, FiGrid } from "react-icons/fi";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { lessonAuthHeaders } from "../../../services/lessonAuth.js";
-import { API_BASE } from "../../../config.js";
-import { fetchCourses } from "../../../services/courseApi.js";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./AssessmentAnalysis.module.css";
 import {
-  mainQuizKey,
+  summarizeMainQuizScores,
   mainQuizQuestions,
   mainQuizAnswerAt,
 } from "../../../services/mainQuizAnalysisData.js";
 
-const FALLBACK_RATIOS = [1, 0.83, 0.7, 0.5, 0.4];
-const QUESTIONS_PER_PAGE = 10;
 const STUDENTS_PER_PAGE = 5;
-const VIEW_MODES = {
-  GRAPHICAL: "graphical",
-  TABLE: "table",
-};
-
 const BLOOM_LEVELS = {
   remembering: {
     level: "Remembering",
@@ -576,18 +564,6 @@ function getQuestionAnalysisTitle(question) {
   return number ? `Question ${number} Analysis` : "Question Analysis";
 }
 
-function getStoredToken() {
-  return (
-    localStorage.getItem("puffy-token") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("authToken") ||
-    sessionStorage.getItem("puffy-token") ||
-    sessionStorage.getItem("token") ||
-    sessionStorage.getItem("authToken") ||
-    ""
-  );
-}
-
 function normalizeGender(value) {
   const normalized = String(value || "")
     .trim()
@@ -624,35 +600,6 @@ function getEnrollmentSummary(enrolledStudents = []) {
   );
 }
 
-async function fetchEnrollmentSummary(courseId) {
-  const token = getStoredToken();
-
-  if (!token || !courseId) {
-    return null;
-  }
-
-  const response = await fetch(
-    `${API_BASE}/courses/${encodeURIComponent(courseId)}/enrollments`,
-    {
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    },
-  );
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok || data.success === false) {
-    throw new Error(data.message || "Could not load enrolled students.");
-  }
-
-  return {
-    ...getEnrollmentSummary(data.enrolled),
-    students: Array.isArray(data.enrolled) ? data.enrolled : [],
-  };
-}
-
 function readNumber(...values) {
   for (const value of values) {
     if (value === null || value === undefined || value === "") continue;
@@ -664,115 +611,6 @@ function readNumber(...values) {
   return null;
 }
 
-function parseItems(raw, fallbackCount) {
-  if (Array.isArray(raw)) return raw;
-
-  if (typeof raw === "string" && raw.trim()) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-      if (Array.isArray(parsed?.questions)) return parsed.questions;
-      if (Array.isArray(parsed?.items)) return parsed.items;
-    } catch {
-      return raw
-        .split(/\n+/g)
-        .map((line) => line.trim())
-        .filter(Boolean);
-    }
-  }
-
-  return Array.from(
-    { length: Math.max(Number(fallbackCount) || 0, 0) },
-    (_, index) => ({
-      label: `Q${index + 1}`,
-      question: `Assessment item ${index + 1}`,
-      answer: "Answer not available",
-    }),
-  );
-}
-
-function normalizeCourse(course, index) {
-  const id = course.id || course.courseId || index + 1;
-  const code =
-    course.code ||
-    course.courseCode ||
-    course.course_code ||
-    `CRS${String(id).padStart(3, "0")}`;
-
-  return {
-    id,
-    code,
-    title:
-      course.title ||
-      course.courseName ||
-      course.course_name ||
-      "Untitled Course",
-    description:
-      course.summary ||
-      course.description ||
-      course.subject ||
-      "Course details not available",
-    students:
-      readNumber(course.students, course.studentCount, course.student_count) ??
-      0,
-    maleStudents: readNumber(course.maleStudents, course.male_students) ?? 0,
-    femaleStudents:
-      readNumber(course.femaleStudents, course.female_students) ?? 0,
-    quizzes:
-      readNumber(
-        course.quizzes,
-        course.quizCount,
-        course.quiz_count,
-        course.quizItems,
-      ) ?? 0,
-    quizContents:
-      course.quizContents ||
-      course.quiz_contents ||
-      course.quizModule ||
-      course.questions ||
-      "",
-    quizTitle:
-      course.quizTitle ||
-      course.quiz_title ||
-      course.assessmentTitle ||
-      course.assessment_title ||
-      course.quizName ||
-      course.quiz_name ||
-      course.moduleTitle ||
-      course.module_title,
-    averageScore: course.averageScore || course.average_score,
-    highestScore: course.highestScore || course.highest_score,
-    lowestScore: course.lowestScore || course.lowest_score,
-    medianScore: course.medianScore || course.median_score,
-    passScore: course.passScore || course.pass_score,
-    passRate: course.passRate || course.pass_rate,
-    scoreCounts: course.scoreCounts || course.score_counts,
-    scoreDistribution: course.scoreDistribution || course.score_distribution,
-    studentsFailed:
-      course.studentsFailed ||
-      course.students_failed ||
-      course.failCount ||
-      course.fail_count,
-    studentsPassed:
-      course.studentsPassed ||
-      course.students_passed ||
-      course.passCount ||
-      course.pass_count,
-    quizAttempts:
-      course.quizAttempts ||
-      course.quiz_attempts ||
-      course.assessmentAttempts ||
-      course.assessment_attempts ||
-      course.attemptRecords ||
-      course.attempt_records ||
-      course.attempts ||
-      course.results ||
-      course.quizResults ||
-      course.quiz_results,
-    raw: course.raw || course,
-  };
-}
-
 function formatPercent(value) {
   const fixed = Number(value || 0).toFixed(2);
   return `${fixed.replace(/\.?0+$/, "")}%`;
@@ -782,45 +620,16 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function normalizeScoreToItems(score, total, totalItems) {
+function normalizeQuizScore(score, total) {
   if (!Number.isFinite(score)) return null;
-
-  const itemTotal = Number(totalItems) || Number(total) || 0;
-  const sourceTotal = Number(total) || itemTotal;
-
-  if (itemTotal > 0 && sourceTotal > 0 && sourceTotal !== itemTotal) {
-    return (score / sourceTotal) * itemTotal;
-  }
-
-  if (itemTotal > 0 && score > itemTotal && score <= 100) {
-    return (score / 100) * itemTotal;
+  if (total > 0 && score > total && score <= 100) {
+    return (score / 100) * total;
   }
 
   return score;
 }
 
-function normalizeQuizAttempts(course, totalItems) {
-  const attempts = readArrayField(
-    course?.quizAttempts,
-    course?.quiz_attempts,
-    course?.assessmentAttempts,
-    course?.assessment_attempts,
-    course?.attemptRecords,
-    course?.attempt_records,
-    course?.attempts,
-    course?.results,
-    course?.quizResults,
-    course?.quiz_results,
-    course?.raw?.quizAttempts,
-    course?.raw?.quiz_attempts,
-    course?.raw?.assessmentAttempts,
-    course?.raw?.assessment_attempts,
-    course?.raw?.attempts,
-    course?.raw?.results,
-    course?.raw?.quizResults,
-    course?.raw?.quiz_results,
-  );
-
+function normalizeQuizAttempts(attempts, configuredPassScore) {
   return attempts
     .filter((attempt) => attempt.assessment_type === "main")
     .map((attempt, index) => {
@@ -860,7 +669,7 @@ function normalizeQuizAttempts(course, totalItems) {
           attempt?.max_score,
         ) ||
         answers.length ||
-        totalItems;
+        0;
 
       return {
         answers,
@@ -904,7 +713,9 @@ function normalizeQuizAttempts(course, totalItems) {
           attempt?.attemptId ||
           attempt?.attempt_id ||
           index,
-        score: normalizeScoreToItems(Number(answerScore), rawTotal, totalItems),
+        score: normalizeQuizScore(answerScore, rawTotal),
+        passScore: normalizeQuizScore(readNumber(configuredPassScore), rawTotal)
+          ?? Math.max(1, Math.ceil(rawTotal * 0.7)),
         total: rawTotal,
       };
     })
@@ -1088,256 +899,7 @@ function getQuestionAttemptStats(attempts, item, index) {
   );
 }
 
-function readScoreDistribution(course, totalItems) {
-  const raw =
-    parseMaybeJson(course?.scoreDistribution) ||
-    parseMaybeJson(course?.score_distribution) ||
-    parseMaybeJson(course?.scoreCounts) ||
-    parseMaybeJson(course?.score_counts) ||
-    parseMaybeJson(course?.raw?.scoreDistribution) ||
-    parseMaybeJson(course?.raw?.score_distribution);
-
-  if (Array.isArray(raw)) {
-    return raw
-      .map((entry) => {
-        const score = normalizeScoreToItems(
-          readNumber(entry?.score, entry?.value, entry?.label),
-          readNumber(entry?.total, entry?.maxScore, entry?.max_score),
-          totalItems,
-        );
-        const count = Math.max(
-          Math.round(
-            readNumber(
-              entry?.count,
-              entry?.students,
-              entry?.totalStudents,
-              entry?.total_students,
-            ) ?? 0,
-          ),
-          0,
-        );
-
-        return Number.isFinite(score) && count > 0
-          ? { count, score: Math.round(score) }
-          : null;
-      })
-      .filter(Boolean);
-  }
-
-  if (raw && typeof raw === "object") {
-    return Object.entries(raw)
-      .map(([scoreValue, countValue]) => {
-        const score = normalizeScoreToItems(
-          Number(scoreValue),
-          totalItems,
-          totalItems,
-        );
-        const count = Math.max(
-          Math.round(
-            readNumber(countValue?.count, countValue?.students, countValue) ??
-              0,
-          ),
-          0,
-        );
-
-        return Number.isFinite(score) && count > 0
-          ? { count, score: Math.round(score) }
-          : null;
-      })
-      .filter(Boolean);
-  }
-
-  return [];
-}
-
-function mergeScoreDistribution(distribution) {
-  const counts = new Map();
-
-  distribution.forEach((bucket) => {
-    const score = Math.round(Number(bucket.score || 0));
-    counts.set(score, (counts.get(score) || 0) + Number(bucket.count || 0));
-  });
-
-  return Array.from(counts.entries())
-    .map(([score, count]) => ({ count, score }))
-    .sort((first, second) => first.score - second.score);
-}
-
-function medianFromDistribution(distribution) {
-  const total = distribution.reduce((sum, bucket) => sum + bucket.count, 0);
-
-  if (!total) return null;
-
-  const firstMiddle = (total - 1) / 2;
-  const secondMiddle = total / 2;
-  let seen = 0;
-  let firstValue = null;
-  let secondValue = null;
-
-  for (const bucket of distribution) {
-    const nextSeen = seen + bucket.count;
-
-    if (firstValue === null && firstMiddle < nextSeen)
-      firstValue = bucket.score;
-    if (secondValue === null && secondMiddle < nextSeen)
-      secondValue = bucket.score;
-
-    seen = nextSeen;
-  }
-
-  return ((firstValue ?? 0) + (secondValue ?? firstValue ?? 0)) / 2;
-}
-
-function standardDeviationFromDistribution(distribution, mean) {
-  const total = distribution.reduce((sum, bucket) => sum + bucket.count, 0);
-
-  if (!Number.isFinite(mean) || total <= 1) return null;
-
-  const variance =
-    distribution.reduce(
-      (sum, bucket) => sum + (bucket.score - mean) ** 2 * bucket.count,
-      0,
-    ) / total;
-
-  return Math.sqrt(variance);
-}
-
-function buildScoreDistribution(course, attempts, rows, totals, totalItems) {
-  const attemptDistribution = attempts
-    .filter((attempt) => Number.isFinite(attempt.score))
-    .map((attempt) => ({ count: 1, score: Math.round(attempt.score) }));
-  return mergeScoreDistribution(attemptDistribution);
-}
-
-function buildQuizAnalytics(course, rows, totals, attempts) {
-  if (!attempts.length)
-    return {
-      averageScore: 0,
-      highestScore: 0,
-      lowestScore: 0,
-      medianScore: 0,
-      passRate: 0,
-      passScore: Math.max(Math.ceil(Number(totals.quizItems || 0) * 0.7), 1),
-      responseTotal: 0,
-      scoreDistribution: [],
-      standardDeviation: 0,
-      studentsFailed: 0,
-      studentsPassed: 0,
-    };
-  const totalItems = Number(totals.quizItems || 0);
-  const scoreDistribution = buildScoreDistribution(
-    course,
-    attempts,
-    rows,
-    totals,
-    totalItems,
-  );
-  const distributionTotal = scoreDistribution.reduce(
-    (sum, bucket) => sum + bucket.count,
-    0,
-  );
-  const weightedScoreTotal = scoreDistribution.reduce(
-    (sum, bucket) => sum + bucket.score * bucket.count,
-    0,
-  );
-  const fallbackAverage =
-    totals.totalStudents > 0
-      ? rows.reduce((sum, row) => sum + Number(row.totalCorrect || 0), 0) /
-        totals.totalStudents
-      : null;
-  const passScore =
-    normalizeScoreToItems(
-      readNumber(
-        course?.passScore,
-        course?.pass_score,
-        course?.passingScore,
-        course?.passing_score,
-      ),
-      totalItems,
-      totalItems,
-    ) ?? Math.max(Math.ceil(totalItems * 0.7), 1);
-  const averageScore =
-    distributionTotal > 0
-      ? weightedScoreTotal / distributionTotal
-      : (normalizeScoreToItems(
-          readNumber(course?.averageScore, course?.average_score),
-          totalItems,
-          totalItems,
-        ) ?? fallbackAverage);
-  const standardDeviation =
-    standardDeviationFromDistribution(scoreDistribution, averageScore) ??
-    readNumber(
-      course?.standardDeviation,
-      course?.standard_deviation,
-      course?.stdDeviation,
-      course?.std_deviation,
-    );
-  const medianScore =
-    medianFromDistribution(scoreDistribution) ??
-    normalizeScoreToItems(
-      readNumber(course?.medianScore, course?.median_score),
-      totalItems,
-      totalItems,
-    ) ??
-    (distributionTotal === 1 ? averageScore : null);
-  const highestScore =
-    scoreDistribution.length > 0
-      ? Math.max(...scoreDistribution.map((bucket) => bucket.score))
-      : (normalizeScoreToItems(
-          readNumber(course?.highestScore, course?.highest_score),
-          totalItems,
-          totalItems,
-        ) ?? (totals.totalStudents === 1 ? averageScore : null));
-  const lowestScore =
-    scoreDistribution.length > 0
-      ? Math.min(...scoreDistribution.map((bucket) => bucket.score))
-      : (normalizeScoreToItems(
-          readNumber(course?.lowestScore, course?.lowest_score),
-          totalItems,
-          totalItems,
-        ) ?? (totals.totalStudents === 1 ? averageScore : null));
-  const studentsPassed =
-    distributionTotal > 0
-      ? scoreDistribution
-          .filter((bucket) => bucket.score >= passScore)
-          .reduce((sum, bucket) => sum + bucket.count, 0)
-      : readNumber(
-          course?.studentsPassed,
-          course?.students_passed,
-          course?.passCount,
-          course?.pass_count,
-        );
-  const responseTotal =
-    distributionTotal || attempts.length || totals.totalStudents;
-  const studentsFailed =
-    Number.isFinite(studentsPassed) && Number.isFinite(responseTotal)
-      ? Math.max(responseTotal - studentsPassed, 0)
-      : readNumber(
-          course?.studentsFailed,
-          course?.students_failed,
-          course?.failCount,
-          course?.fail_count,
-        );
-
-  return {
-    averageScore,
-    highestScore,
-    lowestScore,
-    medianScore,
-    passRate:
-      Number.isFinite(studentsPassed) && responseTotal
-        ? (studentsPassed / responseTotal) * 100
-        : readNumber(course?.passRate, course?.pass_rate),
-    passScore,
-    responseTotal,
-    scoreDistribution,
-    standardDeviation,
-    studentsFailed,
-    studentsPassed,
-  };
-}
-
-function buildCognitiveAnalytics(rows, totals) {
+function buildCognitiveAnalytics(rows) {
   const levelCounts = BLOOM_DISPLAY_ORDER.reduce((counts, level) => {
     counts[level] = 0;
     return counts;
@@ -1358,7 +920,7 @@ function buildCognitiveAnalytics(rows, totals) {
     const detail = inferCognitiveLevel(row);
     const level = detail.level;
     const skill = detail.category;
-    const responseTotal = getQuestionResponseTotal(row, totals.totalStudents);
+    const responseTotal = getQuestionResponseTotal(row);
 
     levelCounts[level] = (levelCounts[level] || 0) + 1;
     skillCounts[skill] = (skillCounts[skill] || 0) + 1;
@@ -1401,7 +963,7 @@ function buildCognitiveAnalytics(rows, totals) {
   };
 }
 
-function getQuestionResponseTotal(question, fallback) {
+function getQuestionResponseTotal(question) {
   return Math.max(
     readNumber(
       question?.responses,
@@ -1409,7 +971,6 @@ function getQuestionResponseTotal(question, fallback) {
       question?.total_responses,
     ) ?? 0,
     Number(question?.totalCorrect || 0) + Number(question?.incorrect || 0),
-    Number(fallback || 0),
   );
 }
 
@@ -1425,8 +986,6 @@ function getThinkingSkillName(category) {
 
 function buildRows(items, totals, attempts = []) {
   return items.map((item, index) => {
-    const ratio =
-      FALLBACK_RATIOS[index] ?? clamp(0.4 - (index - 4) * 0.05, 0.2, 0.9);
     const rawLabel =
       item.label || item.item || item.question_number || `Q${index + 1}`;
     const label = makeQuestionLabel(rawLabel, index);
@@ -1538,7 +1097,7 @@ function buildRows(items, totals, attempts = []) {
   });
 }
 
-function buildTableOfSpecifications(rows, totalStudents) {
+function buildTableOfSpecifications(rows) {
   const groups = new Map();
 
   rows.forEach((question) => {
@@ -1558,7 +1117,7 @@ function buildTableOfSpecifications(rows, totalStudents) {
 
     const group = groups.get(key);
     group.questions += 1;
-    group.responses += getQuestionResponseTotal(question, totalStudents);
+    group.responses += getQuestionResponseTotal(question);
     group.correct += Number(question.totalCorrect || 0);
   });
 
@@ -1616,32 +1175,18 @@ function MainQuizTableOfSpecifications({ rows }) {
 }
 
 export default function MainQuizAnalysis({
-  filteredAttempts,
-  analysisView,
+  courseId,
+  courseTitle,
+  attempts,
+  students,
+  passScore,
   responseView = false,
   moduleIndex = "all",
   modules = [],
   moduleTitle = "All Modules",
-  onSummary = () => {},
+  onSummary,
 }) {
-  const { courseId } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const initialCourse = location.state?.course
-    ? normalizeCourse(location.state.course.raw || location.state.course, 0)
-    : null;
-
-  const [course, setCourse] = useState(initialCourse);
-  const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [refreshError, setRefreshError] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [enrollmentSummary, setEnrollmentSummary] = useState(null);
-  const [questionPage, setQuestionPage] = useState(0);
-  const [activeView, setActiveView] = useState(VIEW_MODES.GRAPHICAL);
-  useEffect(() => { if (analysisView) setActiveView(analysisView === "table" ? VIEW_MODES.TABLE : VIEW_MODES.GRAPHICAL); }, [analysisView]);
-  const [selectedMainQuiz, setSelectedMainQuiz] = useState("0");
   const [printing, setPrinting] = useState(false);
   const [studentPage, setStudentPage] = useState(0);
   useEffect(() => {
@@ -1655,197 +1200,51 @@ export default function MainQuizAnalysis({
     };
   }, []);
 
-  const [refresh, setRefresh] = useState(0);
-  const loadedCourseId = useRef(null);
-  useEffect(() => {
-    const update = () => setRefresh((value) => value + 1);
-    window.addEventListener("focus", update);
-    const timer = window.setInterval(update, 10000);
-    return () => {
-      window.removeEventListener("focus", update);
-      window.clearInterval(timer);
-    };
-  }, []);
-  useEffect(() => {
-    let active = true;
-
-    async function loadCourse() {
-      try {
-        if (loadedCourseId.current !== courseId) setLoading(true);
-        setErrorMessage("");
-
-        const loadedCourses = await fetchCourses({}, { fallback: false });
-        const loadedEnrollmentSummary = await fetchEnrollmentSummary(
-          courseId,
-        ).catch((error) => {
-          console.warn(
-            "Could not load enrolled students for assessment totals.",
-            error,
-          );
-          return null;
-        });
-        const normalized = Array.isArray(loadedCourses)
-          ? loadedCourses.map((item, index) => normalizeCourse(item, index))
-          : [];
-        const found = normalized.find(
-          (item) => String(item.id) === String(courseId),
-        );
-
-        if (active) {
-          setEnrollmentSummary(loadedEnrollmentSummary);
-        }
-
-        if (active && found) {
-          const response = await fetch(
-            `${API_BASE}/assessment-attempts/${encodeURIComponent(courseId)}`,
-            { credentials: "include", headers: lessonAuthHeaders() },
-          );
-          const attemptData = await response.json();
-          if (!response.ok || !attemptData.success)
-            throw new Error(
-              attemptData.message || "Could not load main quiz attempts.",
-            );
-          if (active) {
-            setCourse({
-              ...found,
-              quizAttempts: attemptData.attempts.filter(
-                (attempt) => attempt.assessment_type === "main",
-              ),
-            });
-            loadedCourseId.current = courseId;
-            setRefreshError("");
-          }
-        } else if (active) {
-          setErrorMessage("Assessment details could not be found.");
-        }
-      } catch (error) {
-        if (active) {
-          if (loadedCourseId.current === courseId) {
-            setRefreshError(
-              "Could not refresh results. Showing the last loaded data.",
-            );
-          } else {
-            setErrorMessage(
-              error.message || "Could not load assessment details.",
-            );
-          }
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadCourse();
-
-    return () => {
-      active = false;
-    };
-  }, [courseId, refresh]);
-
-  const loadedCourse = course || initialCourse;
-  const recordedMainAttempts = useMemo(
-    () =>
-      filterModuleAttempts(
-        filteredAttempts ?? readArrayField(loadedCourse?.quizAttempts),
-        moduleIndex,
-        modules,
-      )
-        .filter((attempt) => attempt.assessment_type === "main")
-        .map((attempt) => ({
-          ...attempt,
-          answers: readArrayField(attempt.answers),
-        })),
-    [loadedCourse, moduleIndex, modules, filteredAttempts],
-  );
-  const mainQuizKeys = [...new Set(recordedMainAttempts.map(mainQuizKey))].sort(
-    (a, b) => Number(a) - Number(b),
-  );
-  const activeMainQuiz = mainQuizKeys.includes(selectedMainQuiz)
-    ? selectedMainQuiz
-    : mainQuizKeys[0] || "0";
-  const selectedMainAttempts = useMemo(
-    () =>
-      recordedMainAttempts.filter(
-        (attempt) =>
-          (responseView && moduleIndex === "all") ||
-          mainQuizKey(attempt) === activeMainQuiz,
-      ),
-    [recordedMainAttempts, activeMainQuiz, responseView, moduleIndex],
-  );
-  const activeCourse = useMemo(
-    () =>
-      loadedCourse
-        ? {
-            ...loadedCourse,
-            quizAttempts: selectedMainAttempts,
-          }
-        : null,
-    [loadedCourse, selectedMainAttempts],
-  );
-  const quizItems = useMemo(() => {
-    return mainQuizQuestions(selectedMainAttempts);
-  }, [selectedMainAttempts]);
   const quizAttempts = useMemo(
-    () => normalizeQuizAttempts(activeCourse, quizItems.length),
-    [activeCourse, quizItems.length],
+    () => normalizeQuizAttempts(attempts, passScore),
+    [attempts, passScore],
   );
-  const totals = useMemo(
-    () => ({
-      totalStudents: quizAttempts.length,
-      maleStudents:
-        enrollmentSummary?.maleStudents ??
-        Number(activeCourse?.maleStudents || 0),
-      femaleStudents:
-        enrollmentSummary?.femaleStudents ??
-        Number(activeCourse?.femaleStudents || 0),
-      quizItems: quizItems.length,
-    }),
-    [activeCourse, quizAttempts.length, quizItems, enrollmentSummary],
-  );
-  const studentResults = useMemo(
-    () =>
-      quizAttempts.map((attempt) => {
-        const student = enrollmentSummary?.students?.find(
-          (item) =>
-            attempt.userId != null &&
-            String(item.userId ?? item.user_id ?? item.id) ===
-              String(attempt.userId),
-        );
-        return {
-          ...attempt,
-          email:
-            student?.email || student?.student_email || attempt.email || "",
-          name:
-            student?.displayName ||
-            student?.name ||
-            student?.student_name ||
-            attempt.studentName ||
-            `Student ${attempt.userId ?? "(name unavailable)"}`,
-          yearLevel:
-            student?.yearLevel ||
-            student?.year_level ||
-            student?.student_year_level ||
-            student?.year ||
-            attempt.yearLevel ||
-            attempt.year_level ||
-            attempt.student_year_level ||
-            attempt.student?.yearLevel ||
-            attempt.student?.year_level ||
-            "N/A",
-          section:
-            student?.sectionName ||
-            student?.section_name ||
-            student?.section ||
-            student?.student_section ||
-            attempt.section ||
-            "N/A",
-          moduleTitle: moduleTitleForAttempt(attempt, modules, moduleTitle),
-        };
-      }),
-    [quizAttempts, enrollmentSummary, modules, moduleTitle],
-  );
+  const studentResults = useMemo(() => {
+    const studentsById = new Map(
+      students.map((student) => [
+        String(student.userId ?? student.user_id ?? student.id),
+        student,
+      ]),
+    );
+    return quizAttempts.map((attempt) => {
+      const student = studentsById.get(String(attempt.userId));
+      return {
+        ...attempt,
+        gender: attempt.gender || normalizeGender(student?.gender),
+        email: student?.email || student?.student_email || attempt.email || "",
+        name:
+          student?.displayName ||
+          student?.name ||
+          student?.student_name ||
+          attempt.studentName ||
+          `Student ${attempt.userId ?? "(name unavailable)"}`,
+        yearLevel:
+          student?.yearLevel ||
+          student?.year_level ||
+          student?.student_year_level ||
+          student?.year ||
+          attempt.yearLevel ||
+          attempt.year_level ||
+          attempt.student_year_level ||
+          attempt.student?.yearLevel ||
+          attempt.student?.year_level ||
+          "N/A",
+        section:
+          student?.sectionName ||
+          student?.section_name ||
+          student?.section ||
+          student?.student_section ||
+          attempt.section ||
+          "N/A",
+        moduleTitle: moduleTitleForAttempt(attempt, modules, moduleTitle),
+      };
+    });
+  }, [quizAttempts, students, modules, moduleTitle]);
   const studentPageCount = Math.max(
     1,
     Math.ceil(studentResults.length / STUDENTS_PER_PAGE),
@@ -1858,66 +1257,68 @@ export default function MainQuizAnalysis({
         (currentStudentPage + 1) * STUDENTS_PER_PAGE,
       );
 
-  useEffect(() => {
-    setStudentPage(0);
-  }, [selectedMainQuiz, courseId]);
+  const examinees = new Map(
+    studentResults.map((attempt) => [
+      attempt.userId == null
+        ? `attempt:${attempt.id}`
+        : `student:${attempt.userId}`,
+      attempt,
+    ]),
+  );
+  const totals = getEnrollmentSummary([...examinees.values()]);
 
+  // Each module has its own source-question numbering, including shuffled quizzes.
+  const questionGroups = useMemo(() => {
+    const groups = new Map();
+    for (const attempt of studentResults) {
+      const resolvedIndex = attemptModuleIndex(attempt, modules);
+      const index = resolvedIndex >= 0 ? resolvedIndex : attempt.moduleIndex;
+      const key =
+        index != null
+          ? `module:${index}`
+          : `lesson:${attempt.lessonId ?? attempt.moduleTitle}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(attempt);
+    }
+    return groups;
+  }, [studentResults, modules]);
   const rows = useMemo(
-    () => buildRows(quizItems, totals, quizAttempts),
-    [quizItems, quizAttempts, totals],
+    () =>
+      Array.from(questionGroups, ([key, group]) => {
+        const groupTotals = getEnrollmentSummary(group);
+        return buildRows(mainQuizQuestions(group), groupTotals, group).map(
+          (row, index) => ({
+            ...row,
+            key: `${key}:${index}`,
+            moduleTitle: group[0].moduleTitle,
+          }),
+        );
+      }).flat(),
+    [questionGroups],
   );
   const tableOfSpecifications = useMemo(
-    () => buildTableOfSpecifications(rows, totals.totalStudents),
-    [rows, totals.totalStudents],
+    () => buildTableOfSpecifications(rows),
+    [rows],
   );
   const quizAnalytics = useMemo(
-    () => buildQuizAnalytics(activeCourse, rows, totals, quizAttempts),
-    [activeCourse, quizAttempts, rows, totals],
+    () => summarizeMainQuizScores(quizAttempts),
+    [quizAttempts],
   );
   const cognitiveAnalytics = useMemo(
-    () => buildCognitiveAnalytics(rows, totals),
-    [rows, totals],
+    () => buildCognitiveAnalytics(rows),
+    [rows],
   );
-  const questionPageCount = Math.max(
-    Math.ceil(rows.length / QUESTIONS_PER_PAGE),
-    1,
-  );
-  const pagedRows = useMemo(() => {
-    if (printing) return rows;
-    const start = questionPage * QUESTIONS_PER_PAGE;
-    return rows.slice(start, start + QUESTIONS_PER_PAGE);
-  }, [questionPage, rows, printing]);
-  const questionPages = useMemo(
-    () =>
-      Array.from({ length: questionPageCount }, (_, index) => {
-        const start = index * QUESTIONS_PER_PAGE + 1;
-        const end = Math.min((index + 1) * QUESTIONS_PER_PAGE, rows.length);
-        return {
-          end,
-          index,
-          label: String(index + 1),
-          range: `Question ${start}-${end}`,
-          start,
-        };
-      }),
-    [questionPageCount, rows.length],
-  );
-  const currentQuestionRange = questionPages[questionPage]?.range || "";
-  const quizTitle = `Main Quiz ${Number(activeMainQuiz) + 1}`;
-
-  useEffect(() => {
-    setQuestionPage((current) =>
-      Math.min(current, Math.max(questionPageCount - 1, 0)),
-    );
-  }, [questionPageCount]);
+  const singleIndex =
+    moduleIndex !== "all" ? moduleIndex : quizAttempts[0]?.moduleIndex;
+  const quizTitle =
+    questionGroups.size === 1 && singleIndex != null && Number(singleIndex) >= 0
+      ? `Main Quiz ${Number(singleIndex) + 1}`
+      : "Main Quiz";
 
   const selectedQuestionDetails = useMemo(() => {
     if (!selectedQuestion) return null;
 
-    const totalResponses = getQuestionResponseTotal(
-      selectedQuestion,
-      totals.totalStudents,
-    );
+    const totalResponses = getQuestionResponseTotal(selectedQuestion);
 
     return {
       answerDistribution: buildAnswerDistribution(selectedQuestion),
@@ -1925,93 +1326,59 @@ export default function MainQuizAnalysis({
       title: getQuestionAnalysisTitle(selectedQuestion),
       totalResponses,
     };
-  }, [selectedQuestion, totals.totalStudents]);
+  }, [selectedQuestion]);
   const selectedCorrectAnswer =
     selectedQuestionDetails?.answerDistribution.find(
       (answer) => answer.isCorrect,
     );
-  const performanceCards = useMemo(
-    () => [
-      {
-        label: "Mean Score",
-        primary: formatScore(quizAnalytics.averageScore, totals.quizItems),
-        secondary: Number.isFinite(
-          getScorePercent(quizAnalytics.averageScore, totals.quizItems),
-        )
-          ? formatPercent(
-              getScorePercent(quizAnalytics.averageScore, totals.quizItems),
-            )
-          : "",
-      },
-      {
-        label: "Median",
-        primary: formatScore(quizAnalytics.medianScore, totals.quizItems),
-        secondary: Number.isFinite(
-          getScorePercent(quizAnalytics.medianScore, totals.quizItems),
-        )
-          ? formatPercent(
-              getScorePercent(quizAnalytics.medianScore, totals.quizItems),
-            )
-          : "",
-      },
-      {
-        label: "Highest",
-        primary: formatScore(quizAnalytics.highestScore, totals.quizItems),
-        secondary: Number.isFinite(
-          getScorePercent(quizAnalytics.highestScore, totals.quizItems),
-        )
-          ? formatPercent(
-              getScorePercent(quizAnalytics.highestScore, totals.quizItems),
-            )
-          : "",
-      },
-      {
-        label: "Lowest",
-        primary: formatScore(quizAnalytics.lowestScore, totals.quizItems),
-        secondary: Number.isFinite(
-          getScorePercent(quizAnalytics.lowestScore, totals.quizItems),
-        )
-          ? formatPercent(
-              getScorePercent(quizAnalytics.lowestScore, totals.quizItems),
-            )
-          : "",
-      },
-      {
-        label: "Range",
-        primary:
-          Number.isFinite(quizAnalytics.lowestScore) &&
-          Number.isFinite(quizAnalytics.highestScore)
-            ? formatNumber(
-                quizAnalytics.highestScore - quizAnalytics.lowestScore,
-              )
-            : "0",
-        secondary:
-          Number.isFinite(quizAnalytics.lowestScore) &&
-          Number.isFinite(quizAnalytics.highestScore)
-            ? `${formatNumber(quizAnalytics.lowestScore)}-${formatNumber(quizAnalytics.highestScore)}`
-            : "",
-      },
-      {
-        label: "Std. Deviation",
-        primary: Number.isFinite(quizAnalytics.standardDeviation)
-          ? formatNumber(quizAnalytics.standardDeviation)
-          : "0",
-        secondary: quizAnalytics.responseTotal <= 1 ? "1 examinee only" : "",
-      },
-
-      {
-        label: "Pass Rate",
-        primary: Number.isFinite(quizAnalytics.passRate)
-          ? formatPercent(quizAnalytics.passRate)
-          : "0",
-        secondary:
-          Number.isFinite(quizAnalytics.studentsPassed) &&
-          quizAnalytics.responseTotal
-            ? `${quizAnalytics.studentsPassed} / ${quizAnalytics.responseTotal}`
-            : "",
-      },
-    ],
-    [quizAnalytics, totals.quizItems],
+  const {
+    scale,
+    mixedTotals,
+    averageScore,
+    medianScore,
+    highestScore,
+    lowestScore,
+    standardDeviation,
+    passRate,
+    responseTotal,
+    studentsPassed,
+  } = quizAnalytics;
+  const scoreCards = [
+    ["Mean Score", averageScore],
+    ["Median", medianScore],
+    ["Highest", highestScore],
+    ["Lowest", lowestScore],
+  ];
+  const performanceCards = scoreCards.map(([label, score]) => ({
+    label,
+    primary: !Number.isFinite(score)
+      ? "N/A"
+      : mixedTotals
+        ? formatPercent(score)
+        : formatScore(score, scale),
+    secondary:
+      Number.isFinite(score) && !mixedTotals
+        ? formatPercent(getScorePercent(score, scale))
+        : "",
+  }));
+  performanceCards.push(
+    {
+      label: "Range",
+      primary: responseTotal ? formatNumber(highestScore - lowestScore) : "N/A",
+      secondary: responseTotal
+        ? `${formatNumber(lowestScore)}–${formatNumber(highestScore)}${mixedTotals ? "%" : ""}`
+        : "",
+    },
+    {
+      label: "Std. Deviation",
+      primary: responseTotal ? formatNumber(standardDeviation) : "N/A",
+      secondary: mixedTotals ? "percentage points" : "",
+    },
+    {
+      label: "Pass Rate",
+      primary: responseTotal ? formatPercent(passRate) : "N/A",
+      secondary: responseTotal ? `${studentsPassed} / ${responseTotal}` : "",
+    },
   );
   const genderTotal = totals.maleStudents + totals.femaleStudents;
   const malePercent = genderTotal
@@ -2040,30 +1407,29 @@ export default function MainQuizAnalysis({
     ? `conic-gradient(${CHART_COLORS.LOTS} 0 ${lotsPercent}%, ${CHART_COLORS.HOTS} ${lotsPercent}% 100%)`
     : "#edf1f5";
 
-  if (!responseView && !loading && activeCourse && !errorMessage && !quizAttempts.length) {
+  if (!responseView && !quizAttempts.length) {
     return (
       <section className="qa-empty-report qa-print-report">
         <header className="qa-empty-report-heading">
           <span className="qa-empty-eyebrow">MAIN QUIZ ANALYSIS</span>
-          <h2>{activeCourse.title}</h2>
+          <h2>{courseTitle}</h2>
           <p className="qa-empty-module">{moduleTitle}</p>
         </header>
         <div className="qa-empty-state" role="status">
           <h3>No results yet</h3>
-          <p>Results will appear after students complete this module's main quiz.</p>
+          <p>Results will appear after students submit a Main Quiz matching these filters.</p>
         </div>
       </section>
     );
   }
 
-  if (responseView && activeCourse && !errorMessage) {
+  if (responseView) {
     return (
       <MainQuizResponses
         courseId={courseId}
-        courseTitle={`${activeCourse.title} - ${moduleTitle}`}
+        courseTitle={`${courseTitle} - ${moduleTitle}`}
         quizTitle={quizTitle}
-        assessmentTitle={`${activeCourse.title} - ${String(quizTitle || "Main Quiz").replace(/\s+\d+$/, "")}`}
-        passScore={quizAnalytics.passScore}
+        assessmentTitle={`${courseTitle} - ${String(quizTitle || "Main Quiz").replace(/\s+\d+$/, "")}`}
         attempts={studentResults}
         onBack={onSummary}
         embedded
@@ -2073,719 +1439,301 @@ export default function MainQuizAnalysis({
 
   return (
     <section className={`${styles.page} qa-print-report`}>
-      <header className={styles.header}>
-        <div>
-          <h1>Assessment Analysis</h1>
-          <p>
-            {activeCourse?.title ||
-              "Review the full details of this assessment."}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className={styles.backButton}
-          onClick={() => navigate("/professor/students")}
-        >
-          Back to assessments
-        </button>
-      </header>
-
-      {refreshError && <p role="status">{refreshError}</p>}
-      {loading && !activeCourse ? (
-        <div className={styles.message}>Loading assessment details...</div>
-      ) : errorMessage ? (
-        <div className={styles.message}>{errorMessage}</div>
-      ) : activeCourse ? (
-        <section className={styles.detailPanel}>
-          <div className={styles.detailTop}>
-            <div className={styles.detailTitle}>
-              <span className={styles.detailEyebrow}>MAIN QUIZ ANALYSIS</span>
-              <h2>{activeCourse.title}</h2>
-              <p className="qa-report-module">{moduleTitle}</p>
-              <strong>{quizTitle}</strong>
-              {mainQuizKeys.length > 1 && (
-                <label>
-                  Main quiz{" "}
-                  <select
-                    value={activeMainQuiz}
-                    onChange={(event) => {
-                      setSelectedMainQuiz(event.target.value);
-                      setSelectedQuestion(null);
-                      setQuestionPage(0);
-                    }}
-                  >
-                    {mainQuizKeys.map((key) => (
-                      <option key={key} value={key}>
-                        Main Quiz {Number(key) + 1}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <p>
-                {totals.quizItems} Questions &bull;{" "}
-                {formatExamineeCount(totals.totalStudents)}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="qa-print-button"
-              onClick={() => window.print()}
-            >
-              Print
-            </button>
-            <div
-              className={styles.viewSwitch}
-              aria-label="Assessment analysis view"
-            >
-              <span>View as</span>
-              <div>
-                <button
-                  type="button"
-                  className={
-                    activeView === VIEW_MODES.GRAPHICAL
-                      ? styles.activeViewButton
-                      : ""
-                  }
-                  onClick={() => setActiveView(VIEW_MODES.GRAPHICAL)}
-                  aria-pressed={activeView === VIEW_MODES.GRAPHICAL}
-                >
-                  <FiBarChart2 aria-hidden="true" />
-                  Graphical View
-                </button>
-                <button
-                  type="button"
-                  className={
-                    activeView === VIEW_MODES.TABLE
-                      ? styles.activeViewButton
-                      : ""
-                  }
-                  onClick={() => setActiveView(VIEW_MODES.TABLE)}
-                  aria-pressed={activeView === VIEW_MODES.TABLE}
-                >
-                  <FiGrid aria-hidden="true" />
-                  Table
-                </button>
-              </div>
-            </div>
+      <section className={styles.detailPanel}>
+        <div className={styles.detailTop}>
+          <div className={styles.detailTitle}>
+            <span className={styles.detailEyebrow}>MAIN QUIZ ANALYSIS</span>
+            <h2>{courseTitle}</h2>
+            <p className="qa-report-module">{moduleTitle}</p>
+            <strong>{quizTitle}</strong>
+            <p>
+              {rows.length} Questions &bull;{" "}
+              {formatExamineeCount(examinees.size)}
+              {questionGroups.size > 1 && ` • ${studentResults.length} submissions`}
+            </p>
           </div>
 
-          {activeView === VIEW_MODES.GRAPHICAL ? (
-            <div className={styles.graphicalView}>
-              <section className={styles.analysisSection}>
-                <div className={styles.analysisSectionTitle}>
-                  Overall Quiz Analysis
-                </div>
-                <div className={styles.performanceGrid}>
-                  {performanceCards.map((card) => (
-                    <div className={styles.performanceCard} key={card.label}>
-                      <span>{card.label}</span>
-                      <strong>{card.primary}</strong>
-                      {card.secondary ? <em>{card.secondary}</em> : null}
-                    </div>
-                  ))}
-                </div>
-              </section>
-              <MainQuizTableOfSpecifications rows={tableOfSpecifications} />
-              <section className={styles.analysisSection}>
-                <div className={styles.analysisSectionTitle}>
-                  Student Scores
-                </div>
-                {activeView === VIEW_MODES.GRAPHICAL ? (
-                  <div className={styles.studentScoreList}>
-                    {visibleStudentResults.map((student) => (
-                      <article
-                        key={student.id}
-                        className={styles.studentScoreRow}
-                      >
-                        <div>
-                          <strong>{student.name}</strong>
-                          <span>Section: {student.section}</span>
-                        </div>
-                        <div
-                          className={styles.studentScoreBar}
-                          role="img"
-                          aria-label={`${student.name}: ${formatScoreWithPercent(student.earnedScore, student.total)}`}
-                        >
-                          <i
-                            style={{
-                              width: `${Math.max(0, Math.min(100, getScorePercent(student.earnedScore, student.total) || 0))}%`,
-                            }}
-                          />
-                        </div>
-                        <strong>
-                          {formatScoreWithPercent(
-                            student.earnedScore,
-                            student.total,
-                          )}
-                        </strong>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <div className={styles.tableWrap}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Student Name</th>
-                          <th>Section</th>
-                          <th>Score</th>
-                          <th>Percentage</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {visibleStudentResults.map((student) => (
-                          <tr key={student.id}>
-                            <td>{student.name}</td>
-                            <td>{student.section}</td>
-                            <td>
-                              {formatScore(student.earnedScore, student.total)}
-                            </td>
-                            <td>
-                              {formatPercent(
-                                getScorePercent(
-                                  student.earnedScore,
-                                  student.total,
-                                ),
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                {!printing && studentPageCount > 1 && (
-                  <nav
-                    className={styles.studentPagination}
-                    aria-label="Student scores pages"
-                  >
-                    <button
-                      type="button"
-                      disabled={currentStudentPage === 0}
-                      onClick={() => setStudentPage(currentStudentPage - 1)}
-                    >
-                      Previous
-                    </button>
-                    <span aria-live="polite">
-                      Page {currentStudentPage + 1} of {studentPageCount}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={currentStudentPage + 1 === studentPageCount}
-                      onClick={() => setStudentPage(currentStudentPage + 1)}
-                    >
-                      Next
-                    </button>
-                  </nav>
-                )}
-              </section>
+          <button
+            type="button"
+            className="qa-print-button"
+            onClick={() => window.print()}
+          >
+            Print
+          </button>
+        </div>
 
-              <section className={styles.analysisSection}>
-                <div className={styles.analysisSectionTitle}>
-                  Student Overview
-                </div>
-                <div className={styles.pieGrid}>
-                  <article className={styles.pieCard}>
-                    <h3>Examinees</h3>
-                    <div
-                      className={styles.pieGraphic}
-                      style={{
-                        background: genderGradient,
-                      }}
-                      role="img"
-                      aria-label={`Male ${totals.maleStudents}, Female ${totals.femaleStudents}`}
-                    >
-                      <span>Male / Female</span>
-                    </div>
-                    <div className={styles.pieLegend}>
-                      <div>
-                        <ChartLabel label="Male" />
-                        <strong>{totals.maleStudents}</strong>
-                      </div>
-                      <div>
-                        <ChartLabel label="Female" />
-                        <strong>{totals.femaleStudents}</strong>
-                      </div>
-                    </div>
-                  </article>
-
-                  <article className={styles.pieCard}>
-                    <h3>Quiz Result</h3>
-                    <div
-                      className={styles.pieGraphic}
-                      style={{
-                        background: resultTotal
-                          ? `conic-gradient(${CHART_COLORS.Passed} 0 ${passedPercent}%, ${CHART_COLORS.Failed} ${passedPercent}% 100%)`
-                          : "#edf1f5",
-                      }}
-                      role="img"
-                      aria-label={`Passed ${passedCount}, Failed ${failedCount}`}
-                    >
-                      <span>Pass / Fail</span>
-                    </div>
-                    <div className={styles.pieLegend}>
-                      <div>
-                        <ChartLabel label="Passed" />
-                        <strong>{passedCount}</strong>
-                      </div>
-                      <div>
-                        <ChartLabel label="Failed" />
-                        <strong>{failedCount}</strong>
-                      </div>
-                    </div>
-                  </article>
-                </div>
-              </section>
-
-              <section className={styles.analysisSection}>
-                <div className={styles.analysisSectionTitle}>
-                  Cognitive Analysis
-                </div>
-                <div className={styles.pieGrid}>
-                  <article className={styles.pieCard}>
-                    <h3>HOTS / LOTS Distribution</h3>
-                    <div
-                      className={styles.pieGraphic}
-                      style={{ background: cognitiveGradient }}
-                      role="img"
-                      title={cognitiveAnalytics.skills
-                        .map(
-                          (skill) =>
-                            `${skill.label}: ${skill.count} (${formatPercent(skill.percent)})`,
-                        )
-                        .join(", ")}
-                      aria-label={cognitiveAnalytics.skills
-                        .map(
-                          (skill) =>
-                            `${skill.label}: ${skill.count} (${formatPercent(skill.percent)})`,
-                        )
-                        .join(", ")}
-                    >
-                      <span>HOTS / LOTS</span>
-                    </div>
-                    <div className={styles.pieLegend}>
-                      {cognitiveAnalytics.skills.map((skill) => (
-                        <div key={skill.label}>
-                          <ChartLabel label={skill.label} />
-                          <strong>
-                            {skill.count} / {rows.length || 0}{" "}
-                            {formatPercent(skill.percent)}
-                          </strong>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-
-                  <article className={`${styles.pieCard} ${styles.levelCard}`}>
-                    <h3>Cognitive Levels</h3>
-                    <div className={styles.levelRows}>
-                      {cognitiveAnalytics.levels.map((level) => (
-                        <div key={level.label}>
-                          <span>{level.label}</span>
-                          <strong>{level.count}</strong>
-                          <em>{formatPercent(level.percent)}</em>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                </div>
-              </section>
-
-              <section className={styles.analysisSection}>
-                <div className={styles.analysisSectionTitle}>
-                  LOTS / HOTS Performance
-                </div>
-                <div className={styles.skillPerformance}>
-                  {cognitiveAnalytics.performance.map((skill) => (
-                    <div
-                      className={styles.skillPerformanceRow}
-                      key={skill.label}
-                    >
-                      <span>{skill.label}</span>
-                      <div className={styles.skillTrack}>
-                        <i
-                          style={{ width: `${Math.min(skill.percent, 100)}%` }}
-                        />
-                      </div>
-                      <strong>{formatPercent(skill.percent)}</strong>
-                    </div>
-                  ))}
-                </div>
-
-                <div className={styles.thinkingSkillMeaning}>
-                  <span>
-                    <strong>LOTS</strong> means Lower-Order Thinking Skills.
-                  </span>
-                  <span>
-                    <strong>HOTS</strong> means Higher-Order Thinking Skills.
-                  </span>
-                </div>
-              </section>
-
-              <section className={styles.analysisSection}>
-                <div className={styles.analysisSectionTitle}>
-                  Question Analysis
-                </div>
-                {!rows.length && (
-                  <p>No Main Quiz question responses recorded yet.</p>
-                )}
-
-                <div className={styles.questionResponses}>
-                  {rows.map((item) => {
-                    const totalResponses = getQuestionResponseTotal(
-                      item,
-                      totals.totalStudents,
-                    );
-                    const correctPercent =
-                      (item.totalCorrect / Math.max(totalResponses, 1)) * 100;
-
-                    return (
-                      <article className={styles.responseCard} key={item.label}>
-                        <header>
-                          <span className={styles.questionNumber}>
-                            {item.label}
-                          </span>
-                          <h4>{item.question}</h4>
-                          <div className={styles.questionResult}>
-                            <span>
-                              {item.totalCorrect} / {totalResponses} Correct
-                            </span>
-                            <strong>{formatPercent(correctPercent)}</strong>
-                          </div>
-                        </header>
-
-                        <div
-                          className={styles.questionProgress}
-                          aria-label={`${formatPercent(correctPercent)} correct`}
-                        >
-                          <i
-                            style={{
-                              width: `${Math.min(correctPercent, 100)}%`,
-                            }}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          className={styles.questionViewButton}
-                          onClick={() => setSelectedQuestion(item)}
-                        >
-                          View Analysis
-                        </button>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
+        <div className={styles.graphicalView}>
+          <section className={styles.analysisSection}>
+            <div className={styles.analysisSectionTitle}>
+              Overall Quiz Analysis
             </div>
-          ) : (
-            <div className={styles.tableView}>
-              <section className={styles.analysisSection}>
-                <div className={styles.analysisSectionTitle}>
-                  Overall Quiz Analysis
+            <div className={styles.performanceGrid}>
+              {performanceCards.map((card) => (
+                <div className={styles.performanceCard} key={card.label}>
+                  <span>{card.label}</span>
+                  <strong>{card.primary}</strong>
+                  {card.secondary ? <em>{card.secondary}</em> : null}
                 </div>
-                <div className={`${styles.tableWrap} ${styles.summaryTable}`}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Metric</th>
-                        <th>Result</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>Quiz Title</td>
-                        <td>{quizTitle}</td>
-                      </tr>
-                      <tr>
-                        <td>Total Questions</td>
-                        <td>{totals.quizItems}</td>
-                      </tr>
-                      <tr>
-                        <td>Total Examinees</td>
-                        <td>{totals.totalStudents}</td>
-                      </tr>
-                      <tr>
-                        <td>Male Examinees</td>
-                        <td>{totals.maleStudents}</td>
-                      </tr>
-                      <tr>
-                        <td>Female Examinees</td>
-                        <td>{totals.femaleStudents}</td>
-                      </tr>
-                      <tr>
-                        <td>Mean Score</td>
-                        <td>
-                          {formatScoreWithPercent(
-                            quizAnalytics.averageScore,
-                            totals.quizItems,
-                          )}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Median Score</td>
-                        <td>
-                          {formatScoreWithPercent(
-                            quizAnalytics.medianScore,
-                            totals.quizItems,
-                          )}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Highest Score</td>
-                        <td>
-                          {formatScoreWithPercent(
-                            quizAnalytics.highestScore,
-                            totals.quizItems,
-                          )}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Lowest Score</td>
-                        <td>
-                          {formatScoreWithPercent(
-                            quizAnalytics.lowestScore,
-                            totals.quizItems,
-                          )}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Std. Deviation</td>
-                        <td>
-                          {Number.isFinite(quizAnalytics.standardDeviation)
-                            ? formatNumber(quizAnalytics.standardDeviation)
-                            : "0"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Range</td>
-                        <td>
-                          {Number.isFinite(quizAnalytics.lowestScore) &&
-                          Number.isFinite(quizAnalytics.highestScore)
-                            ? `${formatNumber(quizAnalytics.highestScore - quizAnalytics.lowestScore)} (${formatNumber(quizAnalytics.lowestScore)}-${formatNumber(quizAnalytics.highestScore)})`
-                            : "0"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Students Passed</td>
-                        <td>
-                          {Number.isFinite(quizAnalytics.studentsPassed)
-                            ? `${quizAnalytics.studentsPassed} / ${quizAnalytics.responseTotal}`
-                            : "0"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Students Failed</td>
-                        <td>
-                          {Number.isFinite(quizAnalytics.studentsFailed)
-                            ? `${quizAnalytics.studentsFailed} / ${quizAnalytics.responseTotal}`
-                            : "0"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Pass Rate</td>
-                        <td>
-                          {Number.isFinite(quizAnalytics.passRate)
-                            ? formatPercent(quizAnalytics.passRate)
-                            : "0"}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <h3 className={styles.chartTitle}>Score Distribution</h3>
-                <div className={`${styles.tableWrap} ${styles.scoreTable}`}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Score</th>
-                        <th>Number of Students</th>
-                        <th>Percentage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {quizAnalytics.scoreDistribution.length > 0 ? (
-                        quizAnalytics.scoreDistribution
-                          .slice()
-                          .sort((first, second) => second.score - first.score)
-                          .map((bucket) => (
-                            <tr key={bucket.score}>
-                              <td>{bucket.score}</td>
-                              <td>{bucket.count}</td>
-                              <td>
-                                {formatPercent(
-                                  (bucket.count /
-                                    Math.max(quizAnalytics.responseTotal, 1)) *
-                                    100,
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                      ) : (
-                        <tr>
-                          <td colSpan="3">No score attempts recorded yet.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-              <MainQuizTableOfSpecifications rows={tableOfSpecifications} />
-              <section className={styles.analysisSection}>
-                <div className={styles.analysisSectionTitle}>
-                  Student Scores
-                </div>
-                {activeView === VIEW_MODES.GRAPHICAL ? (
-                  <div className={styles.studentScoreList}>
-                    {visibleStudentResults.map((student) => (
-                      <article
-                        key={student.id}
-                        className={styles.studentScoreRow}
-                      >
-                        <div>
-                          <strong>{student.name}</strong>
-                          <span>Section: {student.section}</span>
-                        </div>
-                        <div
-                          className={styles.studentScoreBar}
-                          role="img"
-                          aria-label={`${student.name}: ${formatScoreWithPercent(student.earnedScore, student.total)}`}
-                        >
-                          <i
-                            style={{
-                              width: `${Math.max(0, Math.min(100, getScorePercent(student.earnedScore, student.total) || 0))}%`,
-                            }}
-                          />
-                        </div>
-                        <strong>
-                          {formatScoreWithPercent(
-                            student.earnedScore,
-                            student.total,
-                          )}
-                        </strong>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <div className={styles.tableWrap}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Student Name</th>
-                          <th>Section</th>
-                          <th>Score</th>
-                          <th>Percentage</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {visibleStudentResults.map((student) => (
-                          <tr key={student.id}>
-                            <td>{student.name}</td>
-                            <td>{student.section}</td>
-                            <td>
-                              {formatScore(student.earnedScore, student.total)}
-                            </td>
-                            <td>
-                              {formatPercent(
-                                getScorePercent(
-                                  student.earnedScore,
-                                  student.total,
-                                ),
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                {!printing && studentPageCount > 1 && (
-                  <nav
-                    className={styles.studentPagination}
-                    aria-label="Student scores pages"
-                  >
-                    <button
-                      type="button"
-                      disabled={currentStudentPage === 0}
-                      onClick={() => setStudentPage(currentStudentPage - 1)}
-                    >
-                      Previous
-                    </button>
-                    <span aria-live="polite">
-                      Page {currentStudentPage + 1} of {studentPageCount}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={currentStudentPage + 1 === studentPageCount}
-                      onClick={() => setStudentPage(currentStudentPage + 1)}
-                    >
-                      Next
-                    </button>
-                  </nav>
-                )}
-              </section>
-
-              <section className={styles.analysisSection}>
-                <div className={styles.analysisSectionTitle}>
-                  Question Analysis
-                </div>
-                {!rows.length && (
-                  <p>No Main Quiz question responses recorded yet.</p>
-                )}
-
-                <div
-                  className={`${styles.tableWrap} ${styles.questionSummaryTable}`}
+              ))}
+            </div>
+          </section>
+          <MainQuizTableOfSpecifications rows={tableOfSpecifications} />
+          <section className={styles.analysisSection}>
+            <div className={styles.analysisSectionTitle}>
+              Student Scores
+            </div>
+            <div className={styles.studentScoreList}>
+              {visibleStudentResults.map((student) => (
+                <article
+                  key={student.id}
+                  className={styles.studentScoreRow}
                 >
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Question</th>
-                        <th>Correct</th>
-                        <th>Incorrect</th>
-                        <th>Correct %</th>
-                        <th>Female Correct</th>
-                        <th>Male Correct</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((item) => (
-                        <tr key={item.label}>
-                          <td>{item.label}</td>
-                          <td>
-                            {item.totalCorrect}/{totals.totalStudents}
-                          </td>
-                          <td>
-                            {item.incorrect}/{totals.totalStudents}
-                          </td>
-                          <td>{formatPercent(item.percent)}</td>
-                          <td>
-                            {item.femaleCorrect}/{totals.femaleStudents}
-                          </td>
-                          <td>
-                            {item.maleCorrect}/{totals.maleStudents}
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedQuestion(item)}
-                            >
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                  <div>
+                    <strong>{student.name}</strong>
+                    <span>Section: {student.section}</span>
+                    {questionGroups.size > 1 && <span>{student.moduleTitle}</span>}
+                  </div>
+                  <div
+                    className={styles.studentScoreBar}
+                    role="img"
+                    aria-label={`${student.name}: ${formatScoreWithPercent(student.earnedScore, student.total)}`}
+                  >
+                    <i
+                      style={{
+                        width: `${Math.max(0, Math.min(100, getScorePercent(student.earnedScore, student.total) || 0))}%`,
+                      }}
+                    />
+                  </div>
+                  <strong>
+                    {formatScoreWithPercent(
+                      student.earnedScore,
+                      student.total,
+                    )}
+                  </strong>
+                </article>
+              ))}
             </div>
-          )}
-        </section>
-      ) : null}
+            {!printing && studentPageCount > 1 && (
+              <nav
+                className={styles.studentPagination}
+                aria-label="Student scores pages"
+              >
+                <button
+                  type="button"
+                  disabled={currentStudentPage === 0}
+                  onClick={() => setStudentPage(currentStudentPage - 1)}
+                >
+                  Previous
+                </button>
+                <span aria-live="polite">
+                  Page {currentStudentPage + 1} of {studentPageCount}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentStudentPage + 1 === studentPageCount}
+                  onClick={() => setStudentPage(currentStudentPage + 1)}
+                >
+                  Next
+                </button>
+              </nav>
+            )}
+          </section>
+
+          <section className={styles.analysisSection}>
+            <div className={styles.analysisSectionTitle}>
+              Student Overview
+            </div>
+            <div className={styles.pieGrid}>
+              <article className={styles.pieCard}>
+                <h3>Examinees</h3>
+                <div
+                  className={styles.pieGraphic}
+                  style={{
+                    background: genderGradient,
+                  }}
+                  role="img"
+                  aria-label={`Male ${totals.maleStudents}, Female ${totals.femaleStudents}`}
+                >
+                  <span>Male / Female</span>
+                </div>
+                <div className={styles.pieLegend}>
+                  <div>
+                    <ChartLabel label="Male" />
+                    <strong>{totals.maleStudents}</strong>
+                  </div>
+                  <div>
+                    <ChartLabel label="Female" />
+                    <strong>{totals.femaleStudents}</strong>
+                  </div>
+                </div>
+              </article>
+
+              <article className={styles.pieCard}>
+                <h3>Quiz Result</h3>
+                <div
+                  className={styles.pieGraphic}
+                  style={{
+                    background: resultTotal
+                      ? `conic-gradient(${CHART_COLORS.Passed} 0 ${passedPercent}%, ${CHART_COLORS.Failed} ${passedPercent}% 100%)`
+                      : "#edf1f5",
+                  }}
+                  role="img"
+                  aria-label={`Passed ${passedCount}, Failed ${failedCount}`}
+                >
+                  <span>Pass / Fail</span>
+                </div>
+                <div className={styles.pieLegend}>
+                  <div>
+                    <ChartLabel label="Passed" />
+                    <strong>{passedCount}</strong>
+                  </div>
+                  <div>
+                    <ChartLabel label="Failed" />
+                    <strong>{failedCount}</strong>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section className={styles.analysisSection}>
+            <div className={styles.analysisSectionTitle}>
+              Cognitive Analysis
+            </div>
+            <div className={styles.pieGrid}>
+              <article className={styles.pieCard}>
+                <h3>HOTS / LOTS Distribution</h3>
+                <div
+                  className={styles.pieGraphic}
+                  style={{ background: cognitiveGradient }}
+                  role="img"
+                  title={cognitiveAnalytics.skills
+                    .map(
+                      (skill) =>
+                        `${skill.label}: ${skill.count} (${formatPercent(skill.percent)})`,
+                    )
+                    .join(", ")}
+                  aria-label={cognitiveAnalytics.skills
+                    .map(
+                      (skill) =>
+                        `${skill.label}: ${skill.count} (${formatPercent(skill.percent)})`,
+                    )
+                    .join(", ")}
+                >
+                  <span>HOTS / LOTS</span>
+                </div>
+                <div className={styles.pieLegend}>
+                  {cognitiveAnalytics.skills.map((skill) => (
+                    <div key={skill.label}>
+                      <ChartLabel label={skill.label} />
+                      <strong>
+                        {skill.count} / {rows.length || 0}{" "}
+                        {formatPercent(skill.percent)}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className={`${styles.pieCard} ${styles.levelCard}`}>
+                <h3>Cognitive Levels</h3>
+                <div className={styles.levelRows}>
+                  {cognitiveAnalytics.levels.map((level) => (
+                    <div key={level.label}>
+                      <span>{level.label}</span>
+                      <strong>{level.count}</strong>
+                      <em>{formatPercent(level.percent)}</em>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section className={styles.analysisSection}>
+            <div className={styles.analysisSectionTitle}>
+              LOTS / HOTS Performance
+            </div>
+            <div className={styles.skillPerformance}>
+              {cognitiveAnalytics.performance.map((skill) => (
+                <div
+                  className={styles.skillPerformanceRow}
+                  key={skill.label}
+                >
+                  <span>{skill.label}</span>
+                  <div className={styles.skillTrack}>
+                    <i
+                      style={{ width: `${Math.min(skill.percent, 100)}%` }}
+                    />
+                  </div>
+                  <strong>{formatPercent(skill.percent)}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.thinkingSkillMeaning}>
+              <span>
+                <strong>LOTS</strong> means Lower-Order Thinking Skills.
+              </span>
+              <span>
+                <strong>HOTS</strong> means Higher-Order Thinking Skills.
+              </span>
+            </div>
+          </section>
+
+          <section className={styles.analysisSection}>
+            <div className={styles.analysisSectionTitle}>
+              Question Analysis
+            </div>
+            {!rows.length && (
+              <p>No Main Quiz question responses recorded yet.</p>
+            )}
+
+            <div className={styles.questionResponses}>
+              {rows.map((item) => {
+                const totalResponses = getQuestionResponseTotal(item);
+                const correctPercent =
+                  (item.totalCorrect / Math.max(totalResponses, 1)) * 100;
+
+                return (
+                  <article className={styles.responseCard} key={item.key}>
+                    <header>
+                      <span className={styles.questionNumber}>
+                        {item.label}{questionGroups.size > 1 && ` · ${item.moduleTitle}`}
+                      </span>
+                      <h4>{item.question}</h4>
+                      <div className={styles.questionResult}>
+                        <span>
+                          {item.totalCorrect} / {totalResponses} Correct
+                        </span>
+                        <strong>{formatPercent(correctPercent)}</strong>
+                      </div>
+                    </header>
+
+                    <div
+                      className={styles.questionProgress}
+                      aria-label={`${formatPercent(correctPercent)} correct`}
+                    >
+                      <i
+                        style={{
+                          width: `${Math.min(correctPercent, 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.questionViewButton}
+                      onClick={() => setSelectedQuestion(item)}
+                    >
+                      View Analysis
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </section>
 
       {selectedQuestion && selectedQuestionDetails && (
         <div

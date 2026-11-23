@@ -43,3 +43,37 @@ export function mainQuizQuestions(attempts) {
     };
   });
 }
+
+export function summarizeMainQuizScores(attempts) {
+  const scored = attempts.filter(
+    (a) => Number.isFinite(a.score) && a.total > 0,
+  );
+  const totals = new Set(scored.map((a) => a.total));
+  const mixedTotals = totals.size > 1;
+  const scale = mixedTotals ? 100 : (scored[0]?.total ?? 0);
+  const scores = scored
+    .map((a) => (mixedTotals ? (100 * a.score) / a.total : a.score))
+    .sort((a, b) => a - b);
+  const n = scores.length;
+  const mean = n ? scores.reduce((sum, score) => sum + score, 0) / n : null;
+  const passed = scored.filter((a) => a.score >= a.passScore).length;
+  return {
+    scale,
+    mixedTotals,
+    averageScore: mean,
+    medianScore: n
+      ? (scores[Math.floor((n - 1) / 2)] + scores[Math.floor(n / 2)]) / 2
+      : null,
+    highestScore: scores.at(-1),
+    lowestScore: scores[0],
+    standardDeviation: n
+      ? Math.sqrt(
+          scores.reduce((sum, score) => sum + (score - mean) ** 2, 0) / n,
+        )
+      : null,
+    passRate: n ? (100 * passed) / n : null,
+    studentsPassed: passed,
+    studentsFailed: n - passed,
+    responseTotal: n,
+  };
+}
