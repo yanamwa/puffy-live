@@ -39,13 +39,6 @@ export default function CoverageModules({ value, onChange, busy = false }) {
               }
             />
           </label>
-          {(module.description || module.topics?.length > 0 || module.learning_objectives) && <details>
-            <summary>Module coverage</summary>
-            {module.syllabus_description && <p><strong>Description from the syllabus</strong> {module.syllabus_description}</p>}
-            {module.description && <p><strong>Topic-based summary</strong> {module.description}</p>}
-            {!!module.topics?.length && <ol>{module.topics.map((topic,i) => <li key={i}>{topic}</li>)}</ol>}
-            {module.learning_objectives && <p><strong>Learning objectives</strong> {module.learning_objectives}</p>}
-          </details>}
           <button
             className="catalog-button catalog-coverage-remove"
             type="button"
@@ -55,6 +48,15 @@ export default function CoverageModules({ value, onChange, busy = false }) {
           >
             Remove
           </button>
+          {(module.syllabus_description || module.description || module.topics?.length > 0 || module.learning_objectives) && (
+            <details>
+              <summary>Module coverage</summary>
+              {module.syllabus_description && <p><strong>Description from the syllabus</strong> {module.syllabus_description}</p>}
+              {module.description && <p><strong>Topic-based summary</strong> {module.description}</p>}
+              {!!module.topics?.length && <ol>{module.topics.map((topic, i) => <li key={i}>{topic}</li>)}</ol>}
+              {module.learning_objectives && <p><strong>Learning objectives</strong> {module.learning_objectives}</p>}
+            </details>
+          )}
         </div>
       ))}
       <button

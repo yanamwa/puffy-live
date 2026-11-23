@@ -27,77 +27,14 @@ function discardUpload(uploadId) {
   }
 }
 
-export function CatalogFields({
-  value,
-  onChange,
-  readOnly = false,
-  showPrograms = true,
-}) {
-  const field = (key, label, type = "text", required = false) => {
-    const update = readOnly
-      ? undefined
-      : (e) => onChange({ ...value, [key]: e.target.value });
-    return (
-      <label key={key}>
-        {label}
-        {required && !readOnly ? " *" : ""}
-        {key === "description" ? (
-          <textarea
-            value={value[key] || ""}
-            onChange={update}
-            readOnly={readOnly}
-            placeholder={readOnly ? "Not detected" : undefined}
-            maxLength={15000}
-          />
-        ) : (
-          <input
-            type={type}
-            value={value[key] ?? ""}
-            onChange={update}
-            readOnly={readOnly}
-            placeholder={readOnly ? "Not detected" : undefined}
-            required={required && !readOnly}
-            maxLength={key === "code" ? 50 : 255}
-            min={type === "number" ? 0 : undefined}
-            max={type === "number" ? 99 : undefined}
-            step={type === "number" ? "0.5" : undefined}
-          />
-        )}
-      </label>
-    );
-  };
-  return (
-    <div className="catalog-fields">
-      {field("code", "Course code", "text", true)}
-      {field("title", "Course title", "text", true)}
-      {field("description", "Course description")}
-      {field("units", "Credit units", "number")}
-      {showPrograms && (
-        <fieldset>
-          <legend>Applicable programs</legend>
-          {["BSIT", "BSCS"].map((program) => (
-            <label className="catalog-check" key={program}>
-              <input
-                type="checkbox"
-                disabled={readOnly}
-                checked={(value.programs || []).includes(program)}
-                onChange={(e) =>
-                  onChange({
-                    ...value,
-                    programs: e.target.checked
-                      ? [...(value.programs || []), program]
-                      : (value.programs || []).filter((p) => p !== program),
-                  })
-                }
-              />
-              {program}
-            </label>
-          ))}
-        </fieldset>
-      )}
-    </div>
-  );
-}
+const syllabusFields = [
+  ["code", "Course code"],
+  ["units", "Credit units"],
+  ["title", "Course title"],
+  ["description", "Course description"],
+  ["academic_year", "Syllabus academic year"],
+  ["semester", "Syllabus semester"],
+];
 export default function SyllabusWizard({ course, onClose, onSaved }) {
   const [upload, setUpload] = useState(null),
     [details, setDetails] = useState({ programs: [] }),
@@ -361,33 +298,20 @@ export default function SyllabusWizard({ course, onClose, onSaved }) {
           <div className="catalog-review">
             <PdfPreview path={`/uploads/${upload.uploadId}/pdf`} />
             <div className="catalog-fields">
-              <CatalogFields
-                value={details}
-                readOnly
-                showPrograms={false}
-              />
-              <label>
-                Syllabus academic year
-                <input
-                  value={details.academic_year || ""}
-                  placeholder="Not detected"
-                  readOnly
-                />
-              </label>
-              <label>
-                Syllabus semester
-                <input
-                  value={details.semester || ""}
-                  placeholder="Not detected"
-                  readOnly
-                />
-              </label>
-                {!!details.course_outcomes?.length && <details><summary>Course learning outcomes</summary><ul>{details.course_outcomes.map((s,i) => <li key={i}>{s}</li>)}</ul></details>}
-                {!!details.references?.length && <details><summary>References listed in the syllabus</summary>
-                  {details.references.map((group,i) => <section key={i}><strong>{group.category}</strong>
-                    <ul>{group.entries.map((entry,j) => <li key={j}>{entry.text} (p. {entry.source_page})</li>)}</ul></section>)}
-                </details>}
-                <CoverageModules
+              <dl className="catalog-info catalog-extracted-fields" aria-label="Extracted syllabus details">
+                {syllabusFields.map(([key, label]) => (
+                  <div key={key} className={key === "title" || key === "description" ? "catalog-field-wide" : undefined}>
+                    <dt>{label}</dt>
+                    <dd>{String(details[key] ?? "").trim() || "Not detected"}</dd>
+                  </div>
+                ))}
+              </dl>
+              {!!details.course_outcomes?.length && <details><summary>Course learning outcomes</summary><ul>{details.course_outcomes.map((s,i) => <li key={i}>{s}</li>)}</ul></details>}
+              {!!details.references?.length && <details><summary>References listed in the syllabus</summary>
+                {details.references.map((group,i) => <section key={i}><strong>{group.category}</strong>
+                  <ul>{group.entries.map((entry,j) => <li key={j}>{entry.text} (p. {entry.source_page})</li>)}</ul></section>)}
+              </details>}
+              <CoverageModules
                 value={details.coverage_modules}
                 busy={busy}
                 onChange={changeCoverage}
